@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --color-custom-teal: #007071;
+}
+
+.input {
+  @apply w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-custom-teal focus:ring-2 focus:ring-custom-teal/30 transition-all duration-200 bg-white placeholder-gray-400;
+}
