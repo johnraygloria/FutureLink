@@ -4,7 +4,6 @@ export const useScreeningDropdown = () => {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Click outside handler to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {

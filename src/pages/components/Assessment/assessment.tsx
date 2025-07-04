@@ -78,43 +78,36 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
     setLoading(true);
     setStatus('');
 
-    // 1. Fetch existing applicant data
     let applicantData = { ...emptyApplicant, NO: no };
     try {
       const res = await fetch(`${GOOGLE_SCRIPT_URL}?NO=${encodeURIComponent(no)}`);
       if (res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data)) {
-          // Map array to object by column order
           Object.keys(emptyApplicant).forEach((key, idx) => {
             applicantData[key] = data[idx] || "";
           });
         }
       }
     } catch (err) {
-      // If fetch fails, just use emptyApplicant
     }
 
-    // 2. Set all company columns to "", except the selected one to "Ok"
     companyColumns.forEach(col => {
       applicantData[col] = col === selectedCompany ? "Ok" : "";
     });
 
-    // Set the new fields from state
     applicantData["REQUIREMENTS_STATUS"] = requirementsStatus;
     applicantData["FINAL_INTERVIEW_STATUS"] = finalInterviewStatus;
     applicantData["MEDICAL_STATUS"] = medicalStatus;
     applicantData["STATUS_REMARKS"] = statusRemarks;
     applicantData["APPLICANT_REMARKS"] = applicantRemarks;
 
-    // 3. Prepare form data
     const formData = new URLSearchParams();
     Object.entries(applicantData).forEach(([key, value]) => {
       formData.append(key, value);
     });
     formData.append('company', selectedCompany);
 
-    // 4. POST to Google Script
     try {
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',

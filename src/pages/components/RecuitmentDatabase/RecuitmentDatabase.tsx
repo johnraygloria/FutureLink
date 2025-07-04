@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import ApplicantSidebar from '../applicants/ApplicantSidebar';
 import type { User } from '../../../types/applicant';
 
-// Mock data for demonstration
 const mockApplicants: User[] = [
   {
     id: 1,

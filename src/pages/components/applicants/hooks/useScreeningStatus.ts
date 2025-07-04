@@ -75,7 +75,6 @@ export const useScreeningStatus = () => {
     if (status === 'not_applicable') {
       return statusConfig.not_applicable;
     }
-    // Fallback for any unexpected status values
     return statusConfig.pending;
   };
 

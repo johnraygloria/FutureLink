@@ -44,7 +44,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="mt-2 text-gray-600">
@@ -52,7 +51,6 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((item) => {
           const Icon = item.icon;
@@ -84,7 +82,6 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Recent Activity */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <h3 className="text-lg leading-6 font-medium text-gray-900">
@@ -96,25 +93,25 @@ export default function Dashboard() {
                 {[
                   {
                     id: 1,
-                    content: 'New applicant John Doe submitted application',
+                    content: 'New applicant John Ray Gloria submitted application',
                     date: '2 hours ago',
                     type: 'application',
                   },
                   {
                     id: 2,
-                    content: 'Sarah Smith completed screening process',
+                    content: 'John Neo Lopez completed screening process',
                     date: '4 hours ago',
                     type: 'screening',
                   },
                   {
                     id: 3,
-                    content: 'Michael Johnson uploaded required documents',
+                    content: 'Robles Dominique uploaded required documents',
                     date: '6 hours ago',
                     type: 'document',
                   },
                   {
                     id: 4,
-                    content: 'Lisa Brown scheduled interview',
+                    content: 'Rey John Ebe scheduled interview',
                     date: '1 day ago',
                     type: 'interview',
                   },

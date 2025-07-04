@@ -2,9 +2,7 @@ import React, { useState } from "react";
 import type { User, ApplicationStatus, ScreeningStatus } from "../../../types/applicant";
 import ApplicantSidebar from "../applicants/ApplicantSidebar";
 
-// Dummy data for demonstration; replace with real data fetching as needed
 const initialApplicants: User[] = [
-  // Example deployed applicant
   {
     id: 1,
     name: "Juan Dela Cruz",
@@ -39,9 +37,7 @@ const initialApplicants: User[] = [
     medicalStatus: "Cleared",
     statusRemarks: "Ready for deployment",
     applicantRemarks: "",
-    // Add more fields as needed
   },
-  // ... more applicants
 ];
 
 const EngagementHR: React.FC = () => {
@@ -49,7 +45,6 @@ const EngagementHR: React.FC = () => {
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<User[]>(initialApplicants);
 
-  // Only show deployed applicants
   const deployedApplicants = users.filter(user => user.status === "Deployed");
 
   const handleUserClick = (user: User) => {

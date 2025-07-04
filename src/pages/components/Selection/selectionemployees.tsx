@@ -2,7 +2,6 @@ import { useState } from "react";
 import { IconArrowLeft, IconDatabase } from "@tabler/icons-react";
 import ApplicantSidebar from "../applicants/ApplicantSidebar";
 
-// Define Employee type
 interface Employee {
   id: number;
   name: string;
@@ -26,7 +25,6 @@ const selectionItems = [
   { key: "sbma", label: "SBMA ID & GATE PASS" },
 ];
 
-// Dummy GoogleSheetsStatus component for placeholder
 const GoogleSheetsStatus = ({ isConnected, loading, error, lastSyncTime, onRetry, onManualSync }: any) => (
   <div className="p-2 border rounded bg-gray-50 text-xs">
     <span>Status: {isConnected ? "Connected" : "Disconnected"}</span>

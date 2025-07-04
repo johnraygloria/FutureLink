@@ -25,7 +25,6 @@ const DocumentChecklistForm: React.FC<DocumentChecklistFormProps> = ({ form, han
 
   return (
     <>
-      {/* Flex row for heading and status dropdown */}
       <div className="flex justify-between items-center mb-4 col-span-full">
         <h3 className="text-lg font-semibold">Checklist Requirements</h3>
         <label className="flex flex-col gap-1 min-w-[200px]">

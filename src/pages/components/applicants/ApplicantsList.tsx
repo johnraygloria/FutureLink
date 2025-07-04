@@ -82,7 +82,6 @@ const ApplicantsList: React.FC = () => {
         },
         body: new URLSearchParams(payload).toString(),
       });
-      // Optionally, add to local state for UI update
       const newApplicant: User = {
         id: Date.now(),
         name: data.name || `${data.firstName} ${data.lastName}`,
@@ -117,7 +116,6 @@ const ApplicantsList: React.FC = () => {
         medicalStatus: data.medicalStatus || '',
         statusRemarks: data.statusRemarks || '',
         applicantRemarks: data.applicantRemarks || '',
-        // ... add other fields as needed ...
       };
       setUsers(prev => [...prev, newApplicant]);
     } catch (error) {
@@ -126,11 +124,9 @@ const ApplicantsList: React.FC = () => {
   };
 
   const handleStatusChangeAndSync = async (userId: number, newStatus: ApplicationStatus) => {
-    // Find the user
     const user = users.find(u => u.id === userId);
     if (!user) return;
 
-    // Build the payload with all fields, but update status
     const payload = {
       NO: user.no,
       REFFERED_BY: user.referredBy,
@@ -156,7 +152,7 @@ const ApplicantsList: React.FC = () => {
       THALESTE: user.thaleste || '',
       AOLLY: user.aolly || '',
       ENJOY: user.enjoy || '',
-      STATUS: newStatus, // <-- update status here
+      STATUS: newStatus, 
       REQUIREMENTS_STATUS: user.requirementsStatus || '',
       FINAL_INTERVIEW_STATUS: user.finalInterviewStatus || '',
       MEDICAL_STATUS: user.medicalStatus || '',
@@ -164,12 +160,10 @@ const ApplicantsList: React.FC = () => {
       APPLICANT_REMARKS: user.applicantRemarks || '',
     };
 
-    // Update local state
     setUsers(prevUsers =>
       prevUsers.map(u => u.id === userId ? { ...u, status: newStatus } : u)
     );
 
-    // Send to Google Sheets
     await fetch(GOOGLE_SHEET_URL, {
       method: "POST",
       mode: "no-cors",
