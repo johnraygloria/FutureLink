@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const companies = [
   'DATIAN',
@@ -50,10 +50,19 @@ const emptyApplicant = {
   APPLICANT_REMARKS: ""
 };
 
-const Assessment: React.FC = () => {
+interface AssessmentProps {
+  applicantNo?: string;
+}
+
+const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
   const [selectedCompany, setSelectedCompany] = useState<string>('');
   const [status, setStatus] = useState<string>('');
-  const [no, setNo] = useState<string>('');
+  const [no, setNo] = useState<string>(applicantNo || '');
+  const [requirementsStatus, setRequirementsStatus] = useState<string>('');
+  const [finalInterviewStatus, setFinalInterviewStatus] = useState<string>('');
+  const [medicalStatus, setMedicalStatus] = useState<string>('');
+  const [statusRemarks, setStatusRemarks] = useState<string>('');
+  const [applicantRemarks, setApplicantRemarks] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   const handleCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -91,6 +100,13 @@ const Assessment: React.FC = () => {
       applicantData[col] = col === selectedCompany ? "Ok" : "";
     });
 
+    // Set the new fields from state
+    applicantData["REQUIREMENTS_STATUS"] = requirementsStatus;
+    applicantData["FINAL_INTERVIEW_STATUS"] = finalInterviewStatus;
+    applicantData["MEDICAL_STATUS"] = medicalStatus;
+    applicantData["STATUS_REMARKS"] = statusRemarks;
+    applicantData["APPLICANT_REMARKS"] = applicantRemarks;
+
     // 3. Prepare form data
     const formData = new URLSearchParams();
     Object.entries(applicantData).forEach(([key, value]) => {
@@ -115,6 +131,12 @@ const Assessment: React.FC = () => {
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (applicantNo && applicantNo !== no) {
+      setNo(applicantNo);
+    }
+  }, [applicantNo]);
+
   return (
     <section
       style={{
@@ -122,28 +144,33 @@ const Assessment: React.FC = () => {
         maxWidth: 520,
         margin: '2rem auto',
         background: '#fff',
-        borderRadius: 16,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+        borderRadius: 20,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
         border: '1px solid #ececec',
+        transition: 'box-shadow 0.2s',
       }}
     >
-      <h2 style={{ fontWeight: 700, fontSize: '1.5rem', marginBottom: 4 }}>Employee Screening & Assessment</h2>
-      <hr style={{ border: 'none', borderTop: '1px solid #ececec', margin: '0 0 2rem 0' }} />
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Select company for fit check:</label>
+      <h2 style={{ fontWeight: 800, fontSize: '2rem', marginBottom: 8, letterSpacing: '-1px', color: '#1e293b' }}>Employee Screening & Assessment</h2>
+      <hr style={{ border: 'none', borderTop: '2px solid #e5e7eb', margin: '0 0 2rem 0' }} />
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div>
+          <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Select company for fit check</label>
           <select
             value={selectedCompany}
             onChange={handleCompanyChange}
             required
             style={{
               width: '100%',
-              padding: '0.75rem',
-              borderRadius: 6,
-              border: '1px solid #d1d5db',
+              padding: '0.85rem',
+              borderRadius: 8,
+              border: '1.5px solid #cbd5e1',
               fontSize: '1rem',
-              background: '#fafbfc',
+              background: '#f8fafc',
+              transition: 'border 0.2s',
+              outline: 'none',
             }}
+            onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
+            onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
           >
             <option value="" disabled>Select a company</option>
             {companies.map(company => (
@@ -151,34 +178,182 @@ const Assessment: React.FC = () => {
             ))}
           </select>
         </div>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Enter applicant NO:</label>
+        <div>
+          <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Applicant NO</label>
           <input
             type="text"
             value={no}
             onChange={e => setNo(e.target.value)}
             required
             placeholder="Enter applicant NO"
+            style={{
+              width: '100%',
+              padding: '0.85rem',
+              borderRadius: 8,
+              border: '1.5px solid #cbd5e1',
+              fontSize: '1rem',
+              background: '#f8fafc',
+              transition: 'border 0.2s',
+              outline: 'none',
+            }}
+            onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
+            onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Requirements Status</label>
+            <input
+              type="text"
+              value={requirementsStatus}
+              onChange={e => setRequirementsStatus(e.target.value)}
+              placeholder="Enter requirements status"
+              style={{
+                width: '100%',
+                padding: '0.85rem',
+                borderRadius: 8,
+                border: '1.5px solid #cbd5e1',
+                fontSize: '1rem',
+                background: '#f8fafc',
+                transition: 'border 0.2s',
+                outline: 'none',
+              }}
+              onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
+              onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Final Interview Status</label>
+            <select
+              value={finalInterviewStatus}
+              onChange={e => setFinalInterviewStatus(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '0.85rem',
+                borderRadius: 8,
+                border: '1.5px solid #cbd5e1',
+                fontSize: '1rem',
+                background: '#f8fafc',
+                transition: 'border 0.2s',
+                outline: 'none',
+              }}
+              onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
+              onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
+            >
+              <option value="" disabled>Select final interview status</option>
+              <option value="Passed">Passed</option>
+              <option value="Good">Good</option>
+              <option value="Very Good">Very Good</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Medical Status</label>
+            <input
+              type="text"
+              value={medicalStatus}
+              onChange={e => setMedicalStatus(e.target.value)}
+              placeholder="Enter medical status"
+              style={{
+                width: '100%',
+                padding: '0.85rem',
+                borderRadius: 8,
+                border: '1.5px solid #cbd5e1',
+                fontSize: '1rem',
+                background: '#f8fafc',
+                transition: 'border 0.2s',
+                outline: 'none',
+              }}
+              onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
+              onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Status Remarks</label>
+            <input
+              type="text"
+              value={statusRemarks}
+              onChange={e => setStatusRemarks(e.target.value)}
+              placeholder="Enter status remarks"
+              style={{
+                width: '100%',
+                padding: '0.85rem',
+                borderRadius: 8,
+                border: '1.5px solid #cbd5e1',
+                fontSize: '1rem',
+                background: '#f8fafc',
+                transition: 'border 0.2s',
+                outline: 'none',
+              }}
+              onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
+              onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
+            />
+          </div>
+        </div>
+        <div>
+          <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Applicant Remarks</label>
+          <input
+            type="text"
+            value={applicantRemarks}
+            onChange={e => setApplicantRemarks(e.target.value)}
+            placeholder="Enter applicant remarks"
+            style={{
+              width: '100%',
+              padding: '0.85rem',
+              borderRadius: 8,
+              border: '1.5px solid #cbd5e1',
+              fontSize: '1rem',
+              background: '#f8fafc',
+              transition: 'border 0.2s',
+              outline: 'none',
+            }}
+            onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
+            onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
           />
         </div>
         <button
           type="submit"
           disabled={loading}
           style={{
-            padding: '0.75rem 1.5rem',
-            borderRadius: 6,
+            padding: '1rem 1.5rem',
+            borderRadius: 8,
             border: 'none',
-            background: '#2563eb',
+            background: loading ? '#93c5fd' : '#2563eb',
             color: '#fff',
-            fontWeight: 600,
-            fontSize: '1rem',
-            cursor: loading ? 'not-allowed' : 'pointer'
+            fontWeight: 700,
+            fontSize: '1.1rem',
+            boxShadow: '0 2px 8px rgba(37,99,235,0.08)',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            transition: 'background 0.2s, box-shadow 0.2s',
           }}
+          onMouseOver={e => { if (!loading) e.currentTarget.style.background = '#1d4ed8'; }}
+          onMouseOut={e => { if (!loading) e.currentTarget.style.background = '#2563eb'; }}
         >
           {loading ? 'Saving...' : 'Save'}
         </button>
         {status && (
-          <div style={{ marginTop: '1.5rem', color: status === 'Ok' ? 'green' : 'red', fontWeight: 600 }}>
+          <div
+            style={{
+              marginTop: '1.5rem',
+              padding: '1rem',
+              borderRadius: 8,
+              background: status === 'Ok' ? '#dcfce7' : '#fee2e2',
+              color: status === 'Ok' ? '#166534' : '#b91c1c',
+              fontWeight: 700,
+              fontSize: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+            }}
+          >
+            {status === 'Ok' ? (
+              <span style={{ fontSize: '1.3rem' }}>✔️</span>
+            ) : (
+              <span style={{ fontSize: '1.3rem' }}>❌</span>
+            )}
             {status}
           </div>
         )}

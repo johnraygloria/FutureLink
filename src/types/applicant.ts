@@ -41,6 +41,19 @@ export interface User {
   finalInterview?: boolean;
   email?: string;
   applicationDate?: string;
+  finalInterviewStatus?: string;
+  requirementsStatus?: string;
+  medicalStatus?: string;
+  statusRemarks?: string;
+  applicantRemarks?: string;
+  datian?: string;
+  hokei?: string;
+  pobc?: string;
+  jinboway?: string;
+  surprise?: string;
+  thaleste?: string;
+  aolly?: string;
+  enjoy?: string;
 }
 
 export type ApplicationStatus = 

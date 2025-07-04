@@ -4,6 +4,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconFileText,
+  IconDatabase,
 } from '@tabler/icons-react';
 
 interface SidebarProps {
@@ -32,7 +33,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: IconUsersGroup,
       description: 'Manage applicants'
     },
-
     {
       id: 'selection',
       name: 'Selection',
@@ -45,14 +45,21 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: IconFileText,
       description: 'engagement process and results'
     },
-
+    {
+      id: 'recruitment-database',
+      name: 'Recruitment Database',
+      icon: IconDatabase,
+      description: 'Recruitment database records'
+    }
   ];
 
   return (
-    <div className={`bg-white shadow-lg transition-all duration-300 ease-in-out ${
-      isCollapsed ? 'w-16' : 'w-64'
-    }`}>
-      {/* Header */}
+    <div
+      className={
+        `bg-white shadow-lg transition-all duration-300 ease-in-out ` +
+        (isCollapsed ? 'w-16' : 'w-64')
+      }
+    >
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         {!isCollapsed && (
           <h2 className="text-lg font-semibold text-gray-800">FutureLink</h2>

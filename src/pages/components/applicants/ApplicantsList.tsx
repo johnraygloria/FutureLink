@@ -76,7 +76,7 @@ const ApplicantsList: React.FC = () => {
     try {
       await fetch(GOOGLE_SHEET_URL, {
         method: "POST",
-        mode: "no-cors", // Google Apps Script requires no-cors for frontend requests
+        mode: "no-cors",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },

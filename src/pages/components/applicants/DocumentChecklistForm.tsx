@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 interface DocumentChecklistFormProps {
   form: any;
-  handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onBack: () => void;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -25,7 +25,23 @@ const DocumentChecklistForm: React.FC<DocumentChecklistFormProps> = ({ form, han
 
   return (
     <>
-      <h3 className="text-lg font-semibold mb-4 col-span-full">Checklist Requirements</h3>
+      {/* Flex row for heading and status dropdown */}
+      <div className="flex justify-between items-center mb-4 col-span-full">
+        <h3 className="text-lg font-semibold">Checklist Requirements</h3>
+        <label className="flex flex-col gap-1 min-w-[200px]">
+          <span>Status</span>
+          <select
+            name="screeningStatus"
+            value={form.screeningStatus || "Pending"}
+            onChange={handleChange}
+            className="border rounded px-2 py-1"
+          >
+            <option value="Pending">Status</option>
+            <option value="Passed">For Final Interview</option>
+            <option value="Failed">For Screening</option>
+          </select>
+        </label>
+      </div>
       <form onSubmit={handleFormSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-2 mb-4">
         <label className="flex items-center gap-2">
           <input type="checkbox" name="recentPicture" checked={form.recentPicture} onChange={handleChange} />

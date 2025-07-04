@@ -5,6 +5,7 @@ import Dashboard from "./pages/dashboard";
 import Applicants from "./pages/applicants";
 import Selection from "./pages/selection";
 import Engagement from "./pages/engagement";
+import RecruitmentDatabase from "./pages/recruitment-database";
 
 const App: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -16,10 +17,12 @@ const App: React.FC = () => {
         return <Dashboard />;
       case 'applications':
         return <Applicants />;
-        case 'selection':
-          return <Selection/>;
+      case 'selection':
+        return <Selection/>;
       case 'engagement':
         return <Engagement/>;
+      case 'recruitment-database':
+        return <RecruitmentDatabase/>;
       default:
         return <Dashboard />;
     }
@@ -46,6 +49,8 @@ const App: React.FC = () => {
               {activeSection === 'reports' && 'Reports'}
               {activeSection === 'documents' && 'Documents'}
               {activeSection === 'information-sheets' && 'Information Sheets'}
+              {activeSection === 'recruitment-database' && 'Recruitment Database'}
+
             </h1>
           </div>
         </header>

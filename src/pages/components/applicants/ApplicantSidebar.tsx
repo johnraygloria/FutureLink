@@ -148,7 +148,6 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
             <div className="p-6 space-y-6">
               {activeTab === 'overview' && selectedUser && (
                 <div className="space-y-6">
-                            {/* Status Change Dropdown */}
                             {selectedUser && (
                     <div className="bg-white rounded-2xl p-4 border border-custom-teal/20 shadow-sm mb-4">
                       <h2 className="text-base font-semibold text-custom-teal mb-2">Status</h2>
@@ -241,8 +240,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
               )}
 
               {activeTab === 'screening' && selectedUser && (
-                <Assessment 
-                />
+                <Assessment applicantNo={selectedUser.no} />
               )}
             </div>
           </div>
