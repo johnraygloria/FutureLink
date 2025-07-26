@@ -1,4 +1,4 @@
-import ApplicantsList from "./components/applicants/ApplicantsList";
+import ApplicantsList from "./components/Screening/ScreeningList";
 export default function Applicants() {
     return (
       <ApplicantsList />

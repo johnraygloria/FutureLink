@@ -16,6 +16,7 @@
     "@tailwindcss/vite": "^4.1.10",
     "@types/google-apps-script": "^1.0.78",
     "googleapis": "^144.0.0",
+    "node-fetch": "^2.7.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

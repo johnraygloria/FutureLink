@@ -1,7 +1,26 @@
 import React from 'react';
 
+interface FormFields {
+  no: string;
+  referredBy?: string;
+  lastName: string;
+  firstName: string;
+  ext?: string;
+  middle?: string;
+  gender: string;
+  size?: string;
+  dateOfBirth: string;
+  dateApplied: string;
+  facebook?: string;
+  age?: string;
+  location?: string;
+  contactNumber?: string;
+  positionApplied?: string;
+  experience?: string;
+}
+
 interface PersonalDetailsFormProps {
-  form: any;
+  form: FormFields;
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onNext: (e: React.FormEvent) => void;
 }
@@ -12,7 +31,7 @@ const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({ form, handleC
     <form onSubmit={onNext} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
       <div className="flex flex-col gap-2">
         <label htmlFor="no" className="text-sm font-medium text-gray-700">No *</label>
-        <input id="no" name="no" value={form.no} onChange={handleChange} className="input" required />
+        <input id="no" name="no" value={form.no} onChange={handleChange} className="input" required aria-required="true" />
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="referredBy" className="text-sm font-medium text-gray-700">Referred By</label>
@@ -56,12 +75,12 @@ const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({ form, handleC
         <input id="dateApplied" name="dateApplied" value={form.dateApplied} onChange={handleChange} type="date" className="input" required />
       </div>
       <div className="flex flex-col gap-2">
-        <label htmlFor="name" className="text-sm font-medium text-gray-700">Facebook Name</label>
-        <input id="name" name="name" value={form.name} onChange={handleChange} className="input" />
+        <label htmlFor="facebook" className="text-sm font-medium text-gray-700">Facebook Name</label>
+        <input id="facebook" name="facebook" value={form.facebook} onChange={handleChange} className="input" />
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="age" className="text-sm font-medium text-gray-700">Age</label>
-        <input id="age" name="age" value={form.age} onChange={handleChange} className="input" />
+        <input id="age" name="age" value={form.age} onChange={handleChange} className={`input${form.age && Number(form.age) > 50 ? ' text-red-600' : ''}`} readOnly />
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="location" className="text-sm font-medium text-gray-700">Location</label>
@@ -75,10 +94,6 @@ const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({ form, handleC
         <label htmlFor="positionApplied" className="text-sm font-medium text-gray-700">Position Applied For</label>
         <input id="positionApplied" name="positionApplied" value={form.positionApplied} onChange={handleChange} className="input" />
       </div>
-      <div className="flex flex-col gap-2 md:col-span-2 lg:col-span-3">
-        <label htmlFor="experience" className="text-sm font-medium text-gray-700">Experience</label>
-        <input id="experience" name="experience" value={form.experience} onChange={handleChange} className="input" />
-      </div>
       <div className="md:col-span-2 lg:col-span-3 flex justify-end mt-6">
         <button type="submit" className="px-8 py-2 bg-custom-teal hover:bg-teal-700 text-white rounded-lg font-semibold shadow transition-colors focus:outline-none focus:ring-2 focus:ring-custom-teal">Next</button>
       </div>
@@ -86,4 +101,4 @@ const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({ form, handleC
   </>
 );
 
-export default PersonalDetailsForm; 
+export default PersonalDetailsForm;

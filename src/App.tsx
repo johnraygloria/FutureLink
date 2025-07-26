@@ -1,22 +1,53 @@
-// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "./Global/Sidebar";
 import Dashboard from "./pages/dashboard";
-import Applicants from "./pages/applicants";
+import Assessment from "./pages/assessment";
+// import Applicants from "./pages/assessment";
 import Selection from "./pages/selection";
 import Engagement from "./pages/engagement";
+import Screening from "./pages/screening";
 import RecruitmentDatabase from "./pages/recruitment-database";
+
+const SERVER_HEALTH_URL = "/api/applicants"; 
 
 const App: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
+  const [serverDown, setServerDown] = useState(false);
+  const [checkingServer, setCheckingServer] = useState(true);
+
+  useEffect(() => {
+    fetch(SERVER_HEALTH_URL)
+      .then(res => {
+        if (!res.ok) throw new Error('Server not healthy');
+        setServerDown(false);
+      })
+      .catch(() => setServerDown(true))
+      .finally(() => setCheckingServer(false));
+  }, []);
+
+  if (checkingServer) {
+    return <div className="flex items-center justify-center h-screen text-xl">Checking server status...</div>;
+  }
+
+  if (serverDown) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-red-50">
+        <div className="text-3xl font-bold text-red-700 mb-4">Server is not available</div>
+        <div className="text-lg text-red-600 mb-2">Please make sure the backend server is running.</div>
+        <button className="mt-4 px-4 py-2 bg-red-700 text-white rounded" onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
         return <Dashboard />;
-      case 'applications':
-        return <Applicants />;
+      case 'screening':
+        return <Screening />;
+      case 'assessment':
+        return <Assessment />;
       case 'selection':
         return <Selection/>;
       case 'engagement':

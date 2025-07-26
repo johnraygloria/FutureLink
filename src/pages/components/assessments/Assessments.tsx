@@ -1,76 +1,52 @@
 import { useState } from "react";
-// import { IconArrowLeft, IconDatabase } from "@tabler/icons-react";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
-import type { Employee } from "../../../api/employee";
 
-const initialEmployees: Employee[] = [
-  { id: 1, name: "John Ray Gloria", sex: "Male", birthday: "1990-01-15", dateApplied: "2024-06-01", phone: "09171234567", position: "Welder" },
-  { id: 2, name: "Rey John Ebe", sex: "Male", birthday: "1988-05-22", dateApplied: "2024-06-03", phone: "09179876543", position: "Electrician" },
+interface Applicant {
+  id: number;
+  name: string;
+  sex: string;
+  birthday: string;
+  dateApplied: string;
+  phone: string;
+  position: string;
+}
+
+const initialApplicants: Applicant[] = [
+  { id: 1, name: "Jane Doe", sex: "Female", birthday: "1995-04-12", dateApplied: "2024-06-05", phone: "09171231234", position: "Accountant" },
+  { id: 2, name: "Mark Smith", sex: "Male", birthday: "1992-09-30", dateApplied: "2024-06-06", phone: "09179871234", position: "Engineer" },
 ];
 
-const selectionItems = [
-  { key: "medical", label: "pre-employment medical (get medical referral slip)" },
-  { key: "tradeTest", label: "trade test for seer then pre-employment medical (get medical referral slip)" },
-  { key: "waitText", label: "wait for our text/call" },
-  { key: "orientation", label: "Orientation" },
-  { key: "sbma", label: "SBMA ID & GATE PASS" },
+const assessmentItems = [
+  { key: "resume", label: "Resume Submitted" },
+  { key: "interview", label: "Initial Interview" },
+  { key: "exam", label: "Assessment Exam" },
+  { key: "finalInterview", label: "Final Interview" },
+  { key: "offer", label: "Job Offer" },
 ];
 
-const GoogleSheetsStatus = ({ isConnected, loading, error, lastSyncTime, onRetry, onManualSync }: any) => (
-  <div className="p-2 border rounded bg-gray-50 text-xs">
-    <span>Status: {isConnected ? "Connected" : "Disconnected"}</span>
-    {loading && <span className="ml-2">Loading...</span>}
-    {error && <span className="ml-2 text-red-500">Error!</span>}
-    {lastSyncTime && <span className="ml-2">Last Sync: {lastSyncTime}</span>}
-    <button className="ml-2 px-2 py-1 bg-custom-teal text-white rounded" onClick={onRetry}>Retry</button>
-    <button className="ml-2 px-2 py-1 bg-custom-teal text-white rounded" onClick={onManualSync}>Manual Sync</button>
-  </div>
-);
-
-export default function SelectionEmployees() {
-  const [employees] = useState<Employee[]>(initialEmployees);
+export default function ApplicantComponent() {
+  const [applicants] = useState<Applicant[]>(initialApplicants);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [employeeSelection, setEmployeeSelection] = useState<Record<number, Record<string, boolean>>>({});
+  const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
+  const [applicantAssessment, setApplicantAssessment] = useState<Record<number, Record<string, boolean>>>({});
   const [search, setSearch] = useState("");
 
-  const [isConnected] = useState(true);
-  const [loading] = useState(false);
-  const [error] = useState(false);
-  const [lastSyncTime] = useState<string | null>(null);
-
-  const openSidebar = (emp: Employee) => {
-    setSelectedEmployee(emp);
+  const openSidebar = (app: Applicant) => {
+    setSelectedApplicant(app);
     setSidebarOpen(true);
   };
   const closeSidebar = () => {
     setSidebarOpen(false);
-    setSelectedEmployee(null);
+    setSelectedApplicant(null);
   };
 
-  const getChecked = (key: string) => {
-    if (!selectedEmployee) return false;
-    return employeeSelection[selectedEmployee.id]?.[key] || false;
-  };
-  const handleCheckboxChange = (key: string, checked: boolean) => {
-    if (!selectedEmployee) return;
-    setEmployeeSelection((prev) => ({
-      ...prev,
-      [selectedEmployee.id]: {
-        ...prev[selectedEmployee.id],
-        [key]: checked,
-      },
-    }));
-  };
-
-  const getProgress = (emp: Employee) => {
-    const selections = employeeSelection[emp.id] || {};
-    const completedCount = selectionItems.filter((item) => selections[item.key]).length;
-    const totalCount = selectionItems.length;
+  const getProgress = (app: Applicant) => {
+    const assessments = applicantAssessment[app.id] || {};
+    const completedCount = assessmentItems.filter((item) => assessments[item.key]).length;
+    const totalCount = assessmentItems.length;
     const progressPercentage = (completedCount / totalCount) * 100;
     return { completedCount, totalCount, progressPercentage };
   };
-
 
   return (
     <div className="flex w-full">
@@ -79,7 +55,13 @@ export default function SelectionEmployees() {
           <div className="flex items-center justify-between p-6 border-b bg-white">
             <div className="flex space-x-2">
               <button className="px-4 py-2 rounded-lg bg-custom-teal/10 text-black font-semibold shadow-sm focus:outline-none border border-custom-teal/80">
-                Selection <span className="ml-1 bg-indigo-100 text-custom-teal rounded px-2 py-0.5 text-xs font-bold">{employees.length}</span>
+                Applicants <span className="ml-1 bg-indigo-100 text-custom-teal rounded px-2 py-0.5 text-xs font-bold">{applicants.length}</span>
+              </button>
+              <button
+                className="px-4 py-2 cursor-pointer rounded-lg bg-custom-teal text-white font-semibold shadow-sm focus:outline-none border border-custom-teal ml-2"
+                onClick={() => alert('Input Data (placeholder)')}
+              >
+                Input Data
               </button>
               <button
                 className="px-4 py-2 rounded-lg bg-green-800 cursor-pointer text-white font-semibold shadow-sm focus:outline-none border border-green-700 ml-2"
@@ -94,7 +76,7 @@ export default function SelectionEmployees() {
               </span>
               <input
                 type="text"
-                placeholder="Search employee"
+                placeholder="Search applicant"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-200 bg-gray-50"
@@ -112,33 +94,33 @@ export default function SelectionEmployees() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {employees.filter(emp =>
-                    emp.name.toLowerCase().includes(search.toLowerCase()) ||
-                    emp.position.toLowerCase().includes(search.toLowerCase())
-                  ).map((emp) => {
-                    const { completedCount, totalCount, progressPercentage } = getProgress(emp);
+                  {applicants.filter(app =>
+                    app.name.toLowerCase().includes(search.toLowerCase()) ||
+                    app.position.toLowerCase().includes(search.toLowerCase())
+                  ).map((app) => {
+                    const { completedCount, totalCount, progressPercentage } = getProgress(app);
                     return (
                       <tr
-                        key={emp.id}
+                        key={app.id}
                         className={`hover:bg-indigo-50 transition cursor-pointer`}
-                        onClick={() => openSidebar(emp)}
+                        onClick={() => openSidebar(app)}
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
                               <div className="h-10 w-10 rounded-full bg-custom-teal flex items-center justify-center">
                                 <span className="text-white font-bold text-lg">
-                                  {emp.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
+                                  {app.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
                                 </span>
                               </div>
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-semibold text-gray-900">{emp.name}</div>
+                              <div className="text-sm font-semibold text-gray-900">{app.name}</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 font-medium">{emp.position}</div>
+                          <div className="text-sm text-gray-900 font-medium">{app.position}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
@@ -163,7 +145,7 @@ export default function SelectionEmployees() {
         </div>
       </div>
       <ApplicantSidebar
-        selectedUser={selectedEmployee}
+        selectedUser={selectedApplicant}
         onClose={closeSidebar}
       />
     </div>

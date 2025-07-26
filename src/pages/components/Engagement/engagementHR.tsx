@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import type { User, ApplicationStatus, ScreeningStatus } from "../../../types/applicant";
-import ApplicantSidebar from "../applicants/ApplicantSidebar";
+import type { User, ApplicationStatus } from "../../../api/applicant";
+import ApplicantSidebar from "../../../Global/ApplicantSidebar";
 
 const initialApplicants: User[] = [
   {

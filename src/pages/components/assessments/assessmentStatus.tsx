@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fetchApplicantByNo, saveApplicantAssessment } from '../../../api/assessmentStatus';
 
 const companies = [
   'DATIAN',
@@ -11,13 +12,13 @@ const companies = [
   'ENJOY'
 ];
 
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzoIigCHaEaHcgLQqviokawZJFcgaum6w6P7wWliTyd-2asV7hyo8LmuPlRRhIUHZf0/exec';
+const API_URL = '/api/applicants';
 
 const companyColumns = [
   "DATIAN", "HOKEI", "POBC", "JINBOWAY", "SURPRISE", "THALESTE", "AOLLY", "ENJOY"
 ];
 
-const emptyApplicant = {
+const emptyApplicant: { [key: string]: string } = {
   NO: "",
   REFFERED_BY: "",
   LAST_NAME: "",
@@ -80,17 +81,13 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
 
     let applicantData = { ...emptyApplicant, NO: no };
     try {
-      const res = await fetch(`${GOOGLE_SCRIPT_URL}?NO=${encodeURIComponent(no)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && Array.isArray(data)) {
-          Object.keys(emptyApplicant).forEach((key, idx) => {
-            applicantData[key] = data[idx] || "";
-          });
-        }
+      const data = await fetchApplicantByNo(no);
+      if (data && Array.isArray(data)) {
+        Object.keys(emptyApplicant).forEach((key, idx) => {
+          applicantData[key] = data[idx] || "";
+        });
       }
-    } catch (err) {
-    }
+    } catch (err) {}
 
     companyColumns.forEach(col => {
       applicantData[col] = col === selectedCompany ? "Ok" : "";
@@ -102,22 +99,9 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
     applicantData["STATUS_REMARKS"] = statusRemarks;
     applicantData["APPLICANT_REMARKS"] = applicantRemarks;
 
-    const formData = new URLSearchParams();
-    Object.entries(applicantData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
-    formData.append('company', selectedCompany);
-
     try {
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        body: formData,
-      });
-      if (response.ok) {
-        setStatus('Ok');
-      } else {
-        setStatus('Failed');
-      }
+      await saveApplicantAssessment(applicantData);
+      setStatus('Ok');
     } catch (error) {
       setStatus('Failed');
     }

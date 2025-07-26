@@ -5,7 +5,9 @@ import {
   IconChevronRight,
   IconFileText,
   IconDatabase,
+  IconClipboardList,
 } from '@tabler/icons-react';
+import FutureLinkLogo from '../assets/logo-default.png'
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -28,9 +30,15 @@ const Sidebar: React.FC<SidebarProps> = ({
       description: 'Overview and analytics'
     },
     {
-      id: 'applications',
-      name: 'Applications',
+      id: 'screening',
+      name: 'Screening',
       icon: IconUsersGroup,
+      description: 'Screening process overview'
+    },
+    {
+      id: 'assessment',
+      name: 'Assessment',
+      icon: IconClipboardList,
       description: 'Manage applicants'
     },
     {
@@ -62,7 +70,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     >
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         {!isCollapsed && (
-          <h2 className="text-lg font-semibold text-gray-800">FutureLink</h2>
+          <div className="flex items-center space-x-2">
+            <img src={FutureLinkLogo} alt="FutureLink Logo" className="w-40 h-16" />
+            {/* <h2 className="text-lg font-semibold text-gray-800">FutureLink</h2> */}
+          </div>
         )}
         <button
           onClick={onToggle}

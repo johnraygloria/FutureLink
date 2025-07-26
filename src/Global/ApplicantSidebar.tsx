@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { User, ApplicationStatus, ScreeningStatus } from "../../../types/applicant";
+import type { User, ApplicationStatus, ScreeningStatus } from '../api/applicant';
 import { 
   IconArrowLeft, 
   IconUser, 
@@ -8,7 +8,7 @@ import {
   IconEye,
   IconCalendarEvent,
 } from "@tabler/icons-react";
-import Assessment from "../Assessment/assessment";
+import Assessment from "../pages/components/assessments/assessmentStatus";
 
 interface ApplicantSidebarProps {
   selectedUser: User | null;
@@ -43,7 +43,7 @@ const formatDate = (dateString: string) => {
 
 const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatus) => {
   try {
-    await fetch(`https://script.google.com/macros/s/AKfycbzoIigCHaEaHcgLQqviokawZJFcgaum6w6P7wWliTyd-2asV7hyo8LmuPlRRhIUHZf0/exec?id=${user.id}&status=${encodeURIComponent(newStatus)}`);
+    await fetch(`https://script.google.com/macros/s/AKfycbyQ96zMGVDFv1SfRQ4r5ooun4iOGZTNJHOuP_KWI39zBp14GmUmdyfy4K0g4IRf2J6A/exec?id=${user.id}&status=${encodeURIComponent(newStatus)}`);
   } catch (error) {
     console.error('Failed to update status in Google Sheet:', error);
   }
@@ -53,8 +53,8 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   selectedUser, 
   onClose, 
   onStatusChange,
-  onOpenScreening,
-  onScreeningUpdate
+  // onOpenScreening,
+  // onScreeningUpdate
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'screening'>('overview');
   const isOpen = !!selectedUser;
@@ -66,7 +66,14 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
     }
   };
 
-  const getAvatar = (name: string) => {
+  const getAvatar = (name?: string) => {
+    if (!name || typeof name !== 'string') {
+      return (
+        <div className="h-12 w-12 rounded-full border-4 border-custom-teal bg-custom-teal flex items-center justify-center shadow-lg">
+          <span className="text-white font-bold text-xl">?</span>
+        </div>
+      );
+    }
     const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase();
     return (
       <div className="h-12 w-12 rounded-full border-4 border-custom-teal bg-custom-teal flex items-center justify-center shadow-lg">
@@ -108,10 +115,10 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                 </button>
                 <div className="h-6 w-px bg-gray-300" />
                 <div className="flex items-center gap-3">
-                  {selectedUser && getAvatar(selectedUser.name)}
+                  {selectedUser && getAvatar(selectedUser?.facebook)}
                   <div>
-                    <h1 className="text-xl text-custom-teal font-bold leading-tight">{selectedUser?.name}</h1>
-                    <p className=" text-sm font-medium">{selectedUser?.position}</p>
+                    <h1 className="text-xl text-custom-teal font-bold leading-tight">{selectedUser?.facebook}</h1>
+                    <p className=" text-sm font-medium">{selectedUser?.positionApplied}</p>
                   </div>
                 </div>
               </div>
@@ -183,7 +190,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                       <div><span className="font-semibold">Size:</span> {selectedUser.size}</div>
                       <div><span className="font-semibold">Date of Birth:</span> {selectedUser.dateOfBirth}</div>
                       <div><span className="font-semibold">Date Applied:</span> {selectedUser.dateApplied}</div>
-                      <div><span className="font-semibold">Facebook Name:</span> {selectedUser.name}</div>
+                      <div><span className="font-semibold">Facebook Name:</span> {selectedUser.facebook}</div>
                       <div><span className="font-semibold">Age:</span> {selectedUser.age}</div>
                       <div><span className="font-semibold">Location:</span> {selectedUser.location}</div>
                       <div><span className="font-semibold">Contact Number:</span> {selectedUser.contactNumber}</div>
