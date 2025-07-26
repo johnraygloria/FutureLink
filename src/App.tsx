@@ -26,6 +26,7 @@ const App: React.FC = () => {
       .finally(() => setCheckingServer(false));
   }, []);
 
+  
   if (checkingServer) {
     return <div className="flex items-center justify-center h-screen text-xl">Checking server status...</div>;
   }
