@@ -6,6 +6,7 @@ import Assessment from "./pages/assessment";
 import Selection from "./pages/selection";
 import Engagement from "./pages/engagement";
 import Screening from "./pages/screening";
+import Employeerelations from "./pages/employee_relations";
 import RecruitmentDatabase from "./pages/recruitment-database";
 
 const SERVER_HEALTH_URL = "/api/applicants"; 
@@ -53,6 +54,8 @@ const App: React.FC = () => {
         return <Selection/>;
       case 'engagement':
         return <Engagement/>;
+      case 'employee_relations':
+        return <Employeerelations/>;
       case 'recruitment-database':
         return <RecruitmentDatabase/>;
       default:

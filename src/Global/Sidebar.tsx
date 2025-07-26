@@ -54,6 +54,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       description: 'engagement process and results'
     },
     {
+      id: 'employee_relations',
+      name: 'Employee Relations',
+      icon: IconFileText,
+      description: 'employee management'
+    },
+    {
       id: 'recruitment-database',
       name: 'Recruitment Database',
       icon: IconDatabase,
