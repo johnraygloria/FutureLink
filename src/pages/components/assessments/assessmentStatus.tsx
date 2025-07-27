@@ -65,6 +65,51 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
   const [statusRemarks, setStatusRemarks] = useState<string>('');
   const [applicantRemarks, setApplicantRemarks] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [applicantData, setApplicantData] = useState<{ [key: string]: string }>(emptyApplicant);
+
+  const fetchApplicantData = async (applicantNumber: string) => {
+    if (!applicantNumber) return;
+    
+    try {
+      const data = await fetchApplicantByNo(applicantNumber);
+      if (data && Array.isArray(data) && data.length > 0) {
+        const applicant = data[0];
+        const fetchedData = { ...emptyApplicant };
+        
+        Object.keys(emptyApplicant).forEach((key) => {
+          fetchedData[key] = applicant[key] || "";
+        });
+        
+        setApplicantData(fetchedData);
+        
+        setRequirementsStatus(applicant.REQUIREMENTS_STATUS || "");
+        setFinalInterviewStatus(applicant.FINAL_INTERVIEW_STATUS || "");
+        setMedicalStatus(applicant.MEDICAL_STATUS || "");
+        setStatusRemarks(applicant.STATUS_REMARKS || "");
+        setApplicantRemarks(applicant.APPLICANT_REMARKS || "");
+        
+        const existingCompany = companyColumns.find(col => applicant[col] === "Ok");
+        if (existingCompany) {
+          setSelectedCompany(existingCompany);
+        }
+        
+        console.log('Applicant data loaded:', fetchedData);
+      } else {
+        setApplicantData({ ...emptyApplicant, NO: applicantNumber });
+        setRequirementsStatus("");
+        setFinalInterviewStatus("");
+        setMedicalStatus("");
+        setStatusRemarks("");
+        setApplicantRemarks("");
+        setSelectedCompany("");
+      }
+    } catch (error) {
+      console.error('Error fetching applicant:', error);
+      setStatus('Error fetching applicant data');
+    }
+  };
+
+
 
   const handleCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedCompany(e.target.value);
@@ -79,31 +124,25 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
     setLoading(true);
     setStatus('');
 
-    let applicantData = { ...emptyApplicant, NO: no };
-    try {
-      const data = await fetchApplicantByNo(no);
-      if (data && Array.isArray(data)) {
-        Object.keys(emptyApplicant).forEach((key, idx) => {
-          applicantData[key] = data[idx] || "";
-        });
-      }
-    } catch (err) {}
-
+    let updatedApplicantData: { [key: string]: string } = { ...applicantData, NO: no };
+    
     companyColumns.forEach(col => {
-      applicantData[col] = col === selectedCompany ? "Ok" : "";
+      updatedApplicantData[col] = col === selectedCompany ? "Ok" : (applicantData[col] || "");
     });
 
-    applicantData["REQUIREMENTS_STATUS"] = requirementsStatus;
-    applicantData["FINAL_INTERVIEW_STATUS"] = finalInterviewStatus;
-    applicantData["MEDICAL_STATUS"] = medicalStatus;
-    applicantData["STATUS_REMARKS"] = statusRemarks;
-    applicantData["APPLICANT_REMARKS"] = applicantRemarks;
+    updatedApplicantData["REQUIREMENTS_STATUS"] = requirementsStatus;
+    updatedApplicantData["FINAL_INTERVIEW_STATUS"] = finalInterviewStatus;
+    updatedApplicantData["MEDICAL_STATUS"] = medicalStatus;
+    updatedApplicantData["STATUS_REMARKS"] = statusRemarks;
+    updatedApplicantData["APPLICANT_REMARKS"] = applicantRemarks;
 
     try {
-      await saveApplicantAssessment(applicantData);
+      await saveApplicantAssessment(updatedApplicantData);
       setStatus('Ok');
+      setApplicantData(updatedApplicantData);
     } catch (error) {
-      setStatus('Failed');
+      console.error('Save error:', error);
+      setStatus(`Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
     setLoading(false);
   };
@@ -114,228 +153,212 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
     }
   }, [applicantNo]);
 
+  useEffect(() => {
+    if (no) {
+      fetchApplicantData(no);
+    }
+  }, [no]);
+
   return (
-    <section
-      style={{
-        padding: '2.5rem 2rem',
-        maxWidth: 520,
-        margin: '2rem auto',
-        background: '#fff',
-        borderRadius: 20,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-        border: '1px solid #ececec',
-        transition: 'box-shadow 0.2s',
-      }}
-    >
-      <h2 style={{ fontWeight: 800, fontSize: '2rem', marginBottom: 8, letterSpacing: '-1px', color: '#1e293b' }}>Employee Screening & Assessment</h2>
-      <hr style={{ border: 'none', borderTop: '2px solid #e5e7eb', margin: '0 0 2rem 0' }} />
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <div>
-          <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Select company for fit check</label>
-          <select
-            value={selectedCompany}
-            onChange={handleCompanyChange}
-            required
-            style={{
-              width: '100%',
-              padding: '0.85rem',
-              borderRadius: 8,
-              border: '1.5px solid #cbd5e1',
-              fontSize: '1rem',
-              background: '#f8fafc',
-              transition: 'border 0.2s',
-              outline: 'none',
-            }}
-            onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
-            onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
-          >
-            <option value="" disabled>Select a company</option>
-            {companies.map(company => (
-              <option key={company} value={company}>{company}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Applicant NO</label>
-          <input
-            type="text"
-            value={no}
-            onChange={e => setNo(e.target.value)}
-            required
-            placeholder="Enter applicant NO"
-            style={{
-              width: '100%',
-              padding: '0.85rem',
-              borderRadius: 8,
-              border: '1.5px solid #cbd5e1',
-              fontSize: '1rem',
-              background: '#f8fafc',
-              transition: 'border 0.2s',
-              outline: 'none',
-            }}
-            onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
-            onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
-          />
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Requirements Status</label>
-            <input
-              type="text"
-              value={requirementsStatus}
-              onChange={e => setRequirementsStatus(e.target.value)}
-              placeholder="Enter requirements status"
-              style={{
-                width: '100%',
-                padding: '0.85rem',
-                borderRadius: 8,
-                border: '1.5px solid #cbd5e1',
-                fontSize: '1rem',
-                background: '#f8fafc',
-                transition: 'border 0.2s',
-                outline: 'none',
-              }}
-              onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
-              onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
-            />
+    <div className="flex w-full">
+      <div className="flex-1 max-w-full mx-auto py-10 px-4">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="flex items-center justify-between p-6 border-b bg-white">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-2xl font-bold text-custom-teal">Employee Screening & Assessment</h1>
+              <div className="h-6 w-px bg-gray-300"></div>
+              <span className="text-sm text-gray-500">Assessment Management</span>
+            </div>
+
           </div>
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Final Interview Status</label>
-            <select
-              value={finalInterviewStatus}
-              onChange={e => setFinalInterviewStatus(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '0.85rem',
-                borderRadius: 8,
-                border: '1.5px solid #cbd5e1',
-                fontSize: '1rem',
-                background: '#f8fafc',
-                transition: 'border 0.2s',
-                outline: 'none',
-              }}
-              onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
-              onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
-            >
-              <option value="" disabled>Select final interview status</option>
-              <option value="Passed">Passed</option>
-              <option value="Good">Good</option>
-              <option value="Very Good">Very Good</option>
-            </select>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Medical Status</label>
-            <input
-              type="text"
-              value={medicalStatus}
-              onChange={e => setMedicalStatus(e.target.value)}
-              placeholder="Enter medical status"
-              style={{
-                width: '100%',
-                padding: '0.85rem',
-                borderRadius: 8,
-                border: '1.5px solid #cbd5e1',
-                fontSize: '1rem',
-                background: '#f8fafc',
-                transition: 'border 0.2s',
-                outline: 'none',
-              }}
-              onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
-              onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Status Remarks</label>
-            <input
-              type="text"
-              value={statusRemarks}
-              onChange={e => setStatusRemarks(e.target.value)}
-              placeholder="Enter status remarks"
-              style={{
-                width: '100%',
-                padding: '0.85rem',
-                borderRadius: 8,
-                border: '1.5px solid #cbd5e1',
-                fontSize: '1rem',
-                background: '#f8fafc',
-                transition: 'border 0.2s',
-                outline: 'none',
-              }}
-              onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
-              onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
-            />
-          </div>
-        </div>
-        <div>
-          <label style={{ fontWeight: 600, display: 'block', marginBottom: 8, color: '#334155' }}>Applicant Remarks</label>
-          <input
-            type="text"
-            value={applicantRemarks}
-            onChange={e => setApplicantRemarks(e.target.value)}
-            placeholder="Enter applicant remarks"
-            style={{
-              width: '100%',
-              padding: '0.85rem',
-              borderRadius: 8,
-              border: '1.5px solid #cbd5e1',
-              fontSize: '1rem',
-              background: '#f8fafc',
-              transition: 'border 0.2s',
-              outline: 'none',
-            }}
-            onFocus={e => (e.currentTarget.style.border = '1.5px solid #2563eb')}
-            onBlur={e => (e.currentTarget.style.border = '1.5px solid #cbd5e1')}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: '1rem 1.5rem',
-            borderRadius: 8,
-            border: 'none',
-            background: loading ? '#93c5fd' : '#2563eb',
-            color: '#fff',
-            fontWeight: 700,
-            fontSize: '1.1rem',
-            boxShadow: '0 2px 8px rgba(37,99,235,0.08)',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            transition: 'background 0.2s, box-shadow 0.2s',
-          }}
-          onMouseOver={e => { if (!loading) e.currentTarget.style.background = '#1d4ed8'; }}
-          onMouseOut={e => { if (!loading) e.currentTarget.style.background = '#2563eb'; }}
-        >
-          {loading ? 'Saving...' : 'Save'}
-        </button>
-        {status && (
-          <div
-            style={{
-              marginTop: '1.5rem',
-              padding: '1rem',
-              borderRadius: 8,
-              background: status === 'Ok' ? '#dcfce7' : '#fee2e2',
-              color: status === 'Ok' ? '#166534' : '#b91c1c',
-              fontWeight: 700,
-              fontSize: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
-            }}
-          >
-            {status === 'Ok' ? (
-              <span style={{ fontSize: '1.3rem' }}>✔️</span>
-            ) : (
-              <span style={{ fontSize: '1.3rem' }}>❌</span>
+
+          <div className="p-6">
+            {applicantData.NO && applicantData.FIRST_NAME && (
+              <div className="mb-6 bg-gradient-to-r from-custom-teal/5 to-blue-50 rounded-xl p-6 border border-custom-teal/20">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-custom-teal">Current Applicant</h3>
+                  <div className="flex items-center space-x-2">
+                    <span className="px-3 py-1 bg-custom-teal/10 text-custom-teal rounded-full text-sm font-medium">
+                      Active Assessment
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500">Full Name</span>
+                    <span className="text-base font-semibold text-gray-900">
+                      {applicantData.FIRST_NAME} {applicantData.LAST_NAME}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500">Position</span>
+                    <span className="text-base font-semibold text-gray-900">
+                      {applicantData.POSITION_APPLIED_FOR}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500">Contact</span>
+                    <span className="text-base font-semibold text-gray-900">
+                      {applicantData.CONTACT_NUMBER}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-500">Location</span>
+                    <span className="text-base font-semibold text-gray-900">
+                      {applicantData.LOCATION}
+                    </span>
+                  </div>
+                </div>
+              </div>
             )}
-            {status}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Select Company for Fit Check *
+                  </label>
+                  <select
+                    value={selectedCompany}
+                    onChange={handleCompanyChange}
+                    required
+                    className="input"
+                  >
+                    <option value="" disabled>Select a company</option>
+                    {companies.map(company => (
+                      <option key={company} value={company}>{company}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Applicant NO *
+                  </label>
+                  <input
+                    type="text"
+                    value={no}
+                    onChange={e => setNo(e.target.value)}
+                    required
+                    placeholder="Enter applicant NO"
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Requirements Status
+                  </label>
+                  <input
+                    type="text"
+                    value={requirementsStatus}
+                    onChange={e => setRequirementsStatus(e.target.value)}
+                    placeholder="Enter requirements status"
+                    className="input"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Final Interview Status *
+                  </label>
+                  <select
+                    value={finalInterviewStatus}
+                    onChange={e => setFinalInterviewStatus(e.target.value)}
+                    required
+                    className="input"
+                  >
+                    <option value="" disabled>Select final interview status</option>
+                    <option value="Passed">Passed</option>
+                    <option value="Good">Good</option>
+                    <option value="Very Good">Very Good</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Medical Status
+                  </label>
+                  <input
+                    type="text"
+                    value={medicalStatus}
+                    onChange={e => setMedicalStatus(e.target.value)}
+                    placeholder="Enter medical status"
+                    className="input"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Status Remarks
+                  </label>
+                  <input
+                    type="text"
+                    value={statusRemarks}
+                    onChange={e => setStatusRemarks(e.target.value)}
+                    placeholder="Enter status remarks"
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Applicant Remarks
+                </label>
+                <textarea
+                  value={applicantRemarks}
+                  onChange={e => setApplicantRemarks(e.target.value)}
+                  placeholder="Enter applicant remarks"
+                  rows={3}
+                  className="input resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+                <div className="flex items-center space-x-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-6 py-3 rounded-lg bg-custom-teal text-white font-semibold shadow-sm focus:outline-none border border-custom-teal hover:bg-custom-teal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    {loading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin"></i>
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-save"></i>
+                        <span>Save Assessment</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                {status && (
+                  <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
+                    status === 'Ok' 
+                      ? 'bg-green-50 text-green-700 border border-green-200' 
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {status === 'Ok' ? (
+                      <i className="fas fa-check-circle text-green-600"></i>
+                    ) : (
+                      <i className="fas fa-exclamation-circle text-red-600"></i>
+                    )}
+                    <span className="font-medium">{status}</span>
+                  </div>
+                )}
+              </div>
+            </form>
           </div>
-        )}
-      </form>
-    </section>
+        </div>
+      </div>
+    </div>
   );
 };
 

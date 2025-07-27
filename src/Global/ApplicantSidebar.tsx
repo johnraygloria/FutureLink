@@ -32,14 +32,14 @@ const getStatusIcon = (status: string) => {
   return icons[status] || <IconUser size={16} />;
 };
 
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-};
+// const formatDate = (dateString: string) => {
+//   const date = new Date(dateString);
+//   return date.toLocaleDateString('en-US', {
+//     year: 'numeric',
+//     month: 'short',
+//     day: 'numeric',
+//   });
+// };
 
 const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatus) => {
   try {

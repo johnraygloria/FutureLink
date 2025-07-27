@@ -1,7 +1,5 @@
 const googleSheetsService = require('../services/googleSheetsService');
 
-// Placeholder controller for applicants
-
 
 exports.createApplicant = (req, res) => {
   res.status(201).json({ message: 'Applicant created', data: req.body });
@@ -10,7 +8,18 @@ exports.createApplicant = (req, res) => {
 exports.getApplicants = async (req, res) => {
   try {
     const applicants = await googleSheetsService.fetchApplicants();
-    res.json(applicants);
+    
+    // If NO query parameter is provided, filter by applicant number
+    if (req.query.NO) {
+      const filteredApplicant = applicants.find(app => app.NO === req.query.NO);
+      if (filteredApplicant) {
+        res.json([filteredApplicant]);
+      } else {
+        res.json([]);
+      }
+    } else {
+      res.json(applicants);
+    }
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch applicants' });
   }

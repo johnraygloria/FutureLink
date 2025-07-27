@@ -4,7 +4,10 @@ import type { Company } from './company';
 
 export type ScreeningStatus = 'pending' | 'Submit Online' | 'Submit Physical' | 'failed' | 'not_applicable';
 
-export interface User extends ApplicantPersonal, ApplicantDocuments, Company {}
+export interface User extends ApplicantPersonal, ApplicantDocuments, Company {
+  id: any;
+  status: string;
+}
 
 export type ApplicationStatus = 
   | 'Document Screening'

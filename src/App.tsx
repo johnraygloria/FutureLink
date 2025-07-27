@@ -8,38 +8,25 @@ import Engagement from "./pages/engagement";
 import Screening from "./pages/screening";
 import Employeerelations from "./pages/employee_relations";
 import RecruitmentDatabase from "./pages/recruitment-database";
-
-const SERVER_HEALTH_URL = "/api/applicants"; 
+import LoadingScreen from "./components/LoadingScreen";
 
 const App: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
-  const [serverDown, setServerDown] = useState(false);
-  const [checkingServer, setCheckingServer] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch(SERVER_HEALTH_URL)
-      .then(res => {
-        if (!res.ok) throw new Error('Server not healthy');
-        setServerDown(false);
-      })
-      .catch(() => setServerDown(true))
-      .finally(() => setCheckingServer(false));
+    // Simulate loading time for better UX
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  
-  if (checkingServer) {
-    return <div className="flex items-center justify-center h-screen text-xl">Checking server status...</div>;
-  }
-
-  if (serverDown) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-red-50">
-        <div className="text-3xl font-bold text-red-700 mb-4">Server is not available</div>
-        <div className="text-lg text-red-600 mb-2">Please make sure the backend server is running.</div>
-        <button className="mt-4 px-4 py-2 bg-red-700 text-white rounded" onClick={() => window.location.reload()}>Retry</button>
-      </div>
-    );
+  // Show loading screen
+  if (isLoading) {
+    return <LoadingScreen isLoading={isLoading} />;
   }
 
   const renderContent = () => {
@@ -65,7 +52,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar */}
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -73,7 +59,6 @@ const App: React.FC = () => {
         onSectionChange={setActiveSection}
       />
       
-      {/* Main Content */}
       <div className="flex-1 flex flex-col">
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="px-6 py-4">
