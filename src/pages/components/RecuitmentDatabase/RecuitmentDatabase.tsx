@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import Filters from './components/filter';
 import ActionsBar from './components/action';
 import ApplicantTable from './components/applicanttab';
@@ -20,12 +21,47 @@ function RecruitmentDatabase() {
         if (!res.ok) throw new Error('Failed to fetch applicants');
         return res.json();
       })
-      .then((data) => {
-        setApplicants(data);
-        setFilteredApplicants(data);
+      .then((rows) => {
+        // Map MySQL rows to include all required fields for Excel export
+        const mapped: GoogleSheetApplicant[] = rows.map((r: any) => ({
+          NO: r.applicant_no || '',
+          "REFFERED BY": r.referred_by || '',
+          "LAST NAME": r.last_name || '',
+          "FIRST NAME": r.first_name || '',
+          EXT: r.ext || '',
+          MIDDLE: r.middle_name || '',
+          GENDER: r.gender || '',
+          SIZE: r.size || '',
+          "DATE OF BIRTH": r.date_of_birth || '',
+          "DATE APPLIED": r.date_applied || '',
+          "FB NAME": r.fb_name || '',
+          AGE: r.age || '',
+          LOCATION: r.location || '',
+          "CONTACT NUMBER": r.contact_number || '',
+          "POSITION APPLIED FOR": r.position_applied_for || '',
+          EXPERIENCE: r.experience || '',
+          DATIAN: r.datian || '',
+          HOKEI: r.hokei || '',
+          POBC: r.pobc || '',
+          JINBOWAY: r.jinboway || '',
+          SURPRISE: r.surprise || '',
+          THALESTE: r.thaleste || '',
+          AOLLY: r.aolly || '',
+          ENJOY: r.enjoy || '',
+          STATUS: r.status || '',
+          "REQUIREMENTS STATUS": r.requirements_status || '',
+          "FINAL INTERVIEW STATUS": r.final_interview_status || '',
+          "MEDICAL STATUS": r.medical_status || '',
+          "STATUS REMARKS": r.status_remarks || '',
+          "APPLICANT REMARKS": r.applicant_remarks || '',
+          // Keep the original fields for table display
+          POSITION: r.position_applied_for || '',
+        }));
+        setApplicants(mapped);
+        setFilteredApplicants(mapped);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         setError('Server is not available. Please make sure the backend server is running.');
         setLoading(false);
       });
@@ -76,6 +112,11 @@ function RecruitmentDatabase() {
   };
 
   const handleAction = (action: string) => {
+    if (action === 'Export to Excel') {
+      exportToExcel();
+      return;
+    }
+
     if (selectedApplicants.size === 0) {
       alert('Please select at least one applicant');
       return;
@@ -85,6 +126,44 @@ function RecruitmentDatabase() {
     console.log(`Performing ${action} on applicants:`, selectedIds);
     alert(`${action} action will be performed on ${selectedIds.length} selected applicant(s)`);
     setSelectedApplicants(new Set());
+  };
+
+  const exportToExcel = () => {
+    // Define the column order as specified
+    const columns = [
+      'NO', 'REFFERED BY', 'LAST NAME', 'FIRST NAME', 'EXT', 'MIDDLE', 'GENDER', 'SIZE',
+      'DATE OF BIRTH', 'DATE APPLIED', 'FB NAME', 'AGE', 'LOCATION', 'CONTACT NUMBER',
+      'POSITION APPLIED FOR', 'EXPERIENCE', 'DATIAN', 'HOKEI', 'POBC', 'JINBOWAY',
+      'SURPRISE', 'THALESTE', 'AOLLY', 'ENJOY', 'STATUS', 'REQUIREMENTS STATUS',
+      'FINAL INTERVIEW STATUS', 'MEDICAL STATUS', 'STATUS REMARKS', 'APPLICANT REMARKS'
+    ];
+
+    // Prepare data for export
+    const exportData = filteredApplicants.map(applicant => {
+      const row: any = {};
+      columns.forEach(column => {
+        row[column] = applicant[column] || '';
+      });
+      return row;
+    });
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+
+    // Set column widths
+    const colWidths = columns.map(col => ({ wch: Math.max(col.length, 15) }));
+    ws['!cols'] = colWidths;
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Recruitment Database');
+
+    // Generate filename with current date
+    const currentDate = new Date().toISOString().split('T')[0];
+    const filename = `Recruitment_Database_${currentDate}.xlsx`;
+
+    // Save file
+    XLSX.writeFile(wb, filename);
   };
 
   return (

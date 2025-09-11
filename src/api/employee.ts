@@ -7,4 +7,5 @@ export interface Employee {
   phone: string;
   position: string;
   status: string;
+  applicantNo?: string;
 } 

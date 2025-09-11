@@ -9,6 +9,7 @@ import Screening from "./pages/screening";
 import Employeerelations from "./pages/employee_relations";
 import RecruitmentDatabase from "./pages/recruitment-database";
 import LoadingScreen from "./components/LoadingScreen";
+import { NavigationProvider } from "./Global/NavigationContext";
 
 const App: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -51,35 +52,37 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
-      <Sidebar
-        isCollapsed={isSidebarCollapsed}
-        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-      />
-      
-      <div className="flex-1 flex flex-col">
-        <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold text-gray-900">
-              {activeSection === 'dashboard' && 'Dashboard'}
-              {activeSection === 'applications' && 'Applicant Management'}
-              {activeSection === 'assessment' && 'Assessment'}
-              {activeSection === 'reports' && 'Reports'}
-              {activeSection === 'documents' && 'Documents'}
-              {activeSection === 'information-sheets' && 'Information Sheets'}
-              {activeSection === 'recruitment-database' && 'Recruitment Database'}
-
-            </h1>
-          </div>
-        </header>
+    <NavigationProvider activeSection={activeSection as any} setActiveSection={setActiveSection as any}>
+      <div className="min-h-screen bg-gray-100 flex">
+        <Sidebar
+          isCollapsed={isSidebarCollapsed}
+          onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+        />
         
-        <main className="flex-1 p-6">
-          {renderContent()}
-        </main>
+        <div className="flex-1 flex flex-col">
+          <header className="bg-white shadow-sm border-b border-gray-200">
+            <div className="px-6 py-4">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {activeSection === 'dashboard' && 'Dashboard'}
+                {activeSection === 'applications' && 'Applicant Management'}
+                {activeSection === 'assessment' && 'Assessment'}
+                {activeSection === 'reports' && 'Reports'}
+                {activeSection === 'documents' && 'Documents'}
+                {activeSection === 'information-sheets' && 'Information Sheets'}
+                {activeSection === 'recruitment-database' && 'Recruitment Database'}
+
+              </h1>
+            </div>
+          </header>
+          
+          <main className="flex-1 p-6">
+            {renderContent()}
+          </main>
+        </div>
       </div>
-    </div>
+    </NavigationProvider>
   );
 };
 

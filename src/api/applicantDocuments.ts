@@ -17,6 +17,11 @@ export interface ApplicantDocuments {
   pagibig?: boolean;
   cedula?: boolean;
   vaccinationStatus?: boolean;
+  // extra persisted doc flags
+  resume?: boolean;
+  coe?: boolean;
+  philhealth?: boolean;
+  tinNumber?: boolean;
   initialInterview?: boolean;
   completion?: boolean;
   finalInterview?: boolean;

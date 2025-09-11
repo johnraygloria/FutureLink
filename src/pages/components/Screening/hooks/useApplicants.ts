@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { User, ApplicationStatus, ScreeningStatus } from "../../../../api/applicant";
 import { initialFormState } from '../InputApplicantModal';
 
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyQ96zMGVDFv1SfRQ4r5ooun4iOGZTNJHOuP_KWI39zBp14GmUmdyfy4K0g4IRf2J6A/exec";
+// Google Sheets no longer used
 
 export function useApplicants() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -50,29 +50,38 @@ export function useApplicants() {
       THALESTE: data.thaleste || '',
       AOLLY: data.aolly || '',
       ENJOY: data.enjoy || '',
-      STATUS: data.status || '',
+      STATUS: data.status || 'For Screening',
       REQUIREMENTS_STATUS: data.requirementsStatus || '',
       FINAL_INTERVIEW_STATUS: data.finalInterviewStatus || '',
       MEDICAL_STATUS: data.medicalStatus || '',
       STATUS_REMARKS: data.statusRemarks || '',
       APPLICANT_REMARKS: data.applicantRemarks || '',
+      RECENT_PICTURE: data.recentPicture ? '1' : '0',
+      PSA_BIRTH_CERTIFICATE: data.psaBirthCertificate ? '1' : '0',
+      SCHOOL_CREDENTIALS: data.schoolCredentials ? '1' : '0',
+      NBI_CLEARANCE: data.nbiClearance ? '1' : '0',
+      POLICE_CLEARANCE: data.policeClearance ? '1' : '0',
+      BARANGAY_CLEARANCE: data.barangayClearance ? '1' : '0',
+      SSS: data.sss ? '1' : '0',
+      PAGIBIG: data.pagibig ? '1' : '0',
+      CEDULA: data.cedula ? '1' : '0',
+      VACCINATION_STATUS: data.vaccinationStatus ? '1' : '0',
+      RESUME: data.resume ? '1' : '0',
+      COE: data.coe ? '1' : '0',
+      PHILHEALTH: data.philhealth ? '1' : '0',
+      TIN_NUMBER: data.tinNumber ? '1' : '0',
     };
     try {
-      await fetch(GOOGLE_SHEET_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams(payload).toString(),
+      await fetch('/api/applicants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
       const newApplicant: User = {
         id: Date.now(),
-        name: data.name || `${data.firstName} ${data.lastName}`,
-        position: data.positionApplied || '',
-        status: data.status || 'Document Screening',
+        status: 'For Screening',
         contactNumber: data.contactNumber || '',
         experience: data.experience || '',
-        email: '',
-        applicationDate: data.dateApplied || new Date().toISOString(),
         referredBy: data.referredBy,
         lastName: data.lastName,
         firstName: data.firstName,
@@ -85,6 +94,23 @@ export function useApplicants() {
         age: data.age,
         location: data.location,
         no: data.no,
+        facebook: data.name,
+        positionApplied: data.positionApplied || '',
+        // Document checklist (reflect immediately in sidebar/table without reload)
+        recentPicture: data.recentPicture,
+        psaBirthCertificate: data.psaBirthCertificate,
+        schoolCredentials: data.schoolCredentials,
+        nbiClearance: data.nbiClearance,
+        policeClearance: data.policeClearance,
+        barangayClearance: data.barangayClearance,
+        sss: data.sss,
+        pagibig: data.pagibig,
+        cedula: data.cedula,
+        vaccinationStatus: data.vaccinationStatus,
+        resume: data.resume,
+        coe: data.coe,
+        philhealth: data.philhealth,
+        tinNumber: data.tinNumber,
         datian: data.datian || '',
         hokei: data.hokei || '',
         pobc: data.pobc || '',
@@ -101,7 +127,7 @@ export function useApplicants() {
       };
       setUsers(prev => [...prev, newApplicant]);
     } catch (error) {
-      alert("Failed to add applicant to Google Sheet.");
+      alert("Failed to add applicant.");
     }
   };
 
@@ -119,7 +145,7 @@ export function useApplicants() {
       SIZE: user.size || '',
       DATE_OF_BIRTH: user.dateOfBirth || '',
       DATE_APPLIED: user.dateApplied || '',
-      FB_NAME: user.name || '',
+      FB_NAME: user.facebook || '',
       AGE: user.age || '',
       LOCATION: user.location || '',
       CONTACT_NUMBER: user.contactNumber || '',
@@ -141,12 +167,18 @@ export function useApplicants() {
       APPLICANT_REMARKS: user.applicantRemarks || '',
     };
     setUsers(prevUsers => prevUsers.map(u => u.id === userId ? { ...u, status: newStatus } : u));
-    await fetch(GOOGLE_SHEET_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams(payload).toString(),
+    await fetch('/api/applicants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
+  };
+
+  const removeApplicant = (userId: number) => {
+    setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+    if (selectedUser && selectedUser.id === userId) {
+      setSelectedUser(null);
+    }
   };
 
   const checkApplicantExists = async (no: string, lastName: string, firstName: string) => {
@@ -158,9 +190,9 @@ export function useApplicants() {
   };
 
   const filteredUsers = users.filter((user) =>
-    (user.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-    (user.position?.toLowerCase() || '').includes(search.toLowerCase()) ||
-    (user.email?.toLowerCase() || '').includes(search.toLowerCase())
+    (`${user.firstName || ''} ${user.lastName || ''}`.toLowerCase()).includes(search.toLowerCase()) ||
+    (user.positionApplied?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (user.contactNumber?.toLowerCase() || '').includes(search.toLowerCase())
   );
 
   return {
@@ -178,6 +210,7 @@ export function useApplicants() {
     handleScreeningUpdate,
     handleAddApplicant,
     handleStatusChangeAndSync,
+    removeApplicant,
     checkApplicantExists,
     filteredUsers,
   };

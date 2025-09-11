@@ -1,142 +1,47 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-interface ScreeningHistory {
-  id: number;
-  applicantId: number;
-  date: string;
-  documentType: 'Resume' | 'Info Sheet' | 'Height Check' | 'Snellen Test' | 'Ishihara Test' | 'Physical Screening';
-  status: 'Passed' | 'Failed' | 'Pending' | 'Not Applicable';
-  validator: string;
-  notes: string;
-  score?: number;
-  nextAction?: string;
-}
+// removed old hardcoded interface
 
 type ApplicantsToolbarProps = {
   search: string;
   setSearch: (s: string) => void;
   usersCount: number;
   onOpenModal: () => void;
-  onOpenSheet: () => void;
   showHistory: boolean;
   setShowHistory: (show: boolean) => void;
 };
 
-const initialScreeningHistory: ScreeningHistory[] = [
-  {
-    id: 1,
-    applicantId: 1,
-    date: "2024-06-05",
-    documentType: "Resume",
-    status: "Passed",
-    validator: "HR Officer",
-    notes: "Resume meets all requirements. Strong educational background and relevant experience.",
-    score: 90,
-    nextAction: "Proceed to info sheet validation"
-  },
-  {
-    id: 2,
-    applicantId: 1,
-    date: "2024-06-05",
-    documentType: "Info Sheet",
-    status: "Passed",
-    validator: "HR Officer",
-    notes: "All personal information verified and complete. Contact details confirmed.",
-    score: 95,
-    nextAction: "Schedule physical screening"
-  },
-  {
-    id: 3,
-    applicantId: 1,
-    date: "2024-06-06",
-    documentType: "Height Check",
-    status: "Passed",
-    validator: "Medical Staff",
-    notes: "Height requirement met. Applicant is 5'8\" which exceeds minimum requirement.",
-    score: 100,
-    nextAction: "Proceed to vision tests"
-  },
-  {
-    id: 4,
-    applicantId: 1,
-    date: "2024-06-06",
-    documentType: "Snellen Test",
-    status: "Passed",
-    validator: "Medical Staff",
-    notes: "Vision test passed with 20/20 vision. No corrective lenses needed.",
-    score: 100,
-    nextAction: "Proceed to color vision test"
-  },
-  {
-    id: 5,
-    applicantId: 1,
-    date: "2024-06-06",
-    documentType: "Ishihara Test",
-    status: "Passed",
-    validator: "Medical Staff",
-    notes: "Color vision test passed. No color blindness detected.",
-    score: 100,
-    nextAction: "Complete physical screening"
-  },
-  {
-    id: 6,
-    applicantId: 1,
-    date: "2024-06-07",
-    documentType: "Physical Screening",
-    status: "Passed",
-    validator: "Medical Officer",
-    notes: "Physical examination completed. All health requirements met. Cleared for employment.",
-    score: 95,
-    nextAction: "Proceed to next stage"
-  },
-  {
-    id: 7,
-    applicantId: 2,
-    date: "2024-06-06",
-    documentType: "Resume",
-    status: "Passed",
-    validator: "HR Officer",
-    notes: "Resume reviewed. Good technical background but needs verification of certifications.",
-    score: 85,
-    nextAction: "Verify certifications"
-  },
-  {
-    id: 8,
-    applicantId: 2,
-    date: "2024-06-07",
-    documentType: "Info Sheet",
-    status: "Pending",
-    validator: "HR Officer",
-    notes: "Info sheet submitted but requires additional documentation for address verification.",
-    score: 70,
-    nextAction: "Request additional documents"
-  }
-];
+type ScreeningHistoryRow = {
+  id: number;
+  applicant_no: string;
+  action: string;
+  status: string;
+  notes: string;
+  created_at: string;
+}
+
 
 const ApplicantsToolbar: React.FC<ApplicantsToolbarProps> = ({ 
   search, 
   setSearch, 
   usersCount, 
   onOpenModal, 
-  onOpenSheet, 
   showHistory, 
   setShowHistory 
 }) => {
-  const [screeningHistory] = useState<ScreeningHistory[]>(initialScreeningHistory);
+  // API-backed screening history
 
-  const getScreeningStats = () => {
-    const total = screeningHistory.length;
-    const passed = screeningHistory.filter(h => h.status === 'Passed').length;
-    const failed = screeningHistory.filter(h => h.status === 'Failed').length;
-    const pending = screeningHistory.filter(h => h.status === 'Pending').length;
-    const averageScore = screeningHistory.length > 0 
-      ? Math.round(screeningHistory.reduce((sum, h) => sum + (h.score || 0), 0) / screeningHistory.length)
-      : 0;
-    
-    return { total, passed, failed, pending, averageScore };
-  };
+  const [screeningHistory, setScreeningHistory] = useState<ScreeningHistoryRow[]>([]);
 
-  const stats = getScreeningStats();
+  useEffect(() => {
+    if (!showHistory) return;
+    fetch('/api/applicants/screening-history')
+      .then(res => (res.ok ? res.json() : []))
+      .then((rows: ScreeningHistoryRow[]) => setScreeningHistory(rows))
+      .catch(() => setScreeningHistory([]));
+  }, [showHistory]);
+
+  // const stats = getScreeningStats();
 
   // Screening History Page
   if (showHistory) {
@@ -165,44 +70,22 @@ const ApplicantsToolbar: React.FC<ApplicantsToolbarProps> = ({
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Position</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Application Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Applied Date</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
-                    {screeningHistory.map((history) => (
-                      <tr key={history.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">Applicant {history.applicantId}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{history.documentType}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{history.date}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            history.status === 'Passed' ? 'bg-green-100 text-green-800' :
-                            history.status === 'Failed' ? 'bg-red-100 text-red-800' :
-                            history.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {history.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-2">
-                          <button
-                            className="text-blue-600 hover:text-blue-900 rounded-full p-2 transition"
-                            title="View Details"
-                          >
-                            <i className="fas fa-eye" />
-                          </button>
-                          <button
-                            className="text-gray-400 hover:text-gray-700 rounded-full p-2 transition"
-                            title="More actions"
-                          >
-                            <i className="fas fa-ellipsis-h" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+  {screeningHistory.map((row) => (
+    <tr key={row.id} className="hover:bg-gray-50">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{row.applicant_no}</td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.action}</td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{row.status}</span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(row.created_at).toLocaleString()}</td>
+    </tr>
+  ))}
+</tbody>
                 </table>
               </div>
             </div>
@@ -226,12 +109,7 @@ const ApplicantsToolbar: React.FC<ApplicantsToolbarProps> = ({
           >
             Input Data
           </button>
-          <button
-            className="px-4 py-2 rounded-lg bg-green-800 cursor-pointer text-white font-semibold shadow-sm focus:outline-none border border-green-700 ml-2"
-            onClick={onOpenSheet}
-          >
-            Open Google Sheet
-          </button>
+          
         </div>
         <button
           onClick={() => {

@@ -53,10 +53,11 @@ const emptyApplicant: { [key: string]: string } = {
 
 interface AssessmentProps {
   applicantNo?: string;
+  showApplicantHeader?: boolean;
 }
 
-const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
-  const [selectedCompany, setSelectedCompany] = useState<string>('');
+const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeader = true }) => {
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [status, setStatus] = useState<string>('');
   const [no, setNo] = useState<string>(applicantNo || '');
   const [requirementsStatus, setRequirementsStatus] = useState<string>('');
@@ -85,13 +86,11 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
         setRequirementsStatus(applicant.REQUIREMENTS_STATUS || "");
         setFinalInterviewStatus(applicant.FINAL_INTERVIEW_STATUS || "");
         setMedicalStatus(applicant.MEDICAL_STATUS || "");
-        setStatusRemarks(applicant.STATUS_REMARKS || "");
+        setStatusRemarks(applicant.Status_REMARKS || applicant.STATUS_REMARKS || "");
         setApplicantRemarks(applicant.APPLICANT_REMARKS || "");
         
-        const existingCompany = companyColumns.find(col => applicant[col] === "Ok");
-        if (existingCompany) {
-          setSelectedCompany(existingCompany);
-        }
+        const existingCompanies = companyColumns.filter(col => applicant[col] === "Ok");
+        setSelectedCompanies(existingCompanies);
         
         console.log('Applicant data loaded:', fetchedData);
       } else {
@@ -101,7 +100,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
         setMedicalStatus("");
         setStatusRemarks("");
         setApplicantRemarks("");
-        setSelectedCompany("");
+        setSelectedCompanies([]);
       }
     } catch (error) {
       console.error('Error fetching applicant:', error);
@@ -109,16 +108,16 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
     }
   };
 
-
-
-  const handleCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCompany(e.target.value);
+  const toggleCompany = (company: string) => {
+    setSelectedCompanies(prev => (
+      prev.includes(company) ? prev.filter(c => c !== company) : [...prev, company]
+    ));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!no || !selectedCompany) {
-      setStatus('Please enter applicant NO and select a company.');
+    if (!no) {
+      setStatus('Please enter applicant NO.');
       return;
     }
     setLoading(true);
@@ -127,7 +126,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
     let updatedApplicantData: { [key: string]: string } = { ...applicantData, NO: no };
     
     companyColumns.forEach(col => {
-      updatedApplicantData[col] = col === selectedCompany ? "Ok" : (applicantData[col] || "");
+      updatedApplicantData[col] = selectedCompanies.includes(col) ? "Ok" : (applicantData[col] || "");
     });
 
     updatedApplicantData["REQUIREMENTS_STATUS"] = requirementsStatus;
@@ -173,7 +172,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
           </div>
 
           <div className="p-6">
-            {applicantData.NO && applicantData.FIRST_NAME && (
+            {showApplicantHeader && applicantData.NO && applicantData.FIRST_NAME && (
               <div className="mb-6 bg-gradient-to-r from-custom-teal/5 to-blue-50 rounded-xl p-6 border border-custom-teal/20">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-custom-teal">Current Applicant</h3>
@@ -216,19 +215,20 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo }) => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-gray-700">
-                    Select Company for Fit Check *
+                    Company Fit Check (multiple)
                   </label>
-                  <select
-                    value={selectedCompany}
-                    onChange={handleCompanyChange}
-                    required
-                    className="input"
-                  >
-                    <option value="" disabled>Select a company</option>
+                  <div className="grid grid-cols-2 gap-2">
                     {companies.map(company => (
-                      <option key={company} value={company}>{company}</option>
+                      <label key={company} className="inline-flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedCompanies.includes(company)}
+                          onChange={() => toggleCompany(company)}
+                        />
+                        <span>{company}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">

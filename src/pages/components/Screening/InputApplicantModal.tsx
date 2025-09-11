@@ -10,8 +10,9 @@ interface InputApplicantModalProps {
 }
 
 export const initialFormState = {
-  no: '', referredBy: '', lastName: '', firstName: '', ext: '', middle: '', gender: '', size: '', dateOfBirth: '', dateApplied: '', name: '', age: '', location: '', contactNumber: '', positionApplied: '', experience: '',
+  no: '', referredBy: '', lastName: '', firstName: '', ext: '', middle: '', gender: '', size: '', dateOfBirth: '', dateApplied: '', name: '', facebook: '', age: '', location: '', contactNumber: '', positionApplied: '', experience: '',
   recentPicture: false, psaBirthCertificate: false, schoolCredentials: false, nbiClearance: false, policeClearance: false, barangayClearance: false, sss: false, pagibig: false, cedula: false, vaccinationStatus: false,
+  resume: false, coe: false, philhealth: false, tinNumber: false,
   datian: '', hokei: '', pobc: '', jinboway: '', surprise: '', thaleste: '', aolly: '', enjoy: '', status: '', requirementsStatus: '', finalInterviewStatus: '', medicalStatus: '', statusRemarks: '', applicantRemarks: '',
 };
 

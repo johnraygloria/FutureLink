@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 // import { IconArrowLeft, IconDatabase } from "@tabler/icons-react";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
-import type { Employee } from "../../../api/employee";
+import type { User } from "../../../api/applicant";
+import { useNavigation } from "../../../Global/NavigationContext";
 
 interface SelectionHistory {
   id: number;
@@ -15,10 +16,6 @@ interface SelectionHistory {
   nextDeadline?: string;
 }
 
-const initialEmployees: Employee[] = [
-  { id: 1, name: "John Ray Gloria", sex: "Male", birthday: "1990-01-15", dateApplied: "2024-06-01", phone: "09171234567", position: "Welder", status: "In Progress" },
-  { id: 2, name: "Rey John Ebe", sex: "Male", birthday: "1988-05-22", dateApplied: "2024-06-03", phone: "09179876543", position: "Electrician", status: "Scheduled" },
-];
 
 const initialSelectionHistory: SelectionHistory[] = [
   {
@@ -89,90 +86,129 @@ const initialSelectionHistory: SelectionHistory[] = [
   }
 ];
 
-const selectionItems = [
-  { key: "medical", label: "pre-employment medical (get medical referral slip)" },
-  { key: "tradeTest", label: "trade test for seer then pre-employment medical (get medical referral slip)" },
-  { key: "waitText", label: "wait for our text/call" },
-  { key: "orientation", label: "Orientation" },
-  { key: "sbma", label: "SBMA ID & GATE PASS" },
-];
 
-const GoogleSheetsStatus = ({ isConnected, loading, error, lastSyncTime, onRetry, onManualSync }: any) => (
-  <div className="p-2 border rounded bg-gray-50 text-xs">
-    <span>Status: {isConnected ? "Connected" : "Disconnected"}</span>
-    {loading && <span className="ml-2">Loading...</span>}
-    {error && <span className="ml-2 text-red-500">Error!</span>}
-    {lastSyncTime && <span className="ml-2">Last Sync: {lastSyncTime}</span>}
-    <button className="ml-2 px-2 py-1 bg-custom-teal text-white rounded" onClick={onRetry}>Retry</button>
-    <button className="ml-2 px-2 py-1 bg-custom-teal text-white rounded" onClick={onManualSync}>Manual Sync</button>
-  </div>
-);
 
 export default function SelectionEmployees() {
-  const [employees] = useState<Employee[]>(initialEmployees);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [employeeSelection, setEmployeeSelection] = useState<Record<number, Record<string, boolean>>>({});
+  const [employees, setEmployees] = useState<User[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
   const [search, setSearch] = useState("");
   const [selectionHistory, setSelectionHistory] = useState<SelectionHistory[]>(initialSelectionHistory);
   const [showHistory, setShowHistory] = useState(false);
+  const { currentApplicantNo } = useNavigation();
 
-  const [isConnected] = useState(true);
-  const [loading] = useState(false);
-  const [error] = useState(false);
-  const [lastSyncTime] = useState<string | null>(null);
-
-  const openSidebar = (emp: Employee) => {
+  const openSidebar = (emp: User) => {
     setSelectedEmployee(emp);
-    setSidebarOpen(true);
   };
   const closeSidebar = () => {
-    setSidebarOpen(false);
     setSelectedEmployee(null);
   };
 
-  const getChecked = (key: string) => {
-    if (!selectedEmployee) return false;
-    return employeeSelection[selectedEmployee.id]?.[key] || false;
-  };
-  const handleCheckboxChange = (key: string, checked: boolean) => {
-    if (!selectedEmployee) return;
-    setEmployeeSelection((prev) => ({
-      ...prev,
-      [selectedEmployee.id]: {
-        ...prev[selectedEmployee.id],
-        [key]: checked,
-      },
-    }));
-  };
-
-  const getProgress = (emp: Employee) => {
-    const selections = employeeSelection[emp.id] || {};
-    const completedCount = selectionItems.filter((item) => selections[item.key]).length;
-    const totalCount = selectionItems.length;
-    const progressPercentage = (completedCount / totalCount) * 100;
-    return { completedCount, totalCount, progressPercentage };
-  };
-
-  const getEmployeeHistory = (employeeId: number) => {
-    return selectionHistory.filter(history => history.employeeId === employeeId);
-  };
-
-  const getLatestStage = (employeeId: number) => {
-    const history = getEmployeeHistory(employeeId);
-    if (history.length === 0) return "Not Started";
-    const latest = history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-    return latest.stage;
+  const removeEmployee = (employeeId: number) => {
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (employee) {
+      // Add to history
+      const newHistoryEntry: SelectionHistory = {
+        id: Date.now(),
+        employeeId: employee.id,
+        date: new Date().toISOString().split('T')[0],
+        stage: 'Medical Referral',
+        status: 'Completed',
+        facilitator: 'System',
+        notes: `Moved from Selection to Engagement stage`,
+        nextDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      };
+      setSelectionHistory(prev => [newHistoryEntry, ...prev]);
+      
+      // Remove from employees list
+      setEmployees(prev => prev.filter(emp => emp.id !== employeeId));
+      
+      // Close sidebar if this employee was selected
+      if (selectedEmployee && selectedEmployee.id === employeeId) {
+        setSelectedEmployee(null);
+      }
+    }
   };
 
-  const getCompletedStages = (employeeId: number) => {
-    const history = getEmployeeHistory(employeeId);
-    return history.filter(h => h.status === 'Completed').length;
-  };
 
-  const getTotalStages = () => {
-    return 6; // Total number of selection stages
-  };
+
+  // Fetch selection-stage applicants from API
+  useEffect(() => {
+    fetch('/api/applicants')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch applicants');
+        return res.json();
+      })
+      .then((rows) => {
+        // Filter to statuses relevant to Selection
+        const allowed = new Set([
+          'For Completion',
+          'For Medical',
+          'For SBMA Gate Pass',
+          'For Deployment',
+          'Deployed',
+        ]);
+        const mapped: User[] = rows
+          .filter((r: any) => allowed.has(r.status || ''))
+          .map((r: any) => ({
+            id: r.id,
+            no: r.applicant_no || '',
+            referredBy: r.referred_by || '',
+            lastName: r.last_name || '',
+            firstName: r.first_name || '',
+            ext: r.ext || '',
+            middle: r.middle_name || '',
+            gender: r.gender || '',
+            size: r.size || '',
+            dateOfBirth: r.date_of_birth || '',
+            dateApplied: r.date_applied || '',
+            facebook: r.fb_name || '',
+            age: r.age || '',
+            location: r.location || '',
+            contactNumber: r.contact_number || '',
+            positionApplied: r.position_applied_for || '',
+            experience: r.experience || '',
+            datian: r.datian || '',
+            hokei: r.hokei || '',
+            pobc: r.pobc || '',
+            jinboway: r.jinboway || '',
+            surprise: r.surprise || '',
+            thaleste: r.thaleste || '',
+            aolly: r.aolly || '',
+            enjoy: r.enjoy || '',
+            status: r.status || '',
+            requirementsStatus: r.requirements_status || '',
+            finalInterviewStatus: r.final_interview_status || '',
+            medicalStatus: r.medical_status || '',
+            statusRemarks: r.status_remarks || '',
+            applicantRemarks: r.applicant_remarks || '',
+            recentPicture: Boolean(r.recent_picture),
+            psaBirthCertificate: Boolean(r.psa_birth_certificate),
+            schoolCredentials: Boolean(r.school_credentials),
+            nbiClearance: Boolean(r.nbi_clearance),
+            policeClearance: Boolean(r.police_clearance),
+            barangayClearance: Boolean(r.barangay_clearance),
+            sss: Boolean(r.sss),
+            pagibig: Boolean(r.pagibig),
+            cedula: Boolean(r.cedula),
+            vaccinationStatus: Boolean(r.vaccination_status),
+            resume: Boolean(r.resume),
+            coe: Boolean(r.coe),
+            philhealth: Boolean(r.philhealth),
+            tinNumber: Boolean(r.tin_number),
+          }));
+        setEmployees(mapped);
+      })
+      .catch(() => setEmployees([]));
+  }, []);
+
+  // Auto-open the proceeded applicant if coming from Assessment
+  useEffect(() => {
+    if (!currentApplicantNo || employees.length === 0) return;
+    const proceededEmployee = employees.find(emp => emp.no === currentApplicantNo);
+    if (proceededEmployee) {
+      setSelectedEmployee(proceededEmployee);
+    }
+  }, [currentApplicantNo, employees]);
 
   // Selection History Page
   if (showHistory) {
@@ -210,8 +246,8 @@ export default function SelectionEmployees() {
                       const employee = employees.find(e => e.id === history.employeeId);
                       return (
                         <tr key={history.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{employee?.name || 'Unknown'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{employee?.position || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{employee ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || employee.facebook || 'Unknown' : 'Unknown'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{employee?.positionApplied || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{employee?.dateApplied || history.date}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
@@ -262,12 +298,7 @@ export default function SelectionEmployees() {
               <button className="px-4 py-2 rounded-lg bg-custom-teal/10 text-black font-semibold shadow-sm focus:outline-none border border-custom-teal/80">
                 Selection <span className="ml-1 bg-indigo-100 text-custom-teal rounded px-2 py-0.5 text-xs font-bold">{employees.length}</span>
               </button>
-              <button
-                className="px-4 py-2 rounded-lg bg-green-800 cursor-pointer text-white font-semibold shadow-sm focus:outline-none border border-green-700 ml-2"
-                onClick={() => window.open('https://docs.google.com/spreadsheets/d/1Iwz2TJ6We1FtIL4BhEnDW_qlt5Q7f2aAIX2fn2SDqUQ/edit?gid=0#gid=0', '_blank')}
-              >
-                Open Google Sheet
-                </button>
+              
               </div>
               <button
                 onClick={() => setShowHistory(true)}
@@ -297,20 +328,15 @@ export default function SelectionEmployees() {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Position</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Stage</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Completed Stages</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Applied Date</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
                   {employees.filter(emp =>
-                    emp.name.toLowerCase().includes(search.toLowerCase()) ||
-                    emp.position.toLowerCase().includes(search.toLowerCase())
+                    (`${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase()).includes(search.toLowerCase()) ||
+                    (emp.positionApplied?.toLowerCase() || '').includes(search.toLowerCase())
                   ).map((emp) => {
-                    const { completedCount, totalCount, progressPercentage } = getProgress(emp);
-                    const currentStage = getLatestStage(emp.id);
-                    const completedStages = getCompletedStages(emp.id);
-                    const totalStages = getTotalStages();
                     return (
                       <tr
                         key={emp.id}
@@ -322,36 +348,32 @@ export default function SelectionEmployees() {
                             <div className="flex-shrink-0 h-10 w-10">
                               <div className="h-10 w-10 rounded-full bg-custom-teal flex items-center justify-center">
                                 <span className="text-white font-bold text-lg">
-                                  {emp.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
+                                  {`${emp.firstName || ''} ${emp.lastName || ''}`.trim().split(' ').map((n) => n[0]).join('').toUpperCase() || '?'}
                                 </span>
                               </div>
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-semibold text-gray-900">{emp.name}</div>
+                              <div className="text-sm font-semibold text-gray-900">{`${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.facebook || 'Unknown'}</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 font-medium">{emp.position}</div>
+                          <div className="text-sm text-gray-900 font-medium">{emp.positionApplied}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{currentStage}</div>
+                          <div className="text-sm text-gray-900">{emp.dateApplied}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{completedStages}/{totalStages}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-custom-teal h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${progressPercentage}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-gray-600">
-                              {completedCount}/{totalCount}
-                            </span>
-                          </div>
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            emp.status === 'For Completion' ? 'bg-green-100 text-green-800' :
+                            emp.status === 'For Medical' ? 'bg-blue-100 text-blue-800' :
+                            emp.status === 'For SBMA Gate Pass' ? 'bg-yellow-100 text-yellow-800' :
+                            emp.status === 'For Deployment' ? 'bg-purple-100 text-purple-800' :
+                            emp.status === 'Deployed' ? 'bg-emerald-100 text-emerald-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {emp.status}
+                          </span>
                         </td>
                       </tr>
                     );
@@ -365,6 +387,7 @@ export default function SelectionEmployees() {
       <ApplicantSidebar
         selectedUser={selectedEmployee}
         onClose={closeSidebar}
+        onRemoveApplicant={removeEmployee}
       />
     </div>
   );

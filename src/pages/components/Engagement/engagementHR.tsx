@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { User, ApplicationStatus } from "../../../api/applicant";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
+import { useNavigation } from "../../../Global/NavigationContext";
 
 interface AssessmentHistory {
   id: number;
@@ -68,9 +69,88 @@ const initialAssessmentHistory: AssessmentHistory[] = [
 const EngagementHR: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [search, setSearch] = useState("");
-  const [users, setUsers] = useState<User[]>(initialApplicants);
+  const [users, setUsers] = useState<User[]>([]);
   const [assessmentHistory, setAssessmentHistory] = useState<AssessmentHistory[]>(initialAssessmentHistory);
   const [showHistory, setShowHistory] = useState(false);
+  const { currentApplicantNo } = useNavigation();
+
+  // Fetch engagement-stage applicants from API
+  useEffect(() => {
+    fetch('/api/applicants')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch applicants');
+        return res.json();
+      })
+      .then((rows) => {
+        // Filter to statuses relevant to Engagement
+        const allowed = new Set([
+          'For Medical',
+          'For SBMA Gate Pass',
+          'For Deployment',
+          'Deployed',
+        ]);
+        const mapped: User[] = rows
+          .filter((r: any) => allowed.has(r.status || ''))
+          .map((r: any) => ({
+            id: r.id,
+            no: r.applicant_no || '',
+            referredBy: r.referred_by || '',
+            lastName: r.last_name || '',
+            firstName: r.first_name || '',
+            ext: r.ext || '',
+            middle: r.middle_name || '',
+            gender: r.gender || '',
+            size: r.size || '',
+            dateOfBirth: r.date_of_birth || '',
+            dateApplied: r.date_applied || '',
+            facebook: r.fb_name || '',
+            age: r.age || '',
+            location: r.location || '',
+            contactNumber: r.contact_number || '',
+            positionApplied: r.position_applied_for || '',
+            experience: r.experience || '',
+            datian: r.datian || '',
+            hokei: r.hokei || '',
+            pobc: r.pobc || '',
+            jinboway: r.jinboway || '',
+            surprise: r.surprise || '',
+            thaleste: r.thaleste || '',
+            aolly: r.aolly || '',
+            enjoy: r.enjoy || '',
+            status: r.status || '',
+            requirementsStatus: r.requirements_status || '',
+            finalInterviewStatus: r.final_interview_status || '',
+            medicalStatus: r.medical_status || '',
+            statusRemarks: r.status_remarks || '',
+            applicantRemarks: r.applicant_remarks || '',
+            recentPicture: Boolean(r.recent_picture),
+            psaBirthCertificate: Boolean(r.psa_birth_certificate),
+            schoolCredentials: Boolean(r.school_credentials),
+            nbiClearance: Boolean(r.nbi_clearance),
+            policeClearance: Boolean(r.police_clearance),
+            barangayClearance: Boolean(r.barangay_clearance),
+            sss: Boolean(r.sss),
+            pagibig: Boolean(r.pagibig),
+            cedula: Boolean(r.cedula),
+            vaccinationStatus: Boolean(r.vaccination_status),
+            resume: Boolean(r.resume),
+            coe: Boolean(r.coe),
+            philhealth: Boolean(r.philhealth),
+            tinNumber: Boolean(r.tin_number),
+          }));
+        setUsers(mapped);
+      })
+      .catch(() => setUsers([]));
+  }, []);
+
+  // Auto-open the proceeded applicant if coming from Selection
+  useEffect(() => {
+    if (!currentApplicantNo || users.length === 0) return;
+    const proceededUser = users.find(user => user.no === currentApplicantNo);
+    if (proceededUser) {
+      setSelectedUser(proceededUser);
+    }
+  }, [currentApplicantNo, users]);
 
   const deployedApplicants = users.filter(user => user.status === "Deployed");
 
@@ -90,12 +170,19 @@ const EngagementHR: React.FC = () => {
     );
   };
 
+  const removeUser = (userId: number) => {
+    setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+    if (selectedUser && selectedUser.id === userId) {
+      setSelectedUser(null);
+    }
+  };
+
   const addAssessmentHistory = (newAssessment: Omit<AssessmentHistory, 'id'>) => {
     const newId = Math.max(...assessmentHistory.map(h => h.id)) + 1;
     setAssessmentHistory(prev => [...prev, { ...newAssessment, id: newId }]);
   };
 
-  const filteredUsers = deployedApplicants.filter((user) =>
+  const filteredUsers = users.filter((user) =>
     ((user.firstName || '') + ' ' + (user.lastName || '')).toLowerCase().includes(search.toLowerCase()) ||
     (user.positionApplied?.toLowerCase() || '').includes(search.toLowerCase()) ||
     (user.contactNumber?.toLowerCase() || '').includes(search.toLowerCase())
@@ -186,7 +273,7 @@ const EngagementHR: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="flex items-center justify-between p-6 border-b bg-white">
             <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-custom-teal">Engagement - Deployed Applicants</h1>
+            <h1 className="text-2xl font-bold text-custom-teal">Engagement <span className="ml-1 bg-indigo-100 text-custom-teal rounded px-2 py-0.5 text-xs font-bold">{users.length}</span></h1>
               <button
                 onClick={() => setShowHistory(true)}
                 className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow-sm focus:outline-none border border-blue-700"
@@ -197,7 +284,7 @@ const EngagementHR: React.FC = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search deployed applicant"
+                placeholder="Search applicant"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-200 bg-gray-50"
@@ -246,7 +333,15 @@ const EngagementHR: React.FC = () => {
                         <div className="text-sm text-gray-900">{user.dateApplied ? new Date(user.dateApplied).toLocaleDateString() : ''}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">{user.status}</span>
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                          user.status === 'For Medical' ? 'bg-blue-100 text-blue-800' :
+                          user.status === 'For SBMA Gate Pass' ? 'bg-yellow-100 text-yellow-800' :
+                          user.status === 'For Deployment' ? 'bg-purple-100 text-purple-800' :
+                          user.status === 'Deployed' ? 'bg-emerald-100 text-emerald-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {user.status}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-2">
                         <button
@@ -276,6 +371,7 @@ const EngagementHR: React.FC = () => {
         selectedUser={selectedUser}
         onClose={handleCloseSidebar}
         onStatusChange={handleStatusChange}
+        onRemoveApplicant={removeUser}
       />
     </div>
   );

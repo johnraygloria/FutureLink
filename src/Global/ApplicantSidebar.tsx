@@ -9,6 +9,7 @@ import {
   IconCalendarEvent,
 } from "@tabler/icons-react";
 import Assessment from "../pages/components/assessments/assessmentStatus";
+import { useNavigation } from "./NavigationContext";
 
 interface ApplicantSidebarProps {
   selectedUser: User | null;
@@ -16,6 +17,7 @@ interface ApplicantSidebarProps {
   onStatusChange?: (userId: number, newStatus: ApplicationStatus) => void;
   onOpenScreening?: (user: User) => void;
   onScreeningUpdate?: (userId: number, key: keyof User, status: ScreeningStatus) => void;
+  onRemoveApplicant?: (userId: number) => void;
 }
 
 const getStatusIcon = (status: string) => {
@@ -43,9 +45,105 @@ const getStatusIcon = (status: string) => {
 
 const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatus) => {
   try {
-    await fetch(`https://script.google.com/macros/s/AKfycbyQ96zMGVDFv1SfRQ4r5ooun4iOGZTNJHOuP_KWI39zBp14GmUmdyfy4K0g4IRf2J6A/exec?id=${user.id}&status=${encodeURIComponent(newStatus)}`);
+    await fetch('/api/applicants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        NO: user.no,
+        REFFERED_BY: user.referredBy,
+        LAST_NAME: user.lastName,
+        FIRST_NAME: user.firstName,
+        EXT: user.ext,
+        MIDDLE: user.middle,
+        GENDER: user.gender,
+        SIZE: user.size,
+        DATE_OF_BIRTH: user.dateOfBirth,
+        DATE_APPLIED: user.dateApplied,
+        FB_NAME: user.facebook,
+        AGE: user.age,
+        LOCATION: user.location,
+        CONTACT_NUMBER: user.contactNumber,
+        POSITION_APPLIED_FOR: user.positionApplied,
+        EXPERIENCE: user.experience,
+        DATIAN: (user as any).datian,
+        HOKEI: (user as any).hokei,
+        POBC: (user as any).pobc,
+        JINBOWAY: (user as any).jinboway,
+        SURPRISE: (user as any).surprise,
+        THALESTE: (user as any).thaleste,
+        AOLLY: (user as any).aolly,
+        ENJOY: (user as any).enjoy,
+        STATUS: newStatus,
+        REQUIREMENTS_STATUS: user.requirementsStatus,
+        FINAL_INTERVIEW_STATUS: user.finalInterviewStatus,
+        MEDICAL_STATUS: user.medicalStatus,
+        STATUS_REMARKS: user.statusRemarks,
+        APPLICANT_REMARKS: user.applicantRemarks,
+        RECENT_PICTURE: user.recentPicture ? '1' : '0',
+        PSA_BIRTH_CERTIFICATE: user.psaBirthCertificate ? '1' : '0',
+        SCHOOL_CREDENTIALS: user.schoolCredentials ? '1' : '0',
+        NBI_CLEARANCE: user.nbiClearance ? '1' : '0',
+        POLICE_CLEARANCE: user.policeClearance ? '1' : '0',
+        BARANGAY_CLEARANCE: user.barangayClearance ? '1' : '0',
+        SSS: user.sss ? '1' : '0',
+        PAGIBIG: user.pagibig ? '1' : '0',
+        CEDULA: user.cedula ? '1' : '0',
+        VACCINATION_STATUS: user.vaccinationStatus ? '1' : '0',
+        RESUME: (user as any).resume ? '1' : '0',
+        COE: (user as any).coe ? '1' : '0',
+        PHILHEALTH: (user as any).philhealth ? '1' : '0',
+        TIN_NUMBER: (user as any).tinNumber ? '1' : '0',
+      })
+    });
   } catch (error) {
-    console.error('Failed to update status in Google Sheet:', error);
+    console.error('Failed to sync status:', error);
+  }
+};
+
+// Update only the status without triggering full data fetch
+const updateStatusOnly = async (user: User, newStatus: ApplicationStatus) => {
+  try {
+    await fetch('/api/applicants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        NO: user.no,
+        STATUS: newStatus,
+      })
+    });
+  } catch (error) {
+    console.error('Failed to update status:', error);
+  }
+};
+
+const updateDocumentFlag = async (user: User, key: string, checked: boolean) => {
+  // Map UI keys to server payload keys
+  const map: Record<string, string> = {
+    recentPicture: 'RECENT_PICTURE',
+    psaBirthCertificate: 'PSA_BIRTH_CERTIFICATE',
+    schoolCredentials: 'SCHOOL_CREDENTIALS',
+    nbiClearance: 'NBI_CLEARANCE',
+    policeClearance: 'POLICE_CLEARANCE',
+    barangayClearance: 'BARANGAY_CLEARANCE',
+    sss: 'SSS',
+    pagibig: 'PAGIBIG',
+    cedula: 'CEDULA',
+    vaccinationStatus: 'VACCINATION_STATUS',
+    resume: 'RESUME',
+    coe: 'COE',
+    philhealth: 'PHILHEALTH',
+    tinNumber: 'TIN_NUMBER',
+  };
+  const payloadKey = map[key];
+  if (!payloadKey) return;
+  try {
+    await fetch('/api/applicants', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ NO: user.no, [payloadKey]: checked ? '1' : '0' })
+    });
+  } catch (e) {
+    console.error('Failed to sync document flag', key, e);
   }
 };
 
@@ -54,15 +152,25 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   onClose, 
   onStatusChange,
   // onOpenScreening,
-  // onScreeningUpdate
+  onScreeningUpdate,
+  onRemoveApplicant
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'screening'>('overview');
+  const { setActiveSection, activeSection, setCurrentApplicantNo } = useNavigation();
   const isOpen = !!selectedUser;
 
   const handleStatusChange = (newStatus: ApplicationStatus) => {
     if (selectedUser) {
       onStatusChange?.(selectedUser.id, newStatus);
-      updateStatusInGoogleSheet(selectedUser, newStatus);
+      
+      // For Assessment, only update status without full data fetch
+      if (activeSection === 'assessment') {
+        updateStatusOnly(selectedUser, newStatus);
+      } else {
+        // For other sections, use full update
+        updateStatusInGoogleSheet(selectedUser, newStatus);
+      }
+      // Status change only updates status - no automatic removal or navigation
     }
   };
 
@@ -159,11 +267,11 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                     <div className="bg-white rounded-2xl p-4 border border-custom-teal/20 shadow-sm mb-4">
                       <h2 className="text-base font-semibold text-custom-teal mb-2">Status</h2>
                       <select
-                        className="w-full border border-custom-teal rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal"
+                        className={`w-full border border-custom-teal rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal ${activeSection === 'screening' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                         value={selectedUser.status || ''}
                         onChange={e => handleStatusChange(e.target.value as ApplicationStatus)}
+                        disabled={activeSection === 'screening'}
                       >
-                        <option value="">Select status</option>
                         <option value="For Screening">For Screening</option>
                         <option value="For Final Interview/For Assessment">For Final Interview/For Assessment</option>
                         <option value="For Completion">For Completion</option>
@@ -172,7 +280,9 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                         <option value="For Deployment">For Deployment</option>
                         <option value="Deployed">Deployed</option>
                       </select>
-                      <p className="text-xs text-gray-500 mt-1">Change the applicant's status.</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {activeSection === 'screening' ? 'Status is automatic during Screening.' : "Change the applicant's status."}
+                      </p>
                     </div>
                   )}
                   <div className="bg-white rounded-2xl p-6 border border-custom-teal/20 shadow-sm">
@@ -202,44 +312,93 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                     <h2 className="text-base font-semibold text-custom-teal mb-3">Document Checklist</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!selectedUser.recentPicture} readOnly />
+                        <input
+                          type="checkbox"
+                          checked={!!selectedUser.recentPicture}
+                          onChange={(e) => {
+                            onScreeningUpdate?.(selectedUser.id, 'recentPicture' as any, e.target.checked as any);
+                            updateDocumentFlag(selectedUser, 'recentPicture', e.target.checked);
+                          }}
+                        />
                         Recent 2x2 picture
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!selectedUser.psaBirthCertificate} readOnly />
+                        <input type="checkbox" checked={!!selectedUser.psaBirthCertificate}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'psaBirthCertificate' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'psaBirthCertificate', e.target.checked); }}
+                        />
                         PSA Birth Certificate
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!selectedUser.schoolCredentials} readOnly />
+                        <input type="checkbox" checked={!!selectedUser.schoolCredentials}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'schoolCredentials' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'schoolCredentials', e.target.checked); }}
+                        />
                         School Credentials/Certificate
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!selectedUser.nbiClearance} readOnly />
+                        <input type="checkbox" checked={!!selectedUser.nbiClearance}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'nbiClearance' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'nbiClearance', e.target.checked); }}
+                        />
                         NBI Clearance
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!selectedUser.policeClearance} readOnly />
+                        <input type="checkbox" checked={!!selectedUser.policeClearance}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'policeClearance' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'policeClearance', e.target.checked); }}
+                        />
                         Police Clearance
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!selectedUser.barangayClearance} readOnly />
+                        <input type="checkbox" checked={!!selectedUser.barangayClearance}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'barangayClearance' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'barangayClearance', e.target.checked); }}
+                        />
                         Barangay Clearance
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!selectedUser.sss} readOnly />
+                        <input type="checkbox" checked={!!selectedUser.sss}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'sss' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'sss', e.target.checked); }}
+                        />
                         SSS No. / E1 Form / Static Information
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!selectedUser.pagibig} readOnly />
+                        <input type="checkbox" checked={!!selectedUser.pagibig}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'pagibig' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'pagibig', e.target.checked); }}
+                        />
                         Pag-IBIG #
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!selectedUser.cedula} readOnly />
+                        <input type="checkbox" checked={!!selectedUser.cedula}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'cedula' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'cedula', e.target.checked); }}
+                        />
                         Cedula
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={!!selectedUser.vaccinationStatus} readOnly />
+                        <input type="checkbox" checked={!!selectedUser.vaccinationStatus}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'vaccinationStatus' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'vaccinationStatus', e.target.checked); }}
+                        />
                         Vaccination Status
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={!!(selectedUser as any).resume}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'resume' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'resume', e.target.checked); }}
+                        />
+                        Resume
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={!!(selectedUser as any).coe}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'coe' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'coe', e.target.checked); }}
+                        />
+                        Certificate of Employment (COE)
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={!!(selectedUser as any).philhealth}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'philhealth' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'philhealth', e.target.checked); }}
+                        />
+                        PhilHealth
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" checked={!!(selectedUser as any).tinNumber}
+                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'tinNumber' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'tinNumber', e.target.checked); }}
+                        />
+                        TIN Number
                       </label>
                     </div>
                   </div>
@@ -247,13 +406,111 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
               )}
 
               {activeTab === 'screening' && selectedUser && (
-                <Assessment applicantNo={selectedUser.no} />
+                <Assessment applicantNo={selectedUser.no} showApplicantHeader={false} />
               )}
             </div>
           </div>
           <div className="bg-white border-t border-custom-teal/20 p-4 shadow-sm flex-shrink-0">
             <div className="flex gap-2">
-              <button className="cursor-pointer flex-1 bg-custom-teal hover:bg-custom-teal/90 text-white font-semibold py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md text-sm flex items-center justify-center gap-2">
+              <button
+                className="cursor-pointer flex-1 bg-custom-teal hover:bg-custom-teal/90 text-white font-semibold py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md text-sm flex items-center justify-center gap-2"
+                onClick={async () => {
+                  if (activeSection === 'screening') {
+                    if (selectedUser?.no) setCurrentApplicantNo(selectedUser.no);
+                    // Move out of Screening: update status so Screening table (which shows only "For Screening") hides it
+                    if (selectedUser) {
+                      onStatusChange?.(selectedUser.id, 'For Final Interview/For Assessment' as any);
+                      await updateStatusInGoogleSheet(selectedUser, 'For Final Interview/For Assessment' as any);
+                      // log screening history
+                      try {
+                        await fetch('/api/applicants/screening-history', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            applicant_no: selectedUser.no,
+                            action: 'Proceeded to Assessment',
+                            status: 'For Final Interview/For Assessment',
+                            notes: '',
+                          })
+                        });
+                      } catch {}
+                      // Remove from Screening table immediately
+                      onRemoveApplicant?.(selectedUser.id);
+                    }
+                    // Do not navigate to Assessment automatically; just close the sidebar
+                    onClose();
+                  } else if (activeSection === 'assessment') {
+                    // Update status to move applicant to Selection stage
+                    if (selectedUser) {
+                      // Only update status if it's not already "For Completion"
+                      if (selectedUser.status !== 'For Completion') {
+                        onStatusChange?.(selectedUser.id, 'For Completion' as any);
+                        updateStatusInGoogleSheet(selectedUser, 'For Completion' as any);
+                      }
+                      // Log the progression
+                      try {
+                        await fetch('/api/applicants/screening-history', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            applicant_no: selectedUser.no,
+                            action: 'Proceeded to Selection',
+                            status: 'For Completion',
+                            notes: '',
+                          })
+                        });
+                      } catch {}
+                      // Remove from Assessment table immediately
+                      onRemoveApplicant?.(selectedUser.id);
+                    }
+                    setActiveSection('selection');
+                  } else if (activeSection === 'selection') {
+                    // Update status to move applicant to Engagement stage
+                    if (selectedUser) {
+                      onStatusChange?.(selectedUser.id, 'For Medical' as any);
+                      updateStatusInGoogleSheet(selectedUser, 'For Medical' as any);
+                      // Log the progression
+                      try {
+                        await fetch('/api/applicants/screening-history', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            applicant_no: selectedUser.no,
+                            action: 'Proceeded to Engagement',
+                            status: 'For Medical',
+                            notes: '',
+                          })
+                        });
+                      } catch {}
+                      // Remove from Selection table immediately
+                      onRemoveApplicant?.(selectedUser.id);
+                    }
+                    setActiveSection('engagement');
+                  } else if (activeSection === 'engagement') {
+                    // Update status to move applicant to Recruitment Database
+                    if (selectedUser) {
+                      onStatusChange?.(selectedUser.id, 'Deployed' as any);
+                      updateStatusInGoogleSheet(selectedUser, 'Deployed' as any);
+                      // Log the progression
+                      try {
+                        await fetch('/api/applicants/screening-history', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            applicant_no: selectedUser.no,
+                            action: 'Proceeded to Recruitment Database',
+                            status: 'Deployed',
+                            notes: '',
+                          })
+                        });
+                      } catch {}
+                      // Remove from Engagement table immediately
+                      onRemoveApplicant?.(selectedUser.id);
+                    }
+                    setActiveSection('recruitment-database');
+                  }
+                }}
+              >
                 <IconClipboardCheck size={16} />
                 Proceed
               </button>

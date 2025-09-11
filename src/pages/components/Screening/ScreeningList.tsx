@@ -1,13 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
 import InputApplicantModal from './InputApplicantModal';
 import { useApplicants } from "./hooks/useApplicants";
-import { useGoogleSheetApplicants } from "./hooks/useGoogleSheetApplicants";
 import ApplicantsTable from "./components/ApplicantsTable";
 import ApplicantsToolbar from "./components/ApplicantsToolbar";
 
 const ScreeningList: React.FC = () => {
-  const { applicants, loading } = useGoogleSheetApplicants();
   const [showHistory, setShowHistory] = useState(false);
   const {
     selectedUser,
@@ -22,14 +20,72 @@ const ScreeningList: React.FC = () => {
     handleStatusChangeAndSync,
     handleScreeningUpdate,
     handleAddApplicant,
+    removeApplicant,
     filteredUsers,
   } = useApplicants();
 
-  React.useEffect(() => {
-    if (!loading && applicants.length > 0) {
-      setUsers(applicants);
-    }
-  }, [loading, applicants, setUsers]);
+  useEffect(() => {
+    fetch('/api/applicants')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch applicants');
+        return res.json();
+      })
+      .then((rows) => {
+        const mapped = rows.map((r: any) => ({
+          id: r.id,
+          no: r.applicant_no || '',
+          referredBy: r.referred_by || '',
+          lastName: r.last_name || '',
+          firstName: r.first_name || '',
+          ext: r.ext || '',
+          middle: r.middle_name || '',
+          gender: r.gender || '',
+          size: r.size || '',
+          dateOfBirth: r.date_of_birth || '',
+          dateApplied: r.date_applied || '',
+          facebook: r.fb_name || '',
+          age: r.age || '',
+          location: r.location || '',
+          contactNumber: r.contact_number || '',
+          positionApplied: r.position_applied_for || '',
+          experience: r.experience || '',
+          datian: r.datian || '',
+          hokei: r.hokei || '',
+          pobc: r.pobc || '',
+          jinboway: r.jinboway || '',
+          surprise: r.surprise || '',
+          thaleste: r.thaleste || '',
+          aolly: r.aolly || '',
+          enjoy: r.enjoy || '',
+          status: r.status || '',
+          requirementsStatus: r.requirements_status || '',
+          finalInterviewStatus: r.final_interview_status || '',
+          medicalStatus: r.medical_status || '',
+          statusRemarks: r.status_remarks || '',
+          applicantRemarks: r.applicant_remarks || '',
+          // Document checklist flags
+          recentPicture: Boolean(r.recent_picture),
+          psaBirthCertificate: Boolean(r.psa_birth_certificate),
+          schoolCredentials: Boolean(r.school_credentials),
+          nbiClearance: Boolean(r.nbi_clearance),
+          policeClearance: Boolean(r.police_clearance),
+          barangayClearance: Boolean(r.barangay_clearance),
+          sss: Boolean(r.sss),
+          pagibig: Boolean(r.pagibig),
+          cedula: Boolean(r.cedula),
+          vaccinationStatus: Boolean(r.vaccination_status),
+          // Extra flags used in sidebar via runtime props
+          resume: Boolean(r.resume),
+          coe: Boolean(r.coe),
+          philhealth: Boolean(r.philhealth),
+          tinNumber: Boolean(r.tin_number),
+        }));
+        setUsers(mapped.filter((u: any) => (u.status || '') === 'For Screening'));
+      })
+      .catch(() => {
+        setUsers([]);
+      });
+  }, [setUsers]);
 
   // If history is shown, render the toolbar component which will handle the full-page view
   if (showHistory) {
@@ -55,9 +111,6 @@ const ScreeningList: React.FC = () => {
           setSearch={setSearch}
           usersCount={users.length}
           onOpenModal={() => setIsModalOpen(true)}
-          onOpenSheet={() => {
-            window.open('https://docs.google.com/spreadsheets/d/1Iwz2TJ6We1FtIL4BhEnDW_qlt5Q7f2aAIX2fn2SDqUQ/edit?gid=0#gid=0', '_blank');
-          }}
           showHistory={showHistory}
           setShowHistory={setShowHistory}
         />
@@ -74,9 +127,6 @@ const ScreeningList: React.FC = () => {
             setSearch={setSearch}
             usersCount={users.length}
             onOpenModal={() => setIsModalOpen(true)}
-            onOpenSheet={() => {
-              window.open('https://docs.google.com/spreadsheets/d/1Iwz2TJ6We1FtIL4BhEnDW_qlt5Q7f2aAIX2fn2SDqUQ/edit?gid=0#gid=0', '_blank');
-            }}
             showHistory={showHistory}
             setShowHistory={setShowHistory}
           />
@@ -94,6 +144,7 @@ const ScreeningList: React.FC = () => {
         onClose={handleCloseSidebar}
         onStatusChange={handleStatusChangeAndSync}
         onScreeningUpdate={handleScreeningUpdate}
+        onRemoveApplicant={removeApplicant}
       />
       <InputApplicantModal
         isOpen={isModalOpen}
