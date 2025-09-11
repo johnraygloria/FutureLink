@@ -5,6 +5,7 @@ exports.createApplicant = (req, res) => {
   res.status(201).json({ message: 'Applicant created', data: req.body });
 };
 
+
 exports.getApplicants = async (req, res) => {
   try {
     const applicants = await fetchRecruitmentApplicants();
