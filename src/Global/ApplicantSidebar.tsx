@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { User, ApplicationStatus, ScreeningStatus } from '../api/applicant';
 import { 
   IconArrowLeft, 
@@ -159,6 +159,15 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   const { setActiveSection, activeSection, setCurrentApplicantNo } = useNavigation();
   const isOpen = !!selectedUser;
 
+  // Ensure the correct tab is selected based on the current app section
+  useEffect(() => {
+    if (activeSection === 'assessment') {
+      setActiveTab('screening'); // show Assessment content
+    } else {
+      setActiveTab('overview'); // show Screening content
+    }
+  }, [activeSection, isOpen]);
+
   const handleStatusChange = (newStatus: ApplicationStatus) => {
     if (selectedUser) {
       onStatusChange?.(selectedUser.id, newStatus);
@@ -235,26 +244,34 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
               </div>
             </div>
             <div className="flex border-b border-gray-200 bg-gray-50 relative">
-              {[
-                { id: 'overview', label: 'Screening', icon: <IconUser size={16} /> },
-                { id: 'screening', label: 'Assessment', icon: <IconClipboardCheck size={16} /> },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  className={`flex-1 px-4 py-3 text-sm font-medium transition-all duration-200 relative flex items-center justify-center gap-2 ${
-                    activeTab === tab.id
-                      ? 'text-custom-teal bg-white font-bold'
-                      : 'text-gray-500 hover:text-custom-teal hover:bg-white/50'
-                  }`}
-                  onClick={() => setActiveTab(tab.id as any)}
-                >
-                  {tab.icon}
-                  {tab.label}
-                  {activeTab === tab.id && (
-                    <span className="absolute left-1/2 -translate-x-1/2 bottom-0 w-8 h-1 bg-custom-teal rounded-t-full transition-all duration-300" />
-                  )}
-                </button>
-              ))}
+              {(() => {
+                // Build tabs based on current section
+                const tabs = [
+                  { id: 'overview', label: activeSection === 'screening' ? 'Screening' : 'Details', icon: <IconUser size={16} /> },
+                  { id: 'screening', label: 'Assessment', icon: <IconClipboardCheck size={16} /> },
+                ];
+                // Filter: show only relevant tab in each section
+                const visibleTabs = activeSection === 'assessment'
+                  ? tabs.filter(t => t.id === 'screening')
+                  : tabs.filter(t => t.id === 'overview');
+                return visibleTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    className={`flex-1 px-4 py-3 text-sm font-medium transition-all duration-200 relative flex items-center justify-center gap-2 ${
+                      activeTab === tab.id
+                        ? 'text-custom-teal bg-white font-bold'
+                        : 'text-gray-500 hover:text-custom-teal hover:bg-white/50'
+                    }`}
+                    onClick={() => setActiveTab(tab.id as any)}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                    {activeTab === tab.id && (
+                      <span className="absolute left-1/2 -translate-x-1/2 bottom-0 w-8 h-1 bg-custom-teal rounded-t-full transition-all duration-300" />
+                    )}
+                  </button>
+                ));
+              })()}
             </div>
           </div>
 
@@ -465,10 +482,16 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                     }
                     setActiveSection('selection');
                   } else if (activeSection === 'selection') {
-                    // Update status to move applicant to Engagement stage
+                    // Proceed from Selection: always remove from Selection list and go to Engagement.
+                    // If status is not yet an Engagement-allowed one, advance to 'For Medical' to ensure visibility in Engagement.
                     if (selectedUser) {
-                      onStatusChange?.(selectedUser.id, 'For Medical' as any);
-                      updateStatusInGoogleSheet(selectedUser, 'For Medical' as any);
+                      const current = selectedUser.status || '';
+                      const engagementAllowed = new Set(['For Deployment', 'Deployed']);
+                      const nextStatus = engagementAllowed.has(current) ? current : 'For Medical';
+                      if (nextStatus !== current) {
+                        onStatusChange?.(selectedUser.id, nextStatus as any);
+                        updateStatusInGoogleSheet(selectedUser, nextStatus as any);
+                      }
                       // Log the progression
                       try {
                         await fetch('/api/applicants/screening-history', {
@@ -477,7 +500,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                           body: JSON.stringify({
                             applicant_no: selectedUser.no,
                             action: 'Proceeded to Engagement',
-                            status: 'For Medical',
+                            status: nextStatus,
                             notes: '',
                           })
                         });

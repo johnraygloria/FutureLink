@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import Filters from './components/filter';
 import ActionsBar from './components/action';
+import { useNavigation } from '../../../Global/NavigationContext';
 import ApplicantTable from './components/applicanttab';
 import type { GoogleSheetApplicant } from './hook/googlesheettab';
 
@@ -13,6 +14,7 @@ function RecruitmentDatabase() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedApplicants, setSelectedApplicants] = useState<Set<string>>(new Set());
+  const { setActiveSection, setCurrentApplicantNo } = useNavigation();
 
   useEffect(() => {
     setLoading(true);
@@ -111,7 +113,7 @@ function RecruitmentDatabase() {
     setSelectedApplicants(newSelected);
   };
 
-  const handleAction = (action: string) => {
+  const handleAction = async (action: string) => {
     if (action === 'Export to Excel') {
       exportToExcel();
       return;
@@ -123,9 +125,93 @@ function RecruitmentDatabase() {
     }
 
     const selectedIds = Array.from(selectedApplicants);
-    console.log(`Performing ${action} on applicants:`, selectedIds);
-    alert(`${action} action will be performed on ${selectedIds.length} selected applicant(s)`);
-    setSelectedApplicants(new Set());
+    const toStatusMap: Record<string, string> = {
+      'Screening': 'For Screening',
+      'Assessment': 'For Final Interview/For Assessment',
+      'Final Interview': 'For Final Interview/For Assessment',
+      'Medical': 'For Medical',
+      'SBMA Gate Pass': 'For SBMA Gate Pass',
+      'Deployment': 'For Deployment',
+    };
+    const targetStatus = toStatusMap[action];
+
+    try {
+      // Update status in backend for each selected applicant
+      await Promise.all(selectedIds.map(async (no) => {
+        await fetch('/api/applicants', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ NO: no, STATUS: targetStatus })
+        });
+        // Log movement in history where relevant
+        try {
+          await fetch('/api/applicants/screening-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              applicant_no: no,
+              action: action === 'Screening' ? 'Returned to Screening' : `Proceeded to ${action}`,
+              status: targetStatus,
+              notes: '',
+            })
+          });
+        } catch {}
+      }));
+
+      // Set navigation to the appropriate section and open the first selected
+      const firstNo = selectedIds[0];
+      if (firstNo) setCurrentApplicantNo(firstNo);
+      if (action === 'Screening') setActiveSection('screening' as any);
+      else if (action === 'Assessment' || action === 'Final Interview') setActiveSection('assessment' as any);
+      else setActiveSection('engagement' as any);
+
+      // Clear selection and refresh list
+      setSelectedApplicants(new Set());
+      setStatusFilter('');
+      setSearchTerm('');
+      // refetch to reflect changes
+      const res = await fetch('/api/applicants');
+      if (res.ok) {
+        const rows = await res.json();
+        const mapped: GoogleSheetApplicant[] = rows.map((r: any) => ({
+          NO: r.applicant_no || '',
+          "REFFERED BY": r.referred_by || '',
+          "LAST NAME": r.last_name || '',
+          "FIRST NAME": r.first_name || '',
+          EXT: r.ext || '',
+          MIDDLE: r.middle_name || '',
+          GENDER: r.gender || '',
+          SIZE: r.size || '',
+          "DATE OF BIRTH": r.date_of_birth || '',
+          "DATE APPLIED": r.date_applied || '',
+          "FB NAME": r.fb_name || '',
+          AGE: r.age || '',
+          LOCATION: r.location || '',
+          "CONTACT NUMBER": r.contact_number || '',
+          "POSITION APPLIED FOR": r.position_applied_for || '',
+          EXPERIENCE: r.experience || '',
+          DATIAN: r.datian || '',
+          HOKEI: r.hokei || '',
+          POBC: r.pobc || '',
+          JINBOWAY: r.jinboway || '',
+          SURPRISE: r.surprise || '',
+          THALESTE: r.thaleste || '',
+          AOLLY: r.aolly || '',
+          ENJOY: r.enjoy || '',
+          STATUS: r.status || '',
+          "REQUIREMENTS STATUS": r.requirements_status || '',
+          "FINAL INTERVIEW STATUS": r.final_interview_status || '',
+          "MEDICAL STATUS": r.medical_status || '',
+          "STATUS REMARKS": r.status_remarks || '',
+          "APPLICANT REMARKS": r.applicant_remarks || '',
+          POSITION: r.position_applied_for || '',
+        }));
+        setApplicants(mapped);
+        setFilteredApplicants(mapped);
+      }
+    } catch (e) {
+      alert('Failed to update applicants. Please try again.');
+    }
   };
 
   const exportToExcel = () => {
