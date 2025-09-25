@@ -3,6 +3,7 @@ const cors = require('cors');
 const { PORT } = require('./config');
 const logger = require('./middleware/logger');
 const applicantsRoutes = require('./routes/applicants');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(logger);
 
 app.use('/api/applicants', applicantsRoutes);
+app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running');
@@ -19,4 +21,5 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log("Pending Employee Relations")
 }); 

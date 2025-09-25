@@ -82,12 +82,11 @@ const EngagementHR: React.FC = () => {
         return res.json();
       })
       .then((rows) => {
-        // Filter to statuses relevant to Engagement
+        // Filter to in-progress Engagement statuses (exclude 'Deployed' so proceeded applicants drop off this list)
         const allowed = new Set([
           'For Medical',
           'For SBMA Gate Pass',
           'For Deployment',
-          'Deployed',
         ]);
         const mapped: User[] = rows
           .filter((r: any) => allowed.has(r.status || ''))

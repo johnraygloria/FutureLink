@@ -10,11 +10,13 @@ import Employeerelations from "./pages/employee_relations";
 import RecruitmentDatabase from "./pages/recruitment-database";
 import LoadingScreen from "./components/LoadingScreen";
 import { NavigationProvider } from "./Global/NavigationContext";
+import Login from "./pages/auth/Login";
 
 const App: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     // Simulate loading time for better UX
@@ -28,6 +30,11 @@ const App: React.FC = () => {
   // Show loading screen
   if (isLoading) {
     return <LoadingScreen isLoading={isLoading} />;
+  }
+
+  // Simple design-only auth gate
+  if (!isAuthenticated) {
+    return <Login onSignIn={() => setIsAuthenticated(true)} />;
   }
 
   const renderContent = () => {
@@ -59,6 +66,7 @@ const App: React.FC = () => {
           onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           activeSection={activeSection}
           onSectionChange={setActiveSection}
+          onLogout={() => setIsAuthenticated(false)}
         />
         
         <div className="flex-1 flex flex-col">

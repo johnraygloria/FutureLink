@@ -20,7 +20,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed, 
   onToggle, 
   activeSection, 
-  onSectionChange 
+  onSectionChange,
 }) => {
   const menuItems = [
     {
@@ -70,20 +70,20 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div
       className={
-        `bg-white shadow-lg transition-all duration-300 ease-in-out ` +
+        `bg-white/90 backdrop-blur-sm border-r border-gray-200/70 rounded-r-2xl shadow-md transition-all duration-300 ease-in-out ` +
         (isCollapsed ? 'w-16' : 'w-64')
       }
     >
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200/70">
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
-            <img src={FutureLinkLogo} alt="FutureLink Logo" className="w-40 h-16" />
+            <img src={FutureLinkLogo} alt="FutureLink Logo" className="w-40 h-16 object-contain" />
             {/* <h2 className="text-lg font-semibold text-gray-800">FutureLink</h2> */}
           </div>
         )}
         <button
           onClick={onToggle}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200"
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
@@ -94,7 +94,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      <nav className="p-4">
+      <nav className="p-3">
         <ul className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -104,18 +104,19 @@ const Sidebar: React.FC<SidebarProps> = ({
               <li key={item.id}>
                 <button
                   onClick={() => onSectionChange(item.id)}
-                  className={`w-full flex items-center p-3 rounded-lg transition-all duration-200 ${
+                  className={`group relative w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 ${
                     isActive
-                      ? 'bg-custom-teal/10 bg-opacity-100 text-custom-teal border-r-2 border-custom-teal'
+                      ? 'text-custom-teal bg-custom-teal/10 ring-1 ring-custom-teal/20'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                   title={isCollapsed ? item.name : undefined}
                 >
+                  <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full transition-all ${isActive ? 'bg-custom-teal opacity-100' : 'opacity-0 group-hover:opacity-30 bg-gray-300'}`} />
                   <Icon className={`w-5 h-5 ${
-                    isActive ? 'text-custom-teal' : 'text-gray-600'
+                    isActive ? 'text-custom-teal' : 'text-gray-500 group-hover:text-gray-700'
                   }`} />
                   {!isCollapsed && (
-                    <span className="ml-3 font-medium">{item.name}</span>
+                    <span className="ml-3 font-medium tracking-wide">{item.name}</span>
                   )}
                 </button>
               </li>
