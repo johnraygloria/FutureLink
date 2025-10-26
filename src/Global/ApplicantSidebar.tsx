@@ -22,6 +22,22 @@ interface ApplicantSidebarProps {
 
 const getStatusIcon = (status: string) => {
   const icons: Record<string, React.ReactNode> = {
+    'For Screening': <IconClipboardCheck size={16} />,
+    'Doc Screening': <IconClipboardCheck size={16} />,
+    'Physical Screening': <IconUser size={16} />,
+    'Initial Interview': <IconCalendarEvent size={16} />,
+    'Completion': <IconClipboardCheck size={16} />,
+    'Final Interview': <IconCalendarEvent size={16} />,
+    'Final Interview/Incomplete Requirements': <IconCalendarEvent size={16} />,
+    'Final Interview/Complete Requirements': <IconCalendarEvent size={16} />,
+    'For Final Interview/For Assessment': <IconCalendarEvent size={16} />,
+    'For Completion': <IconClipboardCheck size={16} />,
+    'For Medical': <IconUser size={16} />,
+    'For SBMA Gate Pass': <IconUser size={16} />,
+    'On Boarding': <IconUser size={16} />,
+    'Metrex': <IconUser size={16} />,
+    'For Deployment': <IconUser size={16} />,
+    'Deployed': <IconUser size={16} />,
     'Document Screening': <IconClipboardCheck size={16} />,
     'Initial Review': <IconEye size={16} />,
     'Interview Scheduled': <IconCalendarEvent size={16} />,
@@ -162,7 +178,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   // Ensure the correct tab is selected based on the current app section
   useEffect(() => {
     if (activeSection === 'assessment') {
-      setActiveTab('screening'); // show Assessment content
+      setActiveTab('screening'); // default to Assessment content, but allow switching to Screening
     } else {
       setActiveTab('overview'); // show Screening content
     }
@@ -247,12 +263,12 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
               {(() => {
                 // Build tabs based on current section
                 const tabs = [
-                  { id: 'overview', label: activeSection === 'screening' ? 'Screening' : 'Details', icon: <IconUser size={16} /> },
+                  { id: 'overview', label: activeSection === 'screening' ? 'Screening' : (activeSection === 'assessment' ? 'Screening' : 'Details'), icon: <IconUser size={16} /> },
                   { id: 'screening', label: 'Assessment', icon: <IconClipboardCheck size={16} /> },
                 ];
-                // Filter: show only relevant tab in each section
+                // Filter: show relevant tabs in each section
                 const visibleTabs = activeSection === 'assessment'
-                  ? tabs.filter(t => t.id === 'screening')
+                  ? tabs // Show both tabs in assessment section
                   : tabs.filter(t => t.id === 'overview');
                 return visibleTabs.map((tab) => (
                   <button
@@ -284,21 +300,49 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                     <div className="bg-white rounded-2xl p-4 border border-custom-teal/20 shadow-sm mb-4">
                       <h2 className="text-base font-semibold text-custom-teal mb-2">Status</h2>
                       <select
-                        className={`w-full border border-custom-teal rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal ${activeSection === 'screening' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                        className="w-full border border-custom-teal rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal"
                         value={selectedUser.status || ''}
                         onChange={e => handleStatusChange(e.target.value as ApplicationStatus)}
-                        disabled={activeSection === 'screening'}
                       >
-                        <option value="For Screening">For Screening</option>
-                        <option value="For Final Interview/For Assessment">For Final Interview/For Assessment</option>
-                        <option value="For Completion">For Completion</option>
-                        <option value="For Medical">For Medical</option>
-                        <option value="For SBMA Gate Pass">For SBMA Gate Pass</option>
-                        <option value="For Deployment">For Deployment</option>
-                        <option value="Deployed">Deployed</option>
+                        {activeSection === 'assessment' ? (
+                          <>
+                            <option value="Initial Interview">Initial Interview</option>
+                            <option value="Completion">Completion</option>
+                            <option value="Final Interview">Final Interview</option>
+                            <option value="Final Interview/Incomplete Requirements">Final Interview/Incomplete Requirements</option>
+                            <option value="Final Interview/Complete Requirements">Final Interview/Complete Requirements</option>
+                            <option value="For Final Interview/For Assessment">For Final Interview/For Assessment</option>
+                            <option value="For Completion">For Completion</option>
+                            <option value="For Medical">For Medical</option>
+                            <option value="For SBMA Gate Pass">For SBMA Gate Pass</option>
+                            <option value="On Boarding">On Boarding</option>
+                            <option value="Metrex">Metrex</option>
+                            <option value="For Deployment">For Deployment</option>
+                            <option value="Deployed">Deployed</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="For Screening">For Screening</option>
+                            <option value="Doc Screening">Doc Screening</option>
+                            <option value="Physical Screening">Physical Screening</option>
+                            <option value="Initial Interview">Initial Interview</option>
+                            <option value="Completion">Completion</option>
+                            <option value="Final Interview">Final Interview</option>
+                            <option value="Final Interview/Incomplete Requirements">Final Interview/Incomplete Requirements</option>
+                            <option value="Final Interview/Complete Requirements">Final Interview/Complete Requirements</option>
+                            <option value="For Final Interview/For Assessment">For Final Interview/For Assessment</option>
+                            <option value="For Completion">For Completion</option>
+                            <option value="For Medical">For Medical</option>
+                            <option value="For SBMA Gate Pass">For SBMA Gate Pass</option>
+                            <option value="On Boarding">On Boarding</option>
+                            <option value="Metrex">Metrex</option>
+                            <option value="For Deployment">For Deployment</option>
+                            <option value="Deployed">Deployed</option>
+                          </>
+                        )}
                       </select>
                       <p className="text-xs text-gray-500 mt-1">
-                        {activeSection === 'screening' ? 'Status is automatic during Screening.' : "Change the applicant's status."}
+                        Change the applicant's status.
                       </p>
                     </div>
                   )}
@@ -457,9 +501,126 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                     // Do not navigate to Assessment automatically; just close the sidebar
                     onClose();
                   } else if (activeSection === 'assessment') {
-                    // Update status to move applicant to Selection stage
+                    // Handle assessment workflow based on current status
                     if (selectedUser) {
-                      // Only update status if it's not already "For Completion"
+                      const currentStatus = selectedUser.status || '';
+                      
+                      if (currentStatus === 'Final Interview') {
+                        // Show requirement completion options
+                        const requirementStatus = prompt('Requirements Status:\n1. Complete Requirements\n2. Incomplete Requirements\n\nEnter 1 or 2:');
+                        
+                        if (requirementStatus === '1') {
+                          // Complete Requirements - change status to Final Interview/Complete Requirements
+                          onStatusChange?.(selectedUser.id, 'Final Interview/Complete Requirements' as any);
+                          await updateStatusInGoogleSheet(selectedUser, 'Final Interview/Complete Requirements' as any);
+                          
+                          // Log the progression
+                          try {
+                            await fetch('/api/applicants/screening-history', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                applicant_no: selectedUser.no,
+                                action: 'Final Interview - Requirements Complete',
+                                status: 'Final Interview/Complete Requirements',
+                                notes: 'Requirements completed successfully',
+                              })
+                            });
+                          } catch {}
+                          
+                          // Don't remove from Assessment table - just change status
+                        } else if (requirementStatus === '2') {
+                          // Incomplete Requirements - change status to Final Interview/Incomplete Requirements
+                          onStatusChange?.(selectedUser.id, 'Final Interview/Incomplete Requirements' as any);
+                          await updateStatusInGoogleSheet(selectedUser, 'Final Interview/Incomplete Requirements' as any);
+                          
+                          // Log the progression
+                          try {
+                            await fetch('/api/applicants/screening-history', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                applicant_no: selectedUser.no,
+                                action: 'Final Interview - Requirements Incomplete',
+                                status: 'Final Interview/Incomplete Requirements',
+                                notes: 'Requirements incomplete',
+                              })
+                            });
+                          } catch {}
+                          
+                          // Don't remove from Assessment table - just change status
+                        }
+                      } else if (currentStatus === 'Final Interview/Complete Requirements') {
+                        // Complete Requirements - proceed to For Medical
+                        onStatusChange?.(selectedUser.id, 'For Medical' as any);
+                        await updateStatusInGoogleSheet(selectedUser, 'For Medical' as any);
+                        
+                        // Log the progression
+                        try {
+                          await fetch('/api/applicants/screening-history', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              applicant_no: selectedUser.no,
+                              action: 'Requirements Complete - Proceeded to Medical',
+                              status: 'For Medical',
+                              notes: 'Requirements completed successfully',
+                            })
+                          });
+                        } catch {}
+                        
+                        // Remove from Assessment table immediately
+                        onRemoveApplicant?.(selectedUser.id);
+                        setActiveSection('engagement'); // Go to engagement/medical section
+                      } else if (currentStatus === 'Final Interview/Incomplete Requirements') {
+                        // Incomplete Requirements - send back to screening
+                        onStatusChange?.(selectedUser.id, 'For Screening' as any);
+                        await updateStatusInGoogleSheet(selectedUser, 'For Screening' as any);
+                        
+                        // Log the progression
+                        try {
+                          await fetch('/api/applicants/screening-history', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              applicant_no: selectedUser.no,
+                              action: 'Requirements Incomplete - Returned to Screening',
+                              status: 'For Screening',
+                              notes: 'Requirements incomplete, returned to screening',
+                            })
+                          });
+                        } catch {}
+                        
+                        // Remove from Assessment table immediately
+                        onRemoveApplicant?.(selectedUser.id);
+                        setActiveSection('screening'); // Go back to screening
+                      } else if (currentStatus === 'Initial Interview') {
+                        // Initial Interview automatically proceeds to assessment
+                        onStatusChange?.(selectedUser.id, 'For Final Interview/For Assessment' as any);
+                        await updateStatusInGoogleSheet(selectedUser, 'For Final Interview/For Assessment' as any);
+                        
+                        // Log the progression
+                        try {
+                          await fetch('/api/applicants/screening-history', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              applicant_no: selectedUser.no,
+                              action: 'Initial Interview Complete - Proceeded to Assessment',
+                              status: 'For Final Interview/For Assessment',
+                              notes: 'Initial interview completed, proceeding to assessment',
+                            })
+                          });
+                        } catch {}
+                        
+                        // Don't remove from Assessment table - just change status and stay
+                        // The applicant will remain visible in assessment with new status
+                      } else if (currentStatus === 'Completion') {
+                        // Don't auto-proceed for Completion
+                        alert(`Status "${currentStatus}" requires manual progression. Please change the status to proceed.`);
+                        return;
+                      } else {
+                        // Default assessment progression for other statuses
                       if (selectedUser.status !== 'For Completion') {
                         onStatusChange?.(selectedUser.id, 'For Completion' as any);
                         updateStatusInGoogleSheet(selectedUser, 'For Completion' as any);
@@ -479,16 +640,83 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                       } catch {}
                       // Remove from Assessment table immediately
                       onRemoveApplicant?.(selectedUser.id);
+                        setActiveSection('selection');
+                      }
                     }
-                    setActiveSection('selection');
                   } else if (activeSection === 'selection') {
-                    // Proceed from Selection: always remove from Selection list and go to Engagement.
-                    // If status is not yet an Engagement-allowed one, advance to 'For Medical' to ensure visibility in Engagement.
+                    // Handle Selection workflow based on current status
                     if (selectedUser) {
-                      const current = selectedUser.status || '';
+                      const currentStatus = selectedUser.status || '';
+                      
+                      if (currentStatus === 'For Completion') {
+                        // For Completion -> For Medical
+                        onStatusChange?.(selectedUser.id, 'For Medical' as any);
+                        await updateStatusInGoogleSheet(selectedUser, 'For Medical' as any);
+                        
+                        // Log the progression
+                        try {
+                          await fetch('/api/applicants/screening-history', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              applicant_no: selectedUser.no,
+                              action: 'Proceeded to Medical',
+                              status: 'For Medical',
+                              notes: 'Moved to medical stage',
+                            })
+                          });
+                        } catch {}
+                        
+                        // Remove from Selection table immediately
+                        onRemoveApplicant?.(selectedUser.id);
+                        setActiveSection('engagement'); // Go to engagement section
+                      } else if (currentStatus === 'For Medical') {
+                        // For Medical -> For SBMA Gate Pass
+                        onStatusChange?.(selectedUser.id, 'For SBMA Gate Pass' as any);
+                        await updateStatusInGoogleSheet(selectedUser, 'For SBMA Gate Pass' as any);
+                        
+                        // Log the progression
+                        try {
+                          await fetch('/api/applicants/screening-history', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              applicant_no: selectedUser.no,
+                              action: 'Medical Complete - Proceeded to SBMA Gate Pass',
+                              status: 'For SBMA Gate Pass',
+                              notes: 'Medical completed, proceeding to SBMA gate pass',
+                            })
+                          });
+                        } catch {}
+                        
+                        // Don't remove from Selection table - just change status
+                      } else if (currentStatus === 'For SBMA Gate Pass') {
+                        // For SBMA Gate Pass -> For Deployment
+                        onStatusChange?.(selectedUser.id, 'For Deployment' as any);
+                        await updateStatusInGoogleSheet(selectedUser, 'For Deployment' as any);
+                        
+                        // Log the progression
+                        try {
+                          await fetch('/api/applicants/screening-history', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              applicant_no: selectedUser.no,
+                              action: 'SBMA Gate Pass Complete - Proceeded to Deployment',
+                              status: 'For Deployment',
+                              notes: 'SBMA gate pass completed, proceeding to deployment',
+                            })
+                          });
+                        } catch {}
+                        
+                        // Remove from Selection table immediately
+                        onRemoveApplicant?.(selectedUser.id);
+                        setActiveSection('engagement'); // Go to engagement section
+                      } else {
+                        // Default Selection progression
                       const engagementAllowed = new Set(['For Deployment', 'Deployed']);
-                      const nextStatus = engagementAllowed.has(current) ? current : 'For Medical';
-                      if (nextStatus !== current) {
+                        const nextStatus = engagementAllowed.has(currentStatus) ? currentStatus : 'For Medical';
+                        if (nextStatus !== currentStatus) {
                         onStatusChange?.(selectedUser.id, nextStatus as any);
                         updateStatusInGoogleSheet(selectedUser, nextStatus as any);
                       }
@@ -507,8 +735,9 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                       } catch {}
                       // Remove from Selection table immediately
                       onRemoveApplicant?.(selectedUser.id);
+                        setActiveSection('engagement');
+                      }
                     }
-                    setActiveSection('engagement');
                   } else if (activeSection === 'engagement') {
                     // Update status to move applicant to Recruitment Database
                     if (selectedUser) {

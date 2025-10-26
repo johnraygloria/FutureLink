@@ -80,6 +80,11 @@ const Assessments: React.FC = () => {
         // Only show applicants that are currently in Assessment stage
         const allowedStatuses = new Set([
           'For Final Interview/For Assessment',
+          'Initial Interview',
+          'Completion',
+          'Final Interview',
+          'Final Interview/Incomplete Requirements',
+          'Final Interview/Complete Requirements',
         ]);
         const assessmentUsers = mapped.filter((u: any) => allowedStatuses.has(u.status || ''));
         setUsers(assessmentUsers);

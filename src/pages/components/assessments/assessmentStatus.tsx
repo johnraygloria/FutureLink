@@ -47,6 +47,8 @@ const emptyApplicant: { [key: string]: string } = {
   REQUIREMENTS_STATUS: "",
   FINAL_INTERVIEW_STATUS: "",
   MEDICAL_STATUS: "",
+  DOC_SCREENING_STATUS: "",
+  PHYSICAL_SCREENING_STATUS: "",
   STATUS_REMARKS: "",
   APPLICANT_REMARKS: ""
 };
@@ -63,6 +65,8 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
   const [requirementsStatus, setRequirementsStatus] = useState<string>('');
   const [finalInterviewStatus, setFinalInterviewStatus] = useState<string>('');
   const [medicalStatus, setMedicalStatus] = useState<string>('');
+  const [docScreeningStatus, setDocScreeningStatus] = useState<string>('');
+  const [physicalScreeningStatus, setPhysicalScreeningStatus] = useState<string>('');
   const [statusRemarks, setStatusRemarks] = useState<string>('');
   const [applicantRemarks, setApplicantRemarks] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -86,6 +90,8 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
         setRequirementsStatus(applicant.REQUIREMENTS_STATUS || "");
         setFinalInterviewStatus(applicant.FINAL_INTERVIEW_STATUS || "");
         setMedicalStatus(applicant.MEDICAL_STATUS || "");
+        setDocScreeningStatus(applicant.DOC_SCREENING_STATUS || "");
+        setPhysicalScreeningStatus(applicant.PHYSICAL_SCREENING_STATUS || "");
         setStatusRemarks(applicant.Status_REMARKS || applicant.STATUS_REMARKS || "");
         setApplicantRemarks(applicant.APPLICANT_REMARKS || "");
         
@@ -98,6 +104,8 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
         setRequirementsStatus("");
         setFinalInterviewStatus("");
         setMedicalStatus("");
+        setDocScreeningStatus("");
+        setPhysicalScreeningStatus("");
         setStatusRemarks("");
         setApplicantRemarks("");
         setSelectedCompanies([]);
@@ -132,6 +140,8 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
     updatedApplicantData["REQUIREMENTS_STATUS"] = requirementsStatus;
     updatedApplicantData["FINAL_INTERVIEW_STATUS"] = finalInterviewStatus;
     updatedApplicantData["MEDICAL_STATUS"] = medicalStatus;
+    updatedApplicantData["DOC_SCREENING_STATUS"] = docScreeningStatus;
+    updatedApplicantData["PHYSICAL_SCREENING_STATUS"] = physicalScreeningStatus;
     updatedApplicantData["STATUS_REMARKS"] = statusRemarks;
     updatedApplicantData["APPLICANT_REMARKS"] = applicantRemarks;
 
@@ -274,6 +284,42 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                     <option value="Passed">Passed</option>
                     <option value="Good">Good</option>
                     <option value="Very Good">Very Good</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Doc Screening Status
+                  </label>
+                  <select
+                    value={docScreeningStatus}
+                    onChange={e => setDocScreeningStatus(e.target.value)}
+                    className="input"
+                  >
+                    <option value="" disabled>Select doc screening status</option>
+                    <option value="Passed">Passed</option>
+                    <option value="Failed">Failed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Not Applicable">Not Applicable</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Physical Screening Status
+                  </label>
+                  <select
+                    value={physicalScreeningStatus}
+                    onChange={e => setPhysicalScreeningStatus(e.target.value)}
+                    className="input"
+                  >
+                    <option value="" disabled>Select physical screening status</option>
+                    <option value="Passed">Passed</option>
+                    <option value="Failed">Failed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Not Applicable">Not Applicable</option>
                   </select>
                 </div>
               </div>

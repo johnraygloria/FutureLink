@@ -139,9 +139,11 @@ export default function SelectionEmployees() {
         return res.json();
       })
       .then((rows) => {
-        // Filter to statuses relevant to Selection only (pre-engagement)
+        // Filter to statuses relevant to Selection (pre-engagement)
         const allowed = new Set([
           'For Completion',
+          'For Medical',
+          'For SBMA Gate Pass',
         ]);
         const mapped: User[] = rows
           .filter((r: any) => allowed.has(r.status || ''))

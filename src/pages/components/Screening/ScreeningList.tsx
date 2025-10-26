@@ -80,7 +80,7 @@ const ScreeningList: React.FC = () => {
           philhealth: Boolean(r.philhealth),
           tinNumber: Boolean(r.tin_number),
         }));
-        setUsers(mapped.filter((u: any) => (u.status || '') === 'For Screening'));
+        setUsers(mapped.filter((u: any) => ['For Screening', 'Doc Screening', 'Physical Screening'].includes(u.status || '')));
       })
       .catch(() => {
         setUsers([]);

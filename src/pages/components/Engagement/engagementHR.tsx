@@ -84,8 +84,9 @@ const EngagementHR: React.FC = () => {
       .then((rows) => {
         // Filter to in-progress Engagement statuses (exclude 'Deployed' so proceeded applicants drop off this list)
         const allowed = new Set([
-          'For Medical',
-          'For SBMA Gate Pass',
+          // 'For SBMA Gate Pass',
+          'On Boarding',
+          'Metrex',
           'For Deployment',
         ]);
         const mapped: User[] = rows

@@ -10,6 +10,22 @@ export interface User extends ApplicantPersonal, ApplicantDocuments, Company {
 }
 
 export type ApplicationStatus = 
+  | 'For Screening'
+  | 'Doc Screening'
+  | 'Physical Screening'
+  | 'Initial Interview'
+  | 'Completion'
+  | 'Final Interview'
+  | 'Final Interview/Incomplete Requirements'
+  | 'Final Interview/Complete Requirements'
+  | 'For Final Interview/For Assessment'
+  | 'For Completion'
+  | 'For Medical'
+  | 'For SBMA Gate Pass'
+  | 'On Boarding'
+  | 'Metrex'
+  | 'For Deployment'
+  | 'Deployed'
   | 'Document Screening'
   | 'Initial Review'
   | 'Interview Scheduled'
