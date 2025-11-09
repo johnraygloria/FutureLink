@@ -47,6 +47,8 @@ const emptyApplicant: { [key: string]: string } = {
   REQUIREMENTS_STATUS: "",
   FINAL_INTERVIEW_STATUS: "",
   MEDICAL_STATUS: "",
+  DOC_SCREENING_STATUS: "",
+  PHYSICAL_SCREENING_STATUS: "",
   STATUS_REMARKS: "",
   APPLICANT_REMARKS: ""
 };
@@ -63,6 +65,8 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
   const [requirementsStatus, setRequirementsStatus] = useState<string>('');
   const [finalInterviewStatus, setFinalInterviewStatus] = useState<string>('');
   const [medicalStatus, setMedicalStatus] = useState<string>('');
+  const [docScreeningStatus, setDocScreeningStatus] = useState<string>('');
+  const [physicalScreeningStatus, setPhysicalScreeningStatus] = useState<string>('');
   const [statusRemarks, setStatusRemarks] = useState<string>('');
   const [applicantRemarks, setApplicantRemarks] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -86,6 +90,8 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
         setRequirementsStatus(applicant.REQUIREMENTS_STATUS || "");
         setFinalInterviewStatus(applicant.FINAL_INTERVIEW_STATUS || "");
         setMedicalStatus(applicant.MEDICAL_STATUS || "");
+        setDocScreeningStatus(applicant.DOC_SCREENING_STATUS || "");
+        setPhysicalScreeningStatus(applicant.PHYSICAL_SCREENING_STATUS || "");
         setStatusRemarks(applicant.Status_REMARKS || applicant.STATUS_REMARKS || "");
         setApplicantRemarks(applicant.APPLICANT_REMARKS || "");
         
@@ -98,6 +104,8 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
         setRequirementsStatus("");
         setFinalInterviewStatus("");
         setMedicalStatus("");
+        setDocScreeningStatus("");
+        setPhysicalScreeningStatus("");
         setStatusRemarks("");
         setApplicantRemarks("");
         setSelectedCompanies([]);
@@ -132,6 +140,8 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
     updatedApplicantData["REQUIREMENTS_STATUS"] = requirementsStatus;
     updatedApplicantData["FINAL_INTERVIEW_STATUS"] = finalInterviewStatus;
     updatedApplicantData["MEDICAL_STATUS"] = medicalStatus;
+    updatedApplicantData["DOC_SCREENING_STATUS"] = docScreeningStatus;
+    updatedApplicantData["PHYSICAL_SCREENING_STATUS"] = physicalScreeningStatus;
     updatedApplicantData["STATUS_REMARKS"] = statusRemarks;
     updatedApplicantData["APPLICANT_REMARKS"] = applicantRemarks;
 
@@ -139,6 +149,20 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
       await saveApplicantAssessment(updatedApplicantData);
       setStatus('Ok');
       setApplicantData(updatedApplicantData);
+      // Log to assessment history
+      try {
+        await fetch('/api/applicants/assessment-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            applicant_no: no,
+            action: 'Assessment Updated',
+            status: finalInterviewStatus || requirementsStatus || medicalStatus || '',
+            notes: statusRemarks || applicantRemarks || ''
+          })
+        });
+        try { window.dispatchEvent(new CustomEvent('assessment-history-updated')); } catch {}
+      } catch {}
     } catch (error) {
       console.error('Save error:', error);
       setStatus(`Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -158,20 +182,23 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
     }
   }, [no]);
 
+  const isCompact = !showApplicantHeader;
+
   return (
     <div className="flex w-full">
-      <div className="flex-1 max-w-full mx-auto py-10 px-4">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="flex items-center justify-between p-6 border-b bg-white">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-custom-teal">Employee Screening & Assessment</h1>
-              <div className="h-6 w-px bg-gray-300"></div>
-              <span className="text-sm text-gray-500">Assessment Management</span>
+      <div className={`flex-1 max-w-full ${isCompact ? '' : 'mx-auto py-10 px-4'}`}>
+        <div className={`${isCompact ? 'bg-transparent shadow-none overflow-visible' : 'bg-white rounded-2xl shadow-lg overflow-hidden'}`}>
+          {!isCompact && (
+            <div className="flex items-center justify-between p-6 border-b bg-white">
+              <div className="flex items-center space-x-4">
+                <h1 className="text-2xl font-bold text-custom-teal">Employee Screening & Assessment</h1>
+                <div className="h-6 w-px bg-gray-300"></div>
+                <span className="text-sm text-gray-500">Assessment Management</span>
+              </div>
             </div>
+          )}
 
-          </div>
-
-          <div className="p-6">
+          <div className={`${isCompact ? 'p-0' : 'p-6'}`}>
             {showApplicantHeader && applicantData.NO && applicantData.FIRST_NAME && (
               <div className="mb-6 bg-gradient-to-r from-custom-teal/5 to-blue-50 rounded-xl p-6 border border-custom-teal/20">
                 <div className="flex items-center justify-between mb-4">
@@ -211,17 +238,18 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <form onSubmit={handleSubmit} className={`${isCompact ? 'space-y-4' : 'space-y-6'}`}>
+              <div className={`grid grid-cols-1 lg:grid-cols-2 ${isCompact ? 'gap-4' : 'gap-6'}`}>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-gray-700">
                     Company Fit Check (multiple)
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {companies.map(company => (
-                      <label key={company} className="inline-flex items-center gap-2">
+                      <label key={company} className="inline-flex items-center gap-2 text-sm text-gray-700">
                         <input
                           type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal"
                           checked={selectedCompanies.includes(company)}
                           onChange={() => toggleCompany(company)}
                         />
@@ -241,12 +269,12 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                     onChange={e => setNo(e.target.value)}
                     required
                     placeholder="Enter applicant NO"
-                    className="input"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className={`grid grid-cols-1 lg:grid-cols-2 ${isCompact ? 'gap-4' : 'gap-6'}`}>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-gray-700">
                     Requirements Status
@@ -256,7 +284,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                     value={requirementsStatus}
                     onChange={e => setRequirementsStatus(e.target.value)}
                     placeholder="Enter requirements status"
-                    className="input"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white"
                   />
                 </div>
 
@@ -268,7 +296,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                     value={finalInterviewStatus}
                     onChange={e => setFinalInterviewStatus(e.target.value)}
                     required
-                    className="input"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white"
                   >
                     <option value="" disabled>Select final interview status</option>
                     <option value="Passed">Passed</option>
@@ -278,7 +306,43 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className={`grid grid-cols-1 lg:grid-cols-2 ${isCompact ? 'gap-4' : 'gap-6'}`}>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Doc Screening Status
+                  </label>
+                  <select
+                    value={docScreeningStatus}
+                    onChange={e => setDocScreeningStatus(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white"
+                  >
+                    <option value="" disabled>Select doc screening status</option>
+                    <option value="Passed">Passed</option>
+                    <option value="Failed">Failed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Not Applicable">Not Applicable</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Physical Screening Status
+                  </label>
+                  <select
+                    value={physicalScreeningStatus}
+                    onChange={e => setPhysicalScreeningStatus(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white"
+                  >
+                    <option value="" disabled>Select physical screening status</option>
+                    <option value="Passed">Passed</option>
+                    <option value="Failed">Failed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Not Applicable">Not Applicable</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className={`grid grid-cols-1 lg:grid-cols-2 ${isCompact ? 'gap-4' : 'gap-6'}`}>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium text-gray-700">
                     Medical Status
@@ -288,7 +352,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                     value={medicalStatus}
                     onChange={e => setMedicalStatus(e.target.value)}
                     placeholder="Enter medical status"
-                    className="input"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white"
                   />
                 </div>
 
@@ -301,7 +365,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                     value={statusRemarks}
                     onChange={e => setStatusRemarks(e.target.value)}
                     placeholder="Enter status remarks"
-                    className="input"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white"
                   />
                 </div>
               </div>
@@ -315,16 +379,16 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                   onChange={e => setApplicantRemarks(e.target.value)}
                   placeholder="Enter applicant remarks"
                   rows={3}
-                  className="input resize-none"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+              <div className={`flex items-center justify-between ${isCompact ? 'pt-4' : 'pt-6'} border-t border-gray-200`}>
                 <div className="flex items-center space-x-4">
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-6 py-3 rounded-lg bg-custom-teal text-white font-semibold shadow-sm focus:outline-none border border-custom-teal hover:bg-custom-teal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    className={`${isCompact ? 'px-4 py-2 text-sm rounded-md' : 'px-6 py-3 rounded-lg'} bg-custom-teal text-white font-medium shadow-sm focus:outline-none border border-custom-teal hover:bg-custom-teal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2`}
                   >
                     {loading ? (
                       <>
@@ -340,7 +404,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                   </button>
                 </div>
                 {status && (
-                  <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
+                  <div className={`flex items-center space-x-2 ${isCompact ? 'px-3 py-1.5 text-sm rounded-md' : 'px-4 py-2 rounded-lg'} ${
                     status === 'Ok' 
                       ? 'bg-green-50 text-green-700 border border-green-200' 
                       : 'bg-red-50 text-red-700 border border-red-200'

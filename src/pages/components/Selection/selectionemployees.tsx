@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
 import type { User } from "../../../api/applicant";
 import { useNavigation } from "../../../Global/NavigationContext";
+import { formatAppliedDate, getUserInitials, isSelectionStatus, mapSelectionApplicantRow } from "./utils/selectionUtils";
+import SelectionHistoryTable from "./components/SelectionHistoryTable";
 
 interface SelectionHistory {
   id: number;
@@ -17,83 +19,13 @@ interface SelectionHistory {
 }
 
 
-const initialSelectionHistory: SelectionHistory[] = [
-  {
-    id: 1,
-    employeeId: 1,
-    date: "2024-06-15",
-    stage: "Medical Referral",
-    status: "Completed",
-    facilitator: "HR Coordinator",
-    notes: "Medical referral slip issued. Employee scheduled for medical examination.",
-    documents: ["Medical Referral Slip"],
-    nextDeadline: "2024-06-22"
-  },
-  {
-    id: 2,
-    employeeId: 1,
-    date: "2024-06-20",
-    stage: "Trade Test",
-    status: "Completed",
-    facilitator: "Technical Supervisor",
-    notes: "Welding skills assessment passed with excellent results. Employee demonstrates advanced techniques.",
-    documents: ["Trade Test Results", "Skills Assessment Report"],
-    nextDeadline: "2024-06-25"
-  },
-  {
-    id: 3,
-    employeeId: 1,
-    date: "2024-06-22",
-    stage: "Medical Clearance",
-    status: "Completed",
-    facilitator: "Medical Officer",
-    notes: "All medical tests passed. Employee cleared for work assignment.",
-    documents: ["Medical Certificate", "Health Declaration"],
-    nextDeadline: "2024-06-28"
-  },
-  {
-    id: 4,
-    employeeId: 1,
-    date: "2024-06-25",
-    stage: "Orientation",
-    status: "Scheduled",
-    facilitator: "Training Coordinator",
-    notes: "Orientation scheduled for next week. Safety protocols and company policies will be covered.",
-    documents: ["Orientation Schedule"],
-    nextDeadline: "2024-07-02"
-  },
-  {
-    id: 5,
-    employeeId: 2,
-    date: "2024-06-18",
-    stage: "Medical Referral",
-    status: "Completed",
-    facilitator: "HR Coordinator",
-    notes: "Medical referral issued. Employee completed initial screening.",
-    documents: ["Medical Referral Slip"],
-    nextDeadline: "2024-06-25"
-  },
-  {
-    id: 6,
-    employeeId: 2,
-    date: "2024-06-23",
-    stage: "Trade Test",
-    status: "In Progress",
-    facilitator: "Technical Supervisor",
-    notes: "Electrical skills assessment in progress. Employee showing good technical knowledge.",
-    documents: ["Trade Test Schedule"],
-    nextDeadline: "2024-06-30"
-  }
-];
-
-
-
 export default function SelectionEmployees() {
   const [employees, setEmployees] = useState<User[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
   const [search, setSearch] = useState("");
-  const [selectionHistory, setSelectionHistory] = useState<SelectionHistory[]>(initialSelectionHistory);
+  const [selectionHistory, setSelectionHistory] = useState<SelectionHistory[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { currentApplicantNo } = useNavigation();
 
   const openSidebar = (emp: User) => {
@@ -133,68 +65,43 @@ export default function SelectionEmployees() {
 
   // Fetch selection-stage applicants from API
   useEffect(() => {
+    setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch applicants');
         return res.json();
       })
       .then((rows) => {
-        // Filter to statuses relevant to Selection only (pre-engagement)
-        const allowed = new Set([
-          'For Completion',
-        ]);
         const mapped: User[] = rows
-          .filter((r: any) => allowed.has(r.status || ''))
-          .map((r: any) => ({
-            id: r.id,
-            no: r.applicant_no || '',
-            referredBy: r.referred_by || '',
-            lastName: r.last_name || '',
-            firstName: r.first_name || '',
-            ext: r.ext || '',
-            middle: r.middle_name || '',
-            gender: r.gender || '',
-            size: r.size || '',
-            dateOfBirth: r.date_of_birth || '',
-            dateApplied: r.date_applied || '',
-            facebook: r.fb_name || '',
-            age: r.age || '',
-            location: r.location || '',
-            contactNumber: r.contact_number || '',
-            positionApplied: r.position_applied_for || '',
-            experience: r.experience || '',
-            datian: r.datian || '',
-            hokei: r.hokei || '',
-            pobc: r.pobc || '',
-            jinboway: r.jinboway || '',
-            surprise: r.surprise || '',
-            thaleste: r.thaleste || '',
-            aolly: r.aolly || '',
-            enjoy: r.enjoy || '',
-            status: r.status || '',
-            requirementsStatus: r.requirements_status || '',
-            finalInterviewStatus: r.final_interview_status || '',
-            medicalStatus: r.medical_status || '',
-            statusRemarks: r.status_remarks || '',
-            applicantRemarks: r.applicant_remarks || '',
-            recentPicture: Boolean(r.recent_picture),
-            psaBirthCertificate: Boolean(r.psa_birth_certificate),
-            schoolCredentials: Boolean(r.school_credentials),
-            nbiClearance: Boolean(r.nbi_clearance),
-            policeClearance: Boolean(r.police_clearance),
-            barangayClearance: Boolean(r.barangay_clearance),
-            sss: Boolean(r.sss),
-            pagibig: Boolean(r.pagibig),
-            cedula: Boolean(r.cedula),
-            vaccinationStatus: Boolean(r.vaccination_status),
-            resume: Boolean(r.resume),
-            coe: Boolean(r.coe),
-            philhealth: Boolean(r.philhealth),
-            tinNumber: Boolean(r.tin_number),
-          }));
+          .filter((r: any) => isSelectionStatus(r.status))
+          .map(mapSelectionApplicantRow);
         setEmployees(mapped);
       })
-      .catch(() => setEmployees([]));
+      .catch(() => setEmployees([]))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  // Live update on applicant status changes across sections
+  useEffect(() => {
+    function onUpdated(e: any) {
+      const detail = e?.detail || {};
+      const { no, status } = detail;
+      if (!no) return;
+      setEmployees(prev => {
+        const idx = prev.findIndex(u => u.no === no);
+        const allowed = isSelectionStatus(status);
+        if (idx === -1) return prev;
+        const updated = [...prev];
+        if (!allowed) {
+          updated.splice(idx, 1);
+          return updated;
+        }
+        updated[idx] = { ...updated[idx], status } as any;
+        return updated;
+      });
+    }
+    window.addEventListener('applicant-updated', onUpdated);
+    return () => window.removeEventListener('applicant-updated', onUpdated);
   }, []);
 
   // Auto-open the proceeded applicant if coming from Assessment
@@ -226,56 +133,17 @@ export default function SelectionEmployees() {
             </div>
 
             <div className="p-6">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Position</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Application Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {selectionHistory.map((history) => {
-                      const employee = employees.find(e => e.id === history.employeeId);
-                      return (
-                        <tr key={history.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{employee ? `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || employee.facebook || 'Unknown' : 'Unknown'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{employee?.positionApplied || '-'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{employee?.dateApplied || history.date}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                              history.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                              history.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                              history.status === 'Scheduled' ? 'bg-yellow-100 text-yellow-800' :
-                              history.status === 'Failed' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {history.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-2">
-                            <button
-                              className="text-blue-600 hover:text-blue-900 rounded-full p-2 transition"
-                              title="View Details"
-                            >
-                              <i className="fas fa-eye" />
-                            </button>
-                            <button
-                              className="text-gray-400 hover:text-gray-700 rounded-full p-2 transition"
-                              title="More actions"
-                            >
-                              <i className="fas fa-ellipsis-h" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <SelectionHistoryTable
+                rows={selectionHistory as any}
+                getEmployeeInfo={(employeeId) => {
+                  const employee = employees.find(e => e.id === employeeId);
+                  return {
+                    name: employee ? (`${employee.firstName || ''} ${employee.lastName || ''}`.trim() || employee.facebook || 'Unknown') : 'Unknown',
+                    position: employee?.positionApplied || '-',
+                    dateApplied: employee?.dateApplied || '',
+                  };
+                }}
+              />
             </div>
           </div>
         </div>
@@ -288,31 +156,30 @@ export default function SelectionEmployees() {
     <div className="flex w-full">
       <div className="flex-1 max-w-full mx-auto py-10 px-4">
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="flex items-center justify-between p-6 border-b bg-white">
-            <div className="flex items-center space-x-4">
-            <div className="flex space-x-2">
-              <button className="px-4 py-2 rounded-lg bg-custom-teal/10 text-black font-semibold shadow-sm focus:outline-none border border-custom-teal/80">
-                Selection <span className="ml-1 bg-indigo-100 text-custom-teal rounded px-2 py-0.5 text-xs font-bold">{employees.length}</span>
-              </button>
-              
-              </div>
+          <div className="flex flex-col gap-4 p-6 border-b bg-white sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Selection</h1>
+              <span aria-label="selection-count" className="inline-flex items-center rounded-full bg-custom-teal/10 text-custom-teal px-2.5 py-0.5 text-xs font-medium border border-custom-teal/30">
+                {employees.length}
+              </span>
               <button
                 onClick={() => setShowHistory(true)}
-                className="px-4 py-2 rounded-lg bg-orange-600 text-white font-semibold shadow-sm focus:outline-none border border-orange-700"
+                className="ml-2 px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium shadow-sm focus:outline-none hover:bg-gray-800"
               >
-                View Selection History
+                View History
               </button>
             </div>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-gray-400">
+            <div className="relative w-full sm:w-auto">
+              <span className="pointer-events-none absolute left-3 top-2.5 text-gray-400">
                 <i className="fas fa-search" />
               </span>
               <input
                 type="text"
-                placeholder="Search employee"
+                placeholder="Search by name or position"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-200 bg-gray-50"
+                className="w-full sm:w-72 pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-custom-teal/30 bg-gray-50"
+                aria-label="Search applicants"
               />
             </div>
           </div>
@@ -320,7 +187,7 @@ export default function SelectionEmployees() {
           <div className="p-0">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Position</th>
@@ -329,23 +196,32 @@ export default function SelectionEmployees() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {employees.filter(emp =>
-                    (`${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase()).includes(search.toLowerCase()) ||
-                    (emp.positionApplied?.toLowerCase() || '').includes(search.toLowerCase())
-                  ).map((emp) => {
-                    return (
+                  {isLoading && (
+                    Array.from({ length: 6 }).map((_, idx) => (
+                      <tr key={`skeleton-${idx}`} className="animate-pulse">
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-3/5" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-2/5" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-1/4" /></td>
+                        <td className="px-6 py-4"><div className="h-6 bg-gray-200 rounded w-24" /></td>
+                      </tr>
+                    ))
+                  )}
+
+                  {!isLoading && employees
+                    .filter(emp =>
+                      (`${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase()).includes(search.toLowerCase()) ||
+                      (emp.positionApplied?.toLowerCase() || '').includes(search.toLowerCase())
+                    ).map((emp) => (
                       <tr
                         key={emp.id}
-                        className={`hover:bg-indigo-50 transition cursor-pointer`}
+                        className={`odd:bg-white even:bg-gray-50 hover:bg-gray-100 transition cursor-pointer`}
                         onClick={() => openSidebar(emp)}
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
-                              <div className="h-10 w-10 rounded-full bg-custom-teal flex items-center justify-center">
-                                <span className="text-white font-bold text-lg">
-                                  {`${emp.firstName || ''} ${emp.lastName || ''}`.trim().split(' ').map((n) => n[0]).join('').toUpperCase() || '?'}
-                                </span>
+                              <div className="h-10 w-10 rounded-full bg-custom-teal/10 border border-custom-teal/30 flex items-center justify-center">
+                                <span className="text-custom-teal font-semibold">{getUserInitials(emp)}</span>
                               </div>
                             </div>
                             <div className="ml-4">
@@ -357,7 +233,7 @@ export default function SelectionEmployees() {
                           <div className="text-sm text-gray-900 font-medium">{emp.positionApplied}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{emp.dateApplied}</div>
+                          <div className="text-sm text-gray-900">{formatAppliedDate(emp.dateApplied)}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
@@ -372,8 +248,21 @@ export default function SelectionEmployees() {
                           </span>
                         </td>
                       </tr>
-                    );
-                  })}
+                    ))}
+
+                  {!isLoading && employees.filter(emp =>
+                    (`${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase()).includes(search.toLowerCase()) ||
+                    (emp.positionApplied?.toLowerCase() || '').includes(search.toLowerCase())
+                  ).length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                        <div className="mx-auto mb-3 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                          <i className="fas fa-user-slash text-gray-400" />
+                        </div>
+                        <p className="text-sm">No matching applicants found</p>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

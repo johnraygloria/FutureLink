@@ -1,4 +1,4 @@
-const { insertRecruitmentApplicant, fetchRecruitmentApplicants, upsertRecruitmentApplicant, updateApplicantFields, addScreeningHistory, fetchScreeningHistory } = require('../models/applicant');
+const { insertRecruitmentApplicant, fetchRecruitmentApplicants, upsertRecruitmentApplicant, updateApplicantFields, addScreeningHistory, fetchScreeningHistory, fetchScreeningHistoryEnriched, addAssessmentHistory, fetchAssessmentHistoryEnriched, addSelectionHistory, fetchSelectionHistoryEnriched, addEngagementHistory, fetchEngagementHistoryEnriched } = require('../models/applicant');
 
 
 exports.createApplicant = (req, res) => {
@@ -74,6 +74,35 @@ exports.addOrUpdateApplicant = async (req, res) => {
       philhealth: toBitOrUndefined(body.PHILHEALTH ?? body.philhealth),
       tin_number: toBitOrUndefined(body.TIN_NUMBER ?? body.tinNumber ?? body.tin_number),
     });
+
+    // If assessment-related fields are provided, log to assessment history as a safety net
+    try {
+      const applicantNo = body.NO || body.applicant_no;
+      const hasAssessmentField = [
+        'REQUIREMENTS_STATUS', 'requirements_status',
+        'FINAL_INTERVIEW_STATUS', 'final_interview_status',
+        'MEDICAL_STATUS', 'medical_status',
+        'DOC_SCREENING_STATUS', 'doc_screening_status',
+        'PHYSICAL_SCREENING_STATUS', 'physical_screening_status',
+        'STATUS_REMARKS', 'status_remarks',
+        'APPLICANT_REMARKS', 'applicant_remarks'
+      ].some(k => body[k] !== undefined && body[k] !== null);
+
+      if (applicantNo && hasAssessmentField) {
+        const statusCandidate = body.FINAL_INTERVIEW_STATUS || body.final_interview_status ||
+                                body.REQUIREMENTS_STATUS || body.requirements_status ||
+                                body.MEDICAL_STATUS || body.medical_status || '';
+        const notesCandidate = body.STATUS_REMARKS || body.status_remarks || body.APPLICANT_REMARKS || body.applicant_remarks || '';
+        try { console.log('[assessment-history][auto]', { applicant_no: applicantNo, status: statusCandidate, notes: notesCandidate }); } catch (__) {}
+        await addAssessmentHistory({
+          applicant_no: applicantNo,
+          action: 'Assessment Updated',
+          status: String(statusCandidate || ''),
+          notes: String(notesCandidate || ''),
+        });
+      }
+    } catch (_) {}
+
     res.json({ ok: true });
   } catch (error) {
     console.error('addOrUpdateApplicant error:', error);
@@ -172,8 +201,20 @@ exports.getRecruitment = async (req, res) => {
 
 exports.getScreeningHistory = async (_req, res) => {
   try {
-    const rows = await fetchScreeningHistory();
-    res.json(rows);
+    const rows = await fetchScreeningHistoryEnriched();
+    const enriched = rows.map((r) => {
+      const fullName = `${r.first_name || ''} ${r.last_name || ''}`.trim();
+      const displayName = fullName || r.fb_name || r.applicant_no || '';
+      const position = r.position_applied_for || '-';
+      const applied = r.date_applied || '';
+      return {
+        ...r,
+        full_name: displayName,
+        position_applied_for: position,
+        date_applied: applied,
+      };
+    });
+    res.json(enriched);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to fetch screening history' });
@@ -189,5 +230,115 @@ exports.addScreeningHistory = async (req, res) => {
   } catch (e) {
     console.error('addScreeningHistory error:', e);
     res.status(500).json({ error: 'Failed to add screening history' });
+  }
+};
+
+// Assessment history
+exports.getAssessmentHistory = async (_req, res) => {
+  try {
+    let rows = await fetchAssessmentHistoryEnriched();
+    // Fallback: if assessment_history is empty, derive from screening history actions
+    if (!Array.isArray(rows) || rows.length === 0) {
+      const screeningRows = await fetchScreeningHistoryEnriched();
+      rows = screeningRows.filter(r => (
+        r.action === 'Assessment Updated' ||
+        r.action === 'Final Interview - Requirements Complete' ||
+        r.action === 'Final Interview - Requirements Incomplete' ||
+        r.action === 'Requirements Complete - Proceeded to Medical' ||
+        r.action === 'Requirements Incomplete - Returned to Screening' ||
+        r.action === 'Initial Interview Complete - Proceeded to Assessment' ||
+        r.action === 'Proceeded to Selection'
+      ));
+    }
+
+    const enriched = rows.map((r) => {
+      const fullName = `${r.first_name || ''} ${r.last_name || ''}`.trim();
+      const displayName = fullName || r.fb_name || r.applicant_no || '';
+      const position = r.position_applied_for || '-';
+      const applied = r.date_applied || '';
+      return {
+        ...r,
+        full_name: displayName,
+        position_applied_for: position,
+        date_applied: applied,
+      };
+    });
+    res.json(enriched);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to fetch assessment history' });
+  }
+};
+
+exports.addAssessmentHistory = async (req, res) => {
+  try {
+    const { applicant_no, action, status, notes } = req.body || {};
+    if (!applicant_no) return res.status(400).json({ error: 'applicant_no is required' });
+    try { console.log('[assessment-history][manual]', { applicant_no, action, status, notes }); } catch (__) {}
+    await addAssessmentHistory({ applicant_no, action, status, notes });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('addAssessmentHistory error:', e);
+    res.status(500).json({ error: 'Failed to add assessment history' });
+  }
+};
+
+// Selection history
+exports.getSelectionHistory = async (_req, res) => {
+  try {
+    const rows = await fetchSelectionHistoryEnriched();
+    const enriched = rows.map((r) => {
+      const fullName = `${r.first_name || ''} ${r.last_name || ''}`.trim();
+      const displayName = fullName || r.fb_name || r.applicant_no || '';
+      const position = r.position_applied_for || '-';
+      const applied = r.date_applied || '';
+      return { ...r, full_name: displayName, position_applied_for: position, date_applied: applied };
+    });
+    res.json(enriched);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to fetch selection history' });
+  }
+};
+
+exports.addSelectionHistory = async (req, res) => {
+  try {
+    const { applicant_no, action, status, notes } = req.body || {};
+    if (!applicant_no) return res.status(400).json({ error: 'applicant_no is required' });
+    await addSelectionHistory({ applicant_no, action, status, notes });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('addSelectionHistory error:', e);
+    res.status(500).json({ error: 'Failed to add selection history' });
+  }
+};
+
+// Engagement history
+exports.getEngagementHistory = async (_req, res) => {
+  try {
+    const rows = await fetchEngagementHistoryEnriched();
+    const enriched = rows.map((r) => {
+      const fullName = `${r.first_name || ''} ${r.last_name || ''}`.trim();
+      const displayName = fullName || r.fb_name || r.applicant_no || '';
+      const position = r.position_applied_for || '-';
+      const applied = r.date_applied || '';
+      return { ...r, full_name: displayName, position_applied_for: position, date_applied: applied };
+    });
+    res.json(enriched);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to fetch engagement history' });
+  }
+};
+
+exports.addEngagementHistory = async (req, res) => {
+  try {
+    const { applicant_no, action, status, notes } = req.body || {};
+    if (!applicant_no) return res.status(400).json({ error: 'applicant_no is required' });
+    await addEngagementHistory({ applicant_no, action, status, notes });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('addEngagementHistory error:', e);
+    res.status(500).json({ error: 'Failed to add engagement history' });
   }
 };

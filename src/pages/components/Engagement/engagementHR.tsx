@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import type { User, ApplicationStatus } from "../../../api/applicant";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
 import { useNavigation } from "../../../Global/NavigationContext";
+import { formatAppliedDate, getUserInitials, isEngagementStatus, mapEngagementApplicantRow } from "./utils/engagementUtils";
+import EngagementHistoryTable from "./components/EngagementHistoryTable";
 
 interface AssessmentHistory {
   id: number;
@@ -13,28 +15,7 @@ interface AssessmentHistory {
   status: 'Passed' | 'Failed' | 'Needs Improvement';
 }
 
-const initialApplicants: User[] = [
-  {
-    id: 1,
-    firstName: "Juan",
-    lastName: "Dela Cruz",
-    positionApplied: "Engineer",
-    status: "Deployed",
-    contactNumber: "09171234567",
-    experience: "5 years",
-    dateApplied: "2024-06-01",
-    referredBy: "HR",
-    ext: "",
-    middle: "",
-    gender: "Male",
-    size: "M",
-    dateOfBirth: "1990-01-01",
-    age: "34",
-    location: "Manila",
-    no: "001",
-    facebook: "",
-  },
-];
+// sample data removed
 
 const initialAssessmentHistory: AssessmentHistory[] = [
   {
@@ -70,76 +51,50 @@ const EngagementHR: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<User[]>([]);
-  const [assessmentHistory, setAssessmentHistory] = useState<AssessmentHistory[]>(initialAssessmentHistory);
+  const [assessmentHistory] = useState<AssessmentHistory[]>(initialAssessmentHistory);
   const [showHistory, setShowHistory] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { currentApplicantNo } = useNavigation();
 
   // Fetch engagement-stage applicants from API
   useEffect(() => {
+    setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch applicants');
         return res.json();
       })
       .then((rows) => {
-        // Filter to in-progress Engagement statuses (exclude 'Deployed' so proceeded applicants drop off this list)
-        const allowed = new Set([
-          'For Medical',
-          'For SBMA Gate Pass',
-          'For Deployment',
-        ]);
         const mapped: User[] = rows
-          .filter((r: any) => allowed.has(r.status || ''))
-          .map((r: any) => ({
-            id: r.id,
-            no: r.applicant_no || '',
-            referredBy: r.referred_by || '',
-            lastName: r.last_name || '',
-            firstName: r.first_name || '',
-            ext: r.ext || '',
-            middle: r.middle_name || '',
-            gender: r.gender || '',
-            size: r.size || '',
-            dateOfBirth: r.date_of_birth || '',
-            dateApplied: r.date_applied || '',
-            facebook: r.fb_name || '',
-            age: r.age || '',
-            location: r.location || '',
-            contactNumber: r.contact_number || '',
-            positionApplied: r.position_applied_for || '',
-            experience: r.experience || '',
-            datian: r.datian || '',
-            hokei: r.hokei || '',
-            pobc: r.pobc || '',
-            jinboway: r.jinboway || '',
-            surprise: r.surprise || '',
-            thaleste: r.thaleste || '',
-            aolly: r.aolly || '',
-            enjoy: r.enjoy || '',
-            status: r.status || '',
-            requirementsStatus: r.requirements_status || '',
-            finalInterviewStatus: r.final_interview_status || '',
-            medicalStatus: r.medical_status || '',
-            statusRemarks: r.status_remarks || '',
-            applicantRemarks: r.applicant_remarks || '',
-            recentPicture: Boolean(r.recent_picture),
-            psaBirthCertificate: Boolean(r.psa_birth_certificate),
-            schoolCredentials: Boolean(r.school_credentials),
-            nbiClearance: Boolean(r.nbi_clearance),
-            policeClearance: Boolean(r.police_clearance),
-            barangayClearance: Boolean(r.barangay_clearance),
-            sss: Boolean(r.sss),
-            pagibig: Boolean(r.pagibig),
-            cedula: Boolean(r.cedula),
-            vaccinationStatus: Boolean(r.vaccination_status),
-            resume: Boolean(r.resume),
-            coe: Boolean(r.coe),
-            philhealth: Boolean(r.philhealth),
-            tinNumber: Boolean(r.tin_number),
-          }));
+          .filter((r: any) => isEngagementStatus(r.status))
+          .map(mapEngagementApplicantRow);
         setUsers(mapped);
       })
-      .catch(() => setUsers([]));
+      .catch(() => setUsers([]))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  // Live update: reflect status changes without reload
+  useEffect(() => {
+    function onUpdated(e: any) {
+      const detail = e?.detail || {};
+      const { no, status } = detail;
+      if (!no) return;
+      setUsers(prev => {
+        const idx = prev.findIndex(u => u.no === no);
+        const allowed = isEngagementStatus(status);
+        if (idx === -1) return prev;
+        const updated = [...prev];
+        if (!allowed && status === 'Deployed') {
+          updated.splice(idx, 1);
+          return updated;
+        }
+        updated[idx] = { ...updated[idx], status } as any;
+        return updated;
+      });
+    }
+    window.addEventListener('applicant-updated', onUpdated);
+    return () => window.removeEventListener('applicant-updated', onUpdated);
   }, []);
 
   // Auto-open the proceeded applicant if coming from Selection
@@ -151,7 +106,7 @@ const EngagementHR: React.FC = () => {
     }
   }, [currentApplicantNo, users]);
 
-  const deployedApplicants = users.filter(user => user.status === "Deployed");
+  // derived values kept minimal
 
   const handleUserClick = (user: User) => {
     setSelectedUser(user);
@@ -176,10 +131,7 @@ const EngagementHR: React.FC = () => {
     }
   };
 
-  const addAssessmentHistory = (newAssessment: Omit<AssessmentHistory, 'id'>) => {
-    const newId = Math.max(...assessmentHistory.map(h => h.id)) + 1;
-    setAssessmentHistory(prev => [...prev, { ...newAssessment, id: newId }]);
-  };
+  // helper actions trimmed
 
   const filteredUsers = users.filter((user) =>
     ((user.firstName || '') + ' ' + (user.lastName || '')).toLowerCase().includes(search.toLowerCase()) ||
@@ -187,11 +139,7 @@ const EngagementHR: React.FC = () => {
     (user.contactNumber?.toLowerCase() || '').includes(search.toLowerCase())
   );
 
-  const getAverageScore = () => {
-    if (assessmentHistory.length === 0) return 0;
-    const total = assessmentHistory.reduce((sum, assessment) => sum + assessment.score, 0);
-    return Math.round(total / assessmentHistory.length);
-  };
+  // stats helpers trimmed
 
   // Assessment History Page
   if (showHistory) {
@@ -213,51 +161,7 @@ const EngagementHR: React.FC = () => {
             </div>
 
             <div className="p-6">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Position</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Application Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {assessmentHistory.map((assessment) => (
-                      <tr key={assessment.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">Assessment {assessment.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{assessment.type}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{assessment.date}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            assessment.status === 'Passed' ? 'bg-green-100 text-green-800' :
-                            assessment.status === 'Failed' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {assessment.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-2">
-                          <button
-                            className="text-blue-600 hover:text-blue-900 rounded-full p-2 transition"
-                            title="View Details"
-                          >
-                            <i className="fas fa-eye" />
-                          </button>
-                          <button
-                            className="text-gray-400 hover:text-gray-700 rounded-full p-2 transition"
-                            title="More actions"
-                          >
-                            <i className="fas fa-ellipsis-h" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <EngagementHistoryTable rows={assessmentHistory as any} />
             </div>
           </div>
         </div>
@@ -270,23 +174,28 @@ const EngagementHR: React.FC = () => {
     <div className="flex w-full">
       <div className="flex-1 max-w-full mx-auto py-10 px-4">
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="flex items-center justify-between p-6 border-b bg-white">
-            <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-custom-teal">Engagement <span className="ml-1 bg-indigo-100 text-custom-teal rounded px-2 py-0.5 text-xs font-bold">{users.length}</span></h1>
+          <div className="flex flex-col gap-4 p-6 border-b bg-white sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Engagement</h1>
+              <span className="inline-flex items-center rounded-full bg-custom-teal/10 text-custom-teal px-2.5 py-0.5 text-xs font-medium border border-custom-teal/30">{users.length}</span>
               <button
                 onClick={() => setShowHistory(true)}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow-sm focus:outline-none border border-blue-700"
+                className="ml-2 px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium shadow-sm focus:outline-none hover:bg-gray-800"
               >
-                View Assessment History
+                View History
               </button>
             </div>
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
+              <span className="pointer-events-none absolute left-3 top-2.5 text-gray-400">
+                <i className="fas fa-search" />
+              </span>
               <input
                 type="text"
-                placeholder="Search applicant"
+                placeholder="Search by name or position"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-200 bg-gray-50"
+                className="w-full sm:w-72 pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-custom-teal/30 bg-gray-50"
+                aria-label="Search applicants"
               />
             </div>
           </div>
@@ -294,7 +203,7 @@ const EngagementHR: React.FC = () => {
           <div className="p-0">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Position</th>
@@ -304,19 +213,38 @@ const EngagementHR: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {filteredUsers.map((user) => (
+                  {isLoading && (
+                    Array.from({ length: 6 }).map((_, idx) => (
+                      <tr key={`skeleton-${idx}`} className="animate-pulse">
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-3/5" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-2/5" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-1/4" /></td>
+                        <td className="px-6 py-4"><div className="h-6 bg-gray-200 rounded w-24" /></td>
+                        <td className="px-6 py-4"><div className="h-6 bg-gray-200 rounded w-16" /></td>
+                      </tr>
+                    ))
+                  )}
+                  {!isLoading && filteredUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                        <div className="mx-auto mb-3 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                          <i className="fas fa-user-slash text-gray-400" />
+                        </div>
+                        <p className="text-sm">No applicants found</p>
+                      </td>
+                    </tr>
+                  )}
+                  {!isLoading && filteredUsers.map((user) => (
                     <tr
                       key={user.id}
-                      className={`hover:bg-indigo-50 transition cursor-pointer ${selectedUser?.id === user.id ? 'bg-indigo-50' : ''}`}
+                      className={`odd:bg-white even:bg-gray-50 hover:bg-gray-100 transition cursor-pointer ${selectedUser?.id === user.id ? 'bg-gray-100' : ''}`}
                       onClick={() => handleUserClick(user)}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-custom-teal flex items-center justify-center">
-                              <span className="text-white font-bold text-lg">
-                                {((user.firstName || '') + ' ' + (user.lastName || '')).split(" ").map((n: string) => n[0]).join("")}
-                              </span>
+                            <div className="h-10 w-10 rounded-full bg-custom-teal/10 border border-custom-teal/30 flex items-center justify-center">
+                              <span className="text-custom-teal font-semibold">{getUserInitials(user)}</span>
                             </div>
                           </div>
                           <div className="ml-4">
@@ -329,7 +257,7 @@ const EngagementHR: React.FC = () => {
                         <div className="text-sm text-gray-900 font-medium">{user.positionApplied}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{user.dateApplied ? new Date(user.dateApplied).toLocaleDateString() : ''}</div>
+                        <div className="text-sm text-gray-900">{formatAppliedDate(user.dateApplied)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 text-xs font-semibold rounded-full ${

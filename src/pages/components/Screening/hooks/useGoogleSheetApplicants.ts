@@ -28,7 +28,7 @@ export function useGoogleSheetApplicants() {
               size: item["SIZE"] || '',
               dateOfBirth: item["DATE OF BIRTH"] || '',
               dateApplied: item["DATE APPLIED"] || '',
-              FB_NAME:'',
+              facebook: item.fb_name || item["FB NAME"] || '',
               age: item["AGE"] || '',
               location: item["LOCATION"] || '',
               no: item["NO"] || '',
