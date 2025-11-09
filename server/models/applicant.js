@@ -81,6 +81,36 @@ async function ensureTables() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     KEY idx_applicant_no (applicant_no)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  // Assessment history table
+  await pool.query(`CREATE TABLE IF NOT EXISTS assessment_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    applicant_no VARCHAR(50),
+    action VARCHAR(100),
+    status VARCHAR(100),
+    notes VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_assessment_applicant_no (applicant_no)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  // Selection history table
+  await pool.query(`CREATE TABLE IF NOT EXISTS selection_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    applicant_no VARCHAR(50),
+    action VARCHAR(100),
+    status VARCHAR(100),
+    notes VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_selection_applicant_no (applicant_no)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+  // Engagement history table
+  await pool.query(`CREATE TABLE IF NOT EXISTS engagement_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    applicant_no VARCHAR(50),
+    action VARCHAR(100),
+    status VARCHAR(100),
+    notes VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_engagement_applicant_no (applicant_no)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 }
 
 async function insertRecruitmentApplicant(data) {
@@ -286,5 +316,104 @@ async function fetchScreeningHistory() {
   return rows;
 }
 
+// Enriched screening history with joined applicant fields
+async function fetchScreeningHistoryEnriched() {
+  await ensureTables();
+  const pool = await getPool();
+  const [rows] = await pool.query(
+    `SELECT sh.*, ra.first_name, ra.last_name, ra.fb_name, ra.position_applied_for, ra.date_applied
+     FROM screening_history sh
+     LEFT JOIN recruitment_applicants ra
+       ON TRIM(ra.applicant_no) = TRIM(sh.applicant_no)
+     ORDER BY sh.created_at DESC`
+  );
+  return rows;
+}
+
 module.exports.addScreeningHistory = addScreeningHistory;
 module.exports.fetchScreeningHistory = fetchScreeningHistory;
+module.exports.fetchScreeningHistoryEnriched = fetchScreeningHistoryEnriched;
+
+// Assessment history helpers
+async function addAssessmentHistory(entry) {
+  await ensureTables();
+  const pool = await getPool();
+  const { applicant_no, action, status, notes } = entry;
+  const [res] = await pool.execute(
+    `INSERT INTO assessment_history (applicant_no, action, status, notes) VALUES (?, ?, ?, ?)`,
+    [String(applicant_no || '').trim() || null, action || null, status || null, notes || null]
+  );
+  return res;
+}
+
+async function fetchAssessmentHistoryEnriched() {
+  await ensureTables();
+  const pool = await getPool();
+  const [rows] = await pool.query(
+    `SELECT ah.*, ra.first_name, ra.last_name, ra.fb_name, ra.position_applied_for, ra.date_applied
+     FROM assessment_history ah
+     LEFT JOIN recruitment_applicants ra
+       ON TRIM(ra.applicant_no) = TRIM(ah.applicant_no)
+     ORDER BY ah.created_at DESC`
+  );
+  return rows;
+}
+
+module.exports.addAssessmentHistory = addAssessmentHistory;
+module.exports.fetchAssessmentHistoryEnriched = fetchAssessmentHistoryEnriched;
+
+// Selection history helpers
+async function addSelectionHistory(entry) {
+  await ensureTables();
+  const pool = await getPool();
+  const { applicant_no, action, status, notes } = entry;
+  const [res] = await pool.execute(
+    `INSERT INTO selection_history (applicant_no, action, status, notes) VALUES (?, ?, ?, ?)`,
+    [applicant_no || null, action || null, status || null, notes || null]
+  );
+  return res;
+}
+
+async function fetchSelectionHistoryEnriched() {
+  await ensureTables();
+  const pool = await getPool();
+  const [rows] = await pool.query(
+    `SELECT sh.*, ra.first_name, ra.last_name, ra.fb_name, ra.position_applied_for, ra.date_applied
+     FROM selection_history sh
+     LEFT JOIN recruitment_applicants ra
+       ON TRIM(ra.applicant_no) = TRIM(sh.applicant_no)
+     ORDER BY sh.created_at DESC`
+  );
+  return rows;
+}
+
+module.exports.addSelectionHistory = addSelectionHistory;
+module.exports.fetchSelectionHistoryEnriched = fetchSelectionHistoryEnriched;
+
+// Engagement history helpers
+async function addEngagementHistory(entry) {
+  await ensureTables();
+  const pool = await getPool();
+  const { applicant_no, action, status, notes } = entry;
+  const [res] = await pool.execute(
+    `INSERT INTO engagement_history (applicant_no, action, status, notes) VALUES (?, ?, ?, ?)`,
+    [applicant_no || null, action || null, status || null, notes || null]
+  );
+  return res;
+}
+
+async function fetchEngagementHistoryEnriched() {
+  await ensureTables();
+  const pool = await getPool();
+  const [rows] = await pool.query(
+    `SELECT eh.*, ra.first_name, ra.last_name, ra.fb_name, ra.position_applied_for, ra.date_applied
+     FROM engagement_history eh
+     LEFT JOIN recruitment_applicants ra
+       ON TRIM(ra.applicant_no) = TRIM(eh.applicant_no)
+     ORDER BY eh.created_at DESC`
+  );
+  return rows;
+}
+
+module.exports.addEngagementHistory = addEngagementHistory;
+module.exports.fetchEngagementHistoryEnriched = fetchEngagementHistoryEnriched;

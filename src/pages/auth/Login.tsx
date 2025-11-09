@@ -1,76 +1,163 @@
-import React from "react";
-import Logo from "../../assets/FutureLinkLogo.svg";
+import React, { useState } from "react";
+import Logo from "../../assets/logo-default.png";
 
 type LoginProps = {
-  onSignIn?: () => void;
+  onSignIn?: (userData?: { token: string; user: any }) => void;
 };
 
+const HR_DEPARTMENTS = [
+  "Admin",
+  "Screening",
+  "Assessment",
+  "Selection",
+  "Engagement",
+  "Employee Relations"
+];
+
 const Login: React.FC<LoginProps> = ({ onSignIn }) => {
+  const [hrDepartment, setHrDepartment] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    
+    if (!hrDepartment || !password) {
+      setError("Please select HR Department and enter password");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          hr_department: hrDepartment.trim(),
+          password: password.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Login failed. Please check your credentials.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Store token in localStorage
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+
+      // Call the onSignIn callback if provided
+      if (onSignIn) {
+        onSignIn(data);
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-        <div className="hidden md:block">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <img src={Logo} alt="FutureLink" className="h-10 mb-6" />
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Welcome back</h2>
-            <p className="text-gray-600 leading-relaxed">
-              Sign in to access your HR suite. Track screening, assessments, selection,
-              and engagement in one place.
-            </p>
-            <div className="mt-8 grid grid-cols-3 gap-4 text-center">
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                <p className="text-sm text-gray-600">Screening</p>
-              </div>
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                <p className="text-sm text-gray-600">Assessment</p>
-              </div>
-              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                <p className="text-sm text-gray-600">Selection</p>
-              </div>
-            </div>
+      <div className="max-w-md w-full">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+          <div className="flex items-center justify-center ">
+            <img src={Logo} alt="FutureLink" className="h-24" />
           </div>
-        </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1 text-center">Sign in</h1>
+          {/* <p className="text-gray-600 mb-6 text-center">Enter your HR department and password to continue</p> */}
 
-        <div>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <div className="md:hidden flex items-center justify-center mb-6">
-              <img src={Logo} alt="FutureLink" className="h-10" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Sign in</h1>
-            <p className="text-gray-600 mb-6">Enter your credentials to continue</p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" className="input" placeholder="you@company.com" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700">Password</label>
-                  <button className="text-sm text-custom-teal hover:underline">Forgot?</button>
-                </div>
-                <input type="password" className="input" placeholder="••••••••" />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input id="remember" type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" />
-                <label htmlFor="remember" className="text-sm text-gray-700">Remember me</label>
-              </div>
-
-              <button
-                className="w-full bg-custom-teal text-white py-2.5 rounded-lg font-medium hover:opacity-90 transition"
-                onClick={onSignIn}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                HR Department
+              </label>
+              <select
+                value={hrDepartment}
+                onChange={(e) => setHrDepartment(e.target.value)}
+                className="input"
+                required
               >
-                Sign in
-              </button>
-
-              {/* Removed social login section as requested */}
+                <option value="">Select HR Department</option>
+                {HR_DEPARTMENTS.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">Password</label>
+                <button 
+                  type="button"
+                  className="text-sm text-custom-teal hover:underline"
+                  onClick={() => {
+                    if (hrDepartment) {
+                      setPassword(
+                        hrDepartment === 'Admin' 
+                          ? 'MaribelAbataFutureLinkAdmin'
+                          : `${hrDepartment}FutureLink`
+                      );
+                    }
+                  }}
+                >
+                  Forgot?
+                </button>
+              </div>
+              <input
+                type="password"
+                className="input"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              {hrDepartment && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {hrDepartment === 'Admin' 
+                    ? 'Admin password: MaribelAbataFutureLinkAdmin'
+                    : `Password format: ${hrDepartment}FutureLink`}
+                </p>
+              )}
             </div>
 
-            <p className="text-sm text-gray-600 mt-6 text-center">
-              Don’t have an account? <span className="text-custom-teal font-medium cursor-pointer">Create one</span>
-            </p>
-          </div>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <input
+                id="remember"
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal"
+              />
+              <label htmlFor="remember" className="text-sm text-gray-700">
+                Remember me
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-custom-teal text-white py-2.5 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? "Signing in..." : "Sign in"}
+            </button>
+          </form>
         </div>
       </div>
     </div>

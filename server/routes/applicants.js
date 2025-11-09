@@ -18,6 +18,29 @@ router.post('/screening-history', async (req, res, next) => {
     await applicantsController.addScreeningHistory(req, res);
   } catch (e) { next(e); }
 });
+// Assessment history
+router.get('/assessment-history', applicantsController.getAssessmentHistory);
+router.post('/assessment-history', async (req, res, next) => {
+  try {
+    await applicantsController.addAssessmentHistory(req, res);
+  } catch (e) { next(e); }
+});
+
+// Selection history
+router.get('/selection-history', applicantsController.getSelectionHistory);
+router.post('/selection-history', async (req, res, next) => {
+  try {
+    await applicantsController.addSelectionHistory(req, res);
+  } catch (e) { next(e); }
+});
+
+// Engagement history
+router.get('/engagement-history', applicantsController.getEngagementHistory);
+router.post('/engagement-history', async (req, res, next) => {
+  try {
+    await applicantsController.addEngagementHistory(req, res);
+  } catch (e) { next(e); }
+});
 // Patch specific applicant fields
 router.patch('/', applicantsController.patchApplicant);
 

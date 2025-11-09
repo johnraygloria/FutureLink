@@ -6,6 +6,7 @@ import {
   IconFileText,
   IconDatabase,
   IconClipboardList,
+  IconLogout,
 } from '@tabler/icons-react';
 import FutureLinkLogo from '../assets/logo-default.png'
 
@@ -14,6 +15,7 @@ interface SidebarProps {
   onToggle: () => void;
   activeSection: string;
   onSectionChange: (section: string) => void;
+  onLogout?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -21,7 +23,26 @@ const Sidebar: React.FC<SidebarProps> = ({
   onToggle, 
   activeSection, 
   onSectionChange,
+  onLogout,
 }) => {
+  let allowedSectionId: string | undefined;
+  try {
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed?.hr_department === 'Admin') {
+        allowedSectionId = undefined;
+      } else switch (parsed?.role) {
+        case 0: allowedSectionId = undefined; break; // Admin sees all
+        case 1: allowedSectionId = 'screening'; break;
+        case 2: allowedSectionId = 'assessment'; break;
+        case 3: allowedSectionId = 'selection'; break;
+        case 4: allowedSectionId = 'engagement'; break;
+        case 5: allowedSectionId = 'employee_relations'; break;
+        default: allowedSectionId = undefined;
+      }
+    }
+  } catch {}
   const menuItems = [
     {
       id: 'dashboard',
@@ -67,6 +88,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   ];
 
+  const visibleItems = allowedSectionId
+    ? menuItems.filter((m) => m.id === allowedSectionId)
+    : menuItems;
+
   return (
     <div
       className={
@@ -96,7 +121,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <nav className="p-3">
         <ul className="space-y-2">
-          {menuItems.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
             
@@ -125,13 +150,29 @@ const Sidebar: React.FC<SidebarProps> = ({
         </ul>
       </nav>
 
-      {!isCollapsed && (
-        <div className="absolute bottom-0 w-full p-4 border-t border-gray-200">
-          <div className="text-sm text-gray-500">
-            <p>FutureLink v1.0</p>
+      <div className="absolute bottom-0 w-full p-4 border-t border-gray-200">
+        {isCollapsed ? (
+          <div className="flex items-center justify-center">
+            <button
+              onClick={onLogout}
+              className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+              title="Log out"
+              aria-label="Log out"
+            >
+              <IconLogout className="w-5 h-5" />
+            </button>
           </div>
-        </div>
-      )}
+        ) : (
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center justify-center gap-2 text-sm bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors"
+            title="Log out"
+          >
+            <IconLogout className="w-4 h-4" />
+            <span>Log out</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 };

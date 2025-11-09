@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import ScreeningHistoryTable from "./ScreeningHistoryTable";
 
 // removed old hardcoded interface
 
@@ -18,6 +19,9 @@ type ScreeningHistoryRow = {
   status: string;
   notes: string;
   created_at: string;
+  full_name?: string;
+  position_applied_for?: string;
+  date_applied?: string;
 }
 
 
@@ -53,41 +57,18 @@ const ApplicantsToolbar: React.FC<ApplicantsToolbarProps> = ({
               <div className="flex items-center space-x-4">
                 <button
                   onClick={() => setShowHistory(false)}
-                  className="px-4 py-2 rounded-lg bg-gray-600 text-white font-semibold shadow-sm focus:outline-none border border-gray-700"
+                  className="px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium shadow-sm focus:outline-none hover:bg-gray-800"
                 >
                   <i className="fas fa-arrow-left mr-2"></i>
                   Back to Screening
                 </button>
-                <h1 className="text-2xl font-bold text-custom-teal">Screening History</h1>
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Screening History</h1>
               </div>
-           
+            
             </div>
 
             <div className="p-6">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Position</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Applied Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-  {screeningHistory.map((row) => (
-    <tr key={row.id} className="hover:bg-gray-50">
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{row.applicant_no}</td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.action}</td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{row.status}</span>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(row.created_at).toLocaleString()}</td>
-    </tr>
-  ))}
-</tbody>
-                </table>
-              </div>
+              <ScreeningHistoryTable rows={screeningHistory} />
             </div>
           </div>
         </div>
@@ -97,41 +78,34 @@ const ApplicantsToolbar: React.FC<ApplicantsToolbarProps> = ({
 
   // Main Toolbar
   return (
-    <div className="flex items-center justify-between p-6 border-b bg-white">
-      <div className="flex items-center space-x-4">
-        <div className="flex space-x-2">
-          <button className="px-4 py-2 rounded-lg bg-custom-teal/10 text-black font-semibold shadow-sm focus:outline-none border border-custom-teal/80">
-            Applied <span className="ml-1 bg-indigo-100 text-custom-teal rounded px-2 py-0.5 text-xs font-bold">{usersCount}</span>
-          </button>
-          <button
-            className="px-4 py-2 cursor-pointer rounded-lg bg-custom-teal text-white font-semibold shadow-sm focus:outline-none border bordercustom-teal ml-2"
-            onClick={onOpenModal}
-          >
-            Input Data
-          </button>
-          
-        </div>
+    <div className="flex flex-col gap-4 p-6 border-b bg-white sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Screening</h1>
+        <span className="inline-flex items-center rounded-full bg-custom-teal/10 text-custom-teal px-2.5 py-0.5 text-xs font-medium border border-custom-teal/30">{usersCount}</span>
         <button
-          onClick={() => {
-            console.log('History button clicked, setting showHistory to true');
-            setShowHistory(true);
-          }}
-          className="px-6 py-2 rounded-lg bg-indigo-600 text-white font-bold shadow-lg focus:outline-none border border-indigo-700 hover:bg-indigo-700 transition-colors"
-          style={{ fontSize: '16px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}
+          className="ml-2 px-3 py-2 cursor-pointer rounded-lg bg-custom-teal text-white text-sm font-medium shadow-sm focus:outline-none hover:bg-custom-teal/90"
+          onClick={onOpenModal}
         >
-          View Screening History ({screeningHistory.length} records)
+          Input Data
+        </button>
+        <button
+          onClick={() => setShowHistory(true)}
+          className="ml-2 px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium shadow-sm focus:outline-none hover:bg-gray-800"
+        >
+          View History
         </button>
       </div>
-      <div className="relative">
-        <span className="absolute left-3 top-2.5 text-gray-400">
+      <div className="relative w-full sm:w-auto">
+        <span className="pointer-events-none absolute left-3 top-2.5 text-gray-400">
           <i className="fas fa-search" />
         </span>
         <input
           type="text"
-          placeholder="Search candidate"
+          placeholder="Search by name or position"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-200 bg-gray-50"
+          className="w-full sm:w-72 pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-custom-teal/30 bg-gray-50"
+          aria-label="Search applicants"
         />
       </div>
     </div>

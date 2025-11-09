@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "./Global/Sidebar";
 import Dashboard from "./pages/dashboard";
 import Assessment from "./pages/assessment";
-// import Applicants from "./pages/assessment";
 import Selection from "./pages/selection";
 import Engagement from "./pages/engagement";
 import Screening from "./pages/screening";
@@ -18,23 +17,59 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
-    // Simulate loading time for better UX
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
+  function mapRoleToSection(role?: number, hrDepartment?: string) {
+    if (hrDepartment === 'Admin') return 'dashboard';
+    switch (role) {
+      case 0: return 'dashboard';
+      case 1: return 'screening';
+      case 2: return 'assessment';
+      case 3: return 'selection';
+      case 4: return 'engagement';
+      case 5: return 'employee_relations';
+      default: return 'dashboard';
+    }
+  }
 
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      if (token && userStr) {
+        setIsAuthenticated(true);
+        const parsed = JSON.parse(userStr);
+        const last = localStorage.getItem('lastSection');
+        const initialSection = last || mapRoleToSection(parsed?.role, parsed?.hr_department);
+        if (initialSection) setActiveSection(initialSection);
+      }
+    } catch {}
+
+    const timer = setTimeout(() => setIsLoading(false), 200);
     return () => clearTimeout(timer);
   }, []);
 
-  // Show loading screen
+  useEffect(() => {
+    if (isAuthenticated && activeSection) {
+      try { localStorage.setItem('lastSection', activeSection); } catch {}
+    }
+  }, [isAuthenticated, activeSection]);
+
   if (isLoading) {
     return <LoadingScreen isLoading={isLoading} />;
   }
 
-  // Simple design-only auth gate
   if (!isAuthenticated) {
-    return <Login onSignIn={() => setIsAuthenticated(true)} />;
+    return <Login onSignIn={() => {
+      setIsAuthenticated(true);
+      try {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const section = mapRoleToSection(parsed?.role, parsed?.hr_department);
+          setActiveSection(section);
+          try { localStorage.setItem('lastSection', section); } catch {}
+        }
+      } catch {}
+    }} />;
   }
 
   const renderContent = () => {
@@ -66,25 +101,18 @@ const App: React.FC = () => {
           onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           activeSection={activeSection}
           onSectionChange={setActiveSection}
-          onLogout={() => setIsAuthenticated(false)}
+          onLogout={() => {
+            try {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              localStorage.removeItem('lastSection');
+            } catch {}
+            setIsAuthenticated(false);
+            setActiveSection('dashboard');
+          }}
         />
         
         <div className="flex-1 flex flex-col">
-          <header className="bg-white shadow-sm border-b border-gray-200">
-            <div className="px-6 py-4">
-              <h1 className="text-2xl font-bold text-gray-900">
-                {activeSection === 'dashboard' && 'Dashboard'}
-                {activeSection === 'applications' && 'Applicant Management'}
-                {activeSection === 'assessment' && 'Assessment'}
-                {activeSection === 'reports' && 'Reports'}
-                {activeSection === 'documents' && 'Documents'}
-                {activeSection === 'information-sheets' && 'Information Sheets'}
-                {activeSection === 'recruitment-database' && 'Recruitment Database'}
-
-              </h1>
-            </div>
-          </header>
-          
           <main className="flex-1 p-6">
             {renderContent()}
           </main>

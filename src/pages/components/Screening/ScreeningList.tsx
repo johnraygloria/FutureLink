@@ -4,9 +4,11 @@ import InputApplicantModal from './InputApplicantModal';
 import { useApplicants } from "./hooks/useApplicants";
 import ApplicantsTable from "./components/ApplicantsTable";
 import ApplicantsToolbar from "./components/ApplicantsToolbar";
+import { isScreeningStatus, mapScreeningApplicantRow } from "./utils/screeningUtils";
 
 const ScreeningList: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const {
     selectedUser,
     search,
@@ -25,69 +27,42 @@ const ScreeningList: React.FC = () => {
   } = useApplicants();
 
   useEffect(() => {
+    setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch applicants');
         return res.json();
       })
       .then((rows) => {
-        const mapped = rows.map((r: any) => ({
-          id: r.id,
-          no: r.applicant_no || '',
-          referredBy: r.referred_by || '',
-          lastName: r.last_name || '',
-          firstName: r.first_name || '',
-          ext: r.ext || '',
-          middle: r.middle_name || '',
-          gender: r.gender || '',
-          size: r.size || '',
-          dateOfBirth: r.date_of_birth || '',
-          dateApplied: r.date_applied || '',
-          facebook: r.fb_name || '',
-          age: r.age || '',
-          location: r.location || '',
-          contactNumber: r.contact_number || '',
-          positionApplied: r.position_applied_for || '',
-          experience: r.experience || '',
-          datian: r.datian || '',
-          hokei: r.hokei || '',
-          pobc: r.pobc || '',
-          jinboway: r.jinboway || '',
-          surprise: r.surprise || '',
-          thaleste: r.thaleste || '',
-          aolly: r.aolly || '',
-          enjoy: r.enjoy || '',
-          status: r.status || '',
-          requirementsStatus: r.requirements_status || '',
-          finalInterviewStatus: r.final_interview_status || '',
-          medicalStatus: r.medical_status || '',
-          statusRemarks: r.status_remarks || '',
-          applicantRemarks: r.applicant_remarks || '',
-          // Document checklist flags
-          recentPicture: Boolean(r.recent_picture),
-          psaBirthCertificate: Boolean(r.psa_birth_certificate),
-          schoolCredentials: Boolean(r.school_credentials),
-          nbiClearance: Boolean(r.nbi_clearance),
-          policeClearance: Boolean(r.police_clearance),
-          barangayClearance: Boolean(r.barangay_clearance),
-          sss: Boolean(r.sss),
-          pagibig: Boolean(r.pagibig),
-          cedula: Boolean(r.cedula),
-          vaccinationStatus: Boolean(r.vaccination_status),
-          // Extra flags used in sidebar via runtime props
-          resume: Boolean(r.resume),
-          coe: Boolean(r.coe),
-          philhealth: Boolean(r.philhealth),
-          tinNumber: Boolean(r.tin_number),
-        }));
-        setUsers(mapped.filter((u: any) => ['For Screening', 'Doc Screening', 'Physical Screening'].includes(u.status || '')));
+        const mapped = rows.map(mapScreeningApplicantRow).filter((u: any) => isScreeningStatus(u.status));
+        setUsers(mapped);
       })
-      .catch(() => {
-        setUsers([]);
-      });
+      .catch(() => setUsers([]))
+      .finally(() => setIsLoading(false));
   }, [setUsers]);
 
-  // If history is shown, render the toolbar component which will handle the full-page view
+  useEffect(() => {
+    function onUpdated(e: any) {
+      const detail = e?.detail || {};
+      const { no, status } = detail;
+      if (!no) return;
+      setUsers(prev => {
+        const idx = prev.findIndex(u => u.no === no);
+        if (idx === -1) return prev;
+        if (!isScreeningStatus(status)) {
+          const updated = [...prev];
+          updated.splice(idx, 1);
+          return updated;
+        }
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], status } as any;
+        return updated;
+      });
+    }
+    window.addEventListener('applicant-updated', onUpdated);
+    return () => window.removeEventListener('applicant-updated', onUpdated);
+  }, [setUsers]);
+
   if (showHistory) {
     return (
       <div>
@@ -135,6 +110,7 @@ const ScreeningList: React.FC = () => {
               users={filteredUsers}
               selectedUser={selectedUser}
               onUserClick={handleUserClick}
+              isLoading={isLoading}
             />
           </div>
         </div>

@@ -36,7 +36,7 @@ export function useApplicants() {
       SIZE: data.size || '',
       DATE_OF_BIRTH: data.dateOfBirth || '',
       DATE_APPLIED: data.dateApplied || '',
-      FB_NAME: data.name || '',
+      FB_NAME: data.facebook || '',
       AGE: data.age || '',
       LOCATION: data.location || '',
       CONTACT_NUMBER: data.contactNumber || '',
@@ -94,7 +94,7 @@ export function useApplicants() {
         age: data.age,
         location: data.location,
         no: data.no,
-        facebook: data.name,
+        facebook: data.facebook || '',
         positionApplied: data.positionApplied || '',
         // Document checklist (reflect immediately in sidebar/table without reload)
         recentPicture: data.recentPicture,
@@ -172,6 +172,9 @@ export function useApplicants() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+    try {
+      window.dispatchEvent(new CustomEvent('applicant-updated', { detail: { no: user.no, status: newStatus } }));
+    } catch {}
   };
 
   const removeApplicant = (userId: number) => {
