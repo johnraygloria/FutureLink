@@ -96,7 +96,7 @@ const ScreeningList: React.FC = () => {
   return (
     <div className="flex w-full">
       <div className="flex-1 max-w-full mx-auto py-10 px-4">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white max-w-[77vw] rounded-2xl shadow-lg overflow-hidden">
           <ApplicantsToolbar
             search={search}
             setSearch={setSearch}
