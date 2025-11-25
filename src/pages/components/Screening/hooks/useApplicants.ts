@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { User, ApplicationStatus, ScreeningStatus } from "../../../../api/applicant";
 import { initialFormState } from '../InputApplicantModal';
+import {
+  initialFilters,
+  applyFilters,
+  filtersToActiveFilters,
+  hasActiveFilters as checkHasActiveFilters,
+} from "../../../../components/Filters/filterUtils";
+import type { FilterCriteria, ActiveFilter } from "../../../../components/Filters/filterUtils";
 
 // Google Sheets no longer used
 
@@ -9,6 +16,22 @@ export function useApplicants() {
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Filter state with localStorage persistence
+  const [filters, setFilters] = useState<FilterCriteria>(() => {
+    try {
+      const saved = localStorage.getItem('screeningFilters');
+      return saved ? JSON.parse(saved) : initialFilters;
+    } catch {
+      return initialFilters;
+    }
+  });
+  const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
+
+  // Save filters to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('screeningFilters', JSON.stringify(filters));
+  }, [filters]);
 
   const handleUserClick = (user: User) => setSelectedUser(user);
   const handleCloseSidebar = () => setSelectedUser(null);
@@ -192,11 +215,57 @@ export function useApplicants() {
     return data !== null;
   };
 
-  const filteredUsers = users.filter((user) =>
-    (`${user.firstName || ''} ${user.lastName || ''}`.toLowerCase()).includes(search.toLowerCase()) ||
-    (user.positionApplied?.toLowerCase() || '').includes(search.toLowerCase()) ||
-    (user.contactNumber?.toLowerCase() || '').includes(search.toLowerCase())
-  );
+  // Filter handling functions
+  const handleApplyFilters = (newFilters: FilterCriteria) => {
+    setFilters(newFilters);
+    // Close applicant sidebar when filter sidebar opens
+    setSelectedUser(null);
+  };
+
+  const handleRemoveFilter = (filter: ActiveFilter) => {
+    const newFilters = { ...filters };
+
+    if (filter.field === 'age') {
+      newFilters.age = {};
+    } else if (Array.isArray(newFilters[filter.field])) {
+      newFilters[filter.field] = (newFilters[filter.field] as string[]).filter(
+        val => val !== filter.value
+      );
+    }
+
+    setFilters(newFilters);
+  };
+
+  const handleClearAllFilters = () => {
+    setFilters(initialFilters);
+  };
+
+  const handleOpenFilterSidebar = () => {
+    setIsFilterSidebarOpen(true);
+    // Close applicant sidebar when opening filter sidebar
+    setSelectedUser(null);
+  };
+
+  // Calculate active filters
+  const activeFilters = useMemo(() => filtersToActiveFilters(filters), [filters]);
+  const hasFilters = checkHasActiveFilters(filters);
+
+  // Combined filtering: first apply filters, then apply search
+  const filteredUsers = useMemo(() => {
+    // First apply multi-field filters
+    let result = applyFilters(users, filters);
+
+    // Then apply search
+    if (search) {
+      result = result.filter((user) =>
+        (`${user.firstName || ''} ${user.lastName || ''}`.toLowerCase()).includes(search.toLowerCase()) ||
+        (user.positionApplied?.toLowerCase() || '').includes(search.toLowerCase()) ||
+        (user.contactNumber?.toLowerCase() || '').includes(search.toLowerCase())
+      );
+    }
+
+    return result;
+  }, [users, filters, search]);
 
   return {
     selectedUser,
@@ -216,5 +285,15 @@ export function useApplicants() {
     removeApplicant,
     checkApplicantExists,
     filteredUsers,
+    // Filter-related exports
+    filters,
+    activeFilters,
+    hasFilters,
+    isFilterSidebarOpen,
+    setIsFilterSidebarOpen,
+    handleApplyFilters,
+    handleRemoveFilter,
+    handleClearAllFilters,
+    handleOpenFilterSidebar,
   };
 } 

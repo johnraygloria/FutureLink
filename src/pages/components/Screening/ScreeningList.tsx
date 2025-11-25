@@ -5,6 +5,8 @@ import { useApplicants } from "./hooks/useApplicants";
 import ApplicantsTable from "./components/ApplicantsTable";
 import ApplicantsToolbar from "./components/ApplicantsToolbar";
 import { isScreeningStatus, mapScreeningApplicantRow } from "./utils/screeningUtils";
+import FilterBar from "../../../components/Filters/FilterBar";
+import FilterSidebar from "../../../components/Filters/FilterSidebar";
 
 const ScreeningList: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
@@ -24,6 +26,16 @@ const ScreeningList: React.FC = () => {
     handleAddApplicant,
     removeApplicant,
     filteredUsers,
+    // Filter-related
+    filters,
+    activeFilters,
+    hasFilters,
+    isFilterSidebarOpen,
+    setIsFilterSidebarOpen,
+    handleApplyFilters,
+    handleRemoveFilter,
+    handleClearAllFilters,
+    handleOpenFilterSidebar,
   } = useApplicants();
 
   useEffect(() => {
@@ -97,6 +109,15 @@ const ScreeningList: React.FC = () => {
     <div className="flex w-full">
       <div className="flex-1 max-w-full mx-auto py-10 px-4">
         <div className="bg-white max-w-[77vw] rounded-2xl shadow-lg overflow-hidden">
+          {/* Filter Bar - NEW */}
+          <FilterBar
+            activeFilters={activeFilters}
+            onOpenFilters={handleOpenFilterSidebar}
+            onRemoveFilter={handleRemoveFilter}
+            onClearAll={handleClearAllFilters}
+          />
+
+          {/* Existing Toolbar */}
           <ApplicantsToolbar
             search={search}
             setSearch={setSearch}
@@ -105,16 +126,20 @@ const ScreeningList: React.FC = () => {
             showHistory={showHistory}
             setShowHistory={setShowHistory}
           />
+
+          {/* Existing Table */}
           <div className="p-0">
             <ApplicantsTable
               users={filteredUsers}
               selectedUser={selectedUser}
               onUserClick={handleUserClick}
               isLoading={isLoading}
+              hasActiveFilters={hasFilters}
             />
           </div>
         </div>
       </div>
+
       <ApplicantSidebar
         selectedUser={selectedUser}
         onClose={handleCloseSidebar}
@@ -122,6 +147,17 @@ const ScreeningList: React.FC = () => {
         onScreeningUpdate={handleScreeningUpdate}
         onRemoveApplicant={removeApplicant}
       />
+
+      {/* Filter Sidebar Modal - NEW */}
+      <FilterSidebar
+        isOpen={isFilterSidebarOpen}
+        onClose={() => setIsFilterSidebarOpen(false)}
+        users={users}
+        filters={filters}
+        onApplyFilters={handleApplyFilters}
+        onClearFilters={handleClearAllFilters}
+      />
+
       <InputApplicantModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

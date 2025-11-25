@@ -7,11 +7,12 @@ type ApplicantsTableProps = {
   selectedUser: User | null;
   onUserClick: (user: User) => void;
   isLoading?: boolean;
+  hasActiveFilters?: boolean;
 };
 
 // moved utilities to ../utils/screeningUtils
 
-const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, onUserClick, isLoading }) => (
+const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, onUserClick, isLoading, hasActiveFilters = false }) => (
   <div className="overflow-x-auto">
     <table className="min-w-full divide-y divide-gray-200">
       <thead className="bg-gray-50 sticky top-0 z-10">
@@ -45,9 +46,14 @@ const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, 
           <tr>
             <td colSpan={29} className="px-6 py-12 text-center text-gray-500">
               <div className="mx-auto mb-3 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
-                <i className="fas fa-user-slash text-gray-400" />
+                <i className={`fas ${hasActiveFilters ? 'fa-filter' : 'fa-user-slash'} text-gray-400`} />
               </div>
-              <p className="text-sm">No applicants found</p>
+              <p className="text-sm font-semibold mb-1">
+                {hasActiveFilters ? 'No applicants match your filters' : 'No applicants found'}
+              </p>
+              {hasActiveFilters && (
+                <p className="text-xs text-gray-400">Try adjusting your filter criteria</p>
+              )}
             </td>
           </tr>
         )}
