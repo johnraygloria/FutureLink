@@ -1,0 +1,51 @@
+import React from "react";
+
+interface NumberRangeFilterProps {
+  title: string;
+  min?: number;
+  max?: number;
+  onChange: (min?: number, max?: number) => void;
+}
+
+const NumberRangeFilter: React.FC<NumberRangeFilterProps> = ({ title, min, max, onChange }) => {
+  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value === '' ? undefined : parseInt(e.target.value);
+    onChange(value, max);
+  };
+
+  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value === '' ? undefined : parseInt(e.target.value);
+    onChange(min, value);
+  };
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-gray-700 mb-2">{title}</h3>
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <label className="block text-xs text-gray-600 mb-1">Min</label>
+          <input
+            type="number"
+            value={min ?? ''}
+            onChange={handleMinChange}
+            placeholder="Min"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-custom-teal focus:border-custom-teal"
+          />
+        </div>
+        <span className="text-gray-400 mt-5">—</span>
+        <div className="flex-1">
+          <label className="block text-xs text-gray-600 mb-1">Max</label>
+          <input
+            type="number"
+            value={max ?? ''}
+            onChange={handleMaxChange}
+            placeholder="Max"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-custom-teal focus:border-custom-teal"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default NumberRangeFilter;
