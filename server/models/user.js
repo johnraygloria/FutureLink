@@ -86,10 +86,12 @@ async function createUserByHrDepartment({ hr_department, password_hash, full_nam
 async function updateUserPasswordByHrDepartment({ hr_department, password_hash }) {
   await ensureUserTable();
   const pool = await getPool();
-  await pool.execute(
+  const [result] = await pool.execute(
     `UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE hr_department = ? LIMIT 1`,
     [password_hash, hr_department]
   );
+  console.log('[UPDATE PASSWORD] Updated:', { hr_department, affectedRows: result.affectedRows });
+  return result;
 }
 
 module.exports = {

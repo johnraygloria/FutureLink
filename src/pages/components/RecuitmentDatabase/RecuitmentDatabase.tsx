@@ -42,14 +42,7 @@ function RecruitmentDatabase() {
           "CONTACT NUMBER": r.contact_number || '',
           "POSITION APPLIED FOR": r.position_applied_for || '',
           EXPERIENCE: r.experience || '',
-          DATIAN: r.datian || '',
-          HOKEI: r.hokei || '',
-          POBC: r.pobc || '',
-          JINBOWAY: r.jinboway || '',
-          SURPRISE: r.surprise || '',
-          THALESTE: r.thaleste || '',
-          AOLLY: r.aolly || '',
-          ENJOY: r.enjoy || '',
+          CLIENTS: Array.isArray(r.clients) ? r.clients.join(', ') : (r.clients || ''),
           STATUS: r.status || '',
           "REQUIREMENTS STATUS": r.requirements_status || '',
           "FINAL INTERVIEW STATUS": r.final_interview_status || '',
@@ -190,14 +183,7 @@ function RecruitmentDatabase() {
           "CONTACT NUMBER": r.contact_number || '',
           "POSITION APPLIED FOR": r.position_applied_for || '',
           EXPERIENCE: r.experience || '',
-          DATIAN: r.datian || '',
-          HOKEI: r.hokei || '',
-          POBC: r.pobc || '',
-          JINBOWAY: r.jinboway || '',
-          SURPRISE: r.surprise || '',
-          THALESTE: r.thaleste || '',
-          AOLLY: r.aolly || '',
-          ENJOY: r.enjoy || '',
+          CLIENTS: Array.isArray(r.clients) ? r.clients.join(', ') : (r.clients || ''),
           STATUS: r.status || '',
           "REQUIREMENTS STATUS": r.requirements_status || '',
           "FINAL INTERVIEW STATUS": r.final_interview_status || '',
@@ -219,16 +205,15 @@ function RecruitmentDatabase() {
     const columns = [
       'NO', 'REFFERED BY', 'LAST NAME', 'FIRST NAME', 'EXT', 'MIDDLE', 'GENDER', 'SIZE',
       'DATE OF BIRTH', 'DATE APPLIED', 'FB NAME', 'AGE', 'LOCATION', 'CONTACT NUMBER',
-      'POSITION APPLIED FOR', 'EXPERIENCE', 'DATIAN', 'HOKEI', 'POBC', 'JINBOWAY',
-      'SURPRISE', 'THALESTE', 'AOLLY', 'ENJOY', 'STATUS', 'REQUIREMENTS STATUS',
+      'POSITION APPLIED FOR', 'EXPERIENCE', 'CLIENTS', 'STATUS', 'REQUIREMENTS STATUS',
       'FINAL INTERVIEW STATUS', 'MEDICAL STATUS', 'STATUS REMARKS', 'APPLICANT REMARKS'
     ];
 
     // Prepare data for export
     const exportData = filteredApplicants.map(applicant => {
-      const row: any = {};
+      const row: Record<string, string> = {};
       columns.forEach(column => {
-        row[column] = applicant[column] || '';
+        row[column] = (applicant as any)[column] || '';
       });
       return row;
     });

@@ -15,14 +15,7 @@ export interface GoogleSheetApplicant {
   "CONTACT NUMBER": string;
   "POSITION APPLIED FOR": string;
   "EXPERIENCE": string;
-  "DATIAN ": string;
-  "HOKEI ": string;
-  "POBC ": string;
-  "JINBOWAY ": string;
-  "SURPRISE ": string;
-  "THALESTE": string;
-  "AOLLY ": string;
-  "ENJOY ": string;
+  "CLIENTS": string;
   "STATUS": string;
   "REQUIREMENTS STATUS": string;
   "FINAL INTERVIEW STATUS": string;

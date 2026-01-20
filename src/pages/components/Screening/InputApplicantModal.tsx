@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PersonalDetailsForm from './PersonalDetailsForm';
 import DocumentChecklistForm from './DocumentChecklistForm';
 
@@ -19,8 +19,31 @@ export const initialFormState = {
 const InputApplicantModal: React.FC<InputApplicantModalProps> = ({ isOpen, onClose, onSubmit, onUpdateStatus }) => {
   const [form, setForm] = useState(initialFormState);
   const [step, setStep] = useState(1);
+  const [isLoadingNumber, setIsLoadingNumber] = useState(false);
 
   const reset = () => { setStep(1); setForm(initialFormState); };
+
+  // Auto-generate applicant number when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoadingNumber(true);
+      fetch('/api/applicants/next-number')
+        .then(res => res.json())
+        .then(data => {
+          if (data.applicant_no) {
+            setForm(prev => ({ ...prev, no: data.applicant_no }));
+          }
+          setIsLoadingNumber(false);
+        })
+        .catch(error => {
+          console.error('Failed to fetch next applicant number:', error);
+          setIsLoadingNumber(false);
+        });
+    } else {
+      // Reset form when modal closes
+      reset();
+    }
+  }, [isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

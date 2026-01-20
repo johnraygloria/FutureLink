@@ -10,6 +10,7 @@ import {
 } from "@tabler/icons-react";
 import Assessment from "../pages/components/assessments/assessmentStatus";
 import { useNavigation } from "./NavigationContext";
+import { fetchClients } from "../api/client";
 
 interface ApplicantSidebarProps {
   selectedUser: User | null;
@@ -61,35 +62,52 @@ const getStatusIcon = (status: string) => {
 
 const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatus) => {
   try {
-    await fetch('/api/applicants', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        NO: user.no,
-        REFFERED_BY: user.referredBy,
-        LAST_NAME: user.lastName,
-        FIRST_NAME: user.firstName,
-        EXT: user.ext,
-        MIDDLE: user.middle,
-        GENDER: user.gender,
-        SIZE: user.size,
-        DATE_OF_BIRTH: user.dateOfBirth,
-        DATE_APPLIED: user.dateApplied,
-        FB_NAME: user.facebook,
-        AGE: user.age,
-        LOCATION: user.location,
-        CONTACT_NUMBER: user.contactNumber,
-        POSITION_APPLIED_FOR: user.positionApplied,
-        EXPERIENCE: user.experience,
-        DATIAN: (user as any).datian,
-        HOKEI: (user as any).hokei,
-        POBC: (user as any).pobc,
-        JINBOWAY: (user as any).jinboway,
-        SURPRISE: (user as any).surprise,
-        THALESTE: (user as any).thaleste,
-        AOLLY: (user as any).aolly,
-        ENJOY: (user as any).enjoy,
-        STATUS: newStatus,
+    // Always fetch current clients from database to preserve them
+    let clientIds: number[] = [];
+    try {
+      // First, try to get clients from user object
+      const userClients = (user as any).clients || [];
+      if (Array.isArray(userClients) && userClients.length > 0) {
+        const allClients = await fetchClients();
+        clientIds = allClients
+          .filter(client => userClients.includes(client.name))
+          .map(client => client.id);
+      } else {
+        // If user object doesn't have clients, fetch from database
+        const response = await fetch(`/api/applicants?NO=${encodeURIComponent(user.no || '')}`);
+        if (response.ok) {
+          const applicants = await response.json();
+          const applicant = applicants.find((a: any) => a.applicant_no === user.no);
+          if (applicant && Array.isArray(applicant.clients) && applicant.clients.length > 0) {
+            const allClients = await fetchClients();
+            clientIds = allClients
+              .filter(client => applicant.clients.includes(client.name))
+              .map(client => client.id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch clients for status update:', error);
+    }
+    
+    const payloadBody: Record<string, any> = {
+      NO: user.no,
+      REFFERED_BY: user.referredBy,
+      LAST_NAME: user.lastName,
+      FIRST_NAME: user.firstName,
+      EXT: user.ext,
+      MIDDLE: user.middle,
+      GENDER: user.gender,
+      SIZE: user.size,
+      DATE_OF_BIRTH: user.dateOfBirth,
+      DATE_APPLIED: user.dateApplied,
+      FB_NAME: user.facebook,
+      AGE: user.age,
+      LOCATION: user.location,
+      CONTACT_NUMBER: user.contactNumber,
+      POSITION_APPLIED_FOR: user.positionApplied,
+      EXPERIENCE: user.experience,
+      STATUS: newStatus,
         REQUIREMENTS_STATUS: user.requirementsStatus,
         FINAL_INTERVIEW_STATUS: user.finalInterviewStatus,
         MEDICAL_STATUS: user.medicalStatus,
@@ -109,7 +127,16 @@ const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatu
         COE: (user as any).coe ? '1' : '0',
         PHILHEALTH: (user as any).philhealth ? '1' : '0',
         TIN_NUMBER: (user as any).tinNumber ? '1' : '0',
-      })
+    };
+    
+    // Always send CLIENT_IDS (even if empty) so backend knows to preserve clients
+    // Backend will only update if CLIENT_IDS is explicitly provided
+    payloadBody.CLIENT_IDS = clientIds;
+    
+    await fetch('/api/applicants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payloadBody)
     });
     // Log every status change to screening history
     try {

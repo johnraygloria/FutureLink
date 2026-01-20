@@ -238,12 +238,12 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `email`, `hr_department`, `password_hash`, `full_name`, `role`, `created_at`, `updated_at`) VALUES
-(2, NULL, 'Screening', '$2a$10$lSMbiN3y2QzkknYGQwuS3OhzPTx.QHxNkaJd0SiUkbjDaedAIOoxW', 'Screening HR', 1, '2025-11-03 06:21:01', NULL),
-(3, NULL, 'Assessment', '$2a$10$njLvLDW6MqLyu5MWB4H5v.dLWIrlTQJzrVvSLizryaGA1gRGakKQ.', 'Assessment HR', 2, '2025-11-03 06:21:49', NULL),
-(4, NULL, 'Engagement', '$2a$10$cUIH038ERA1GE0IPFJT4curUXe7cQQDK53LRBnmOc/qrNzJa9rXXW', 'Engagement HR', 4, '2025-11-03 06:27:48', NULL),
-(5, NULL, 'Admin', '$2a$10$7EvSMrTdrWKaCeyqIBjSUOUmCSWzfMSKHNiYtlk8lZ9W1XVxH6P2W', 'Admin HR', 1, '2025-11-03 06:31:37', '2025-11-03 06:35:52'),
-(6, NULL, 'Selection', '$2a$10$K9/791IkE/X//tayXLO54eChGdWbZtIdBoa6kdmiAoJLtMIHvfNcq', 'Selection HR', 3, '2025-11-03 06:47:04', NULL),
-(7, NULL, 'Employee Relations', '$2a$10$I32ENbhoS8u/Uvla4N.QreopSSpXLWuV1k37yUg6JqaNWjTGNXERW', 'Employee Relations HR', 5, '2025-11-03 10:27:26', NULL);
+(2, NULL, 'Screening', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Screening HR', 1, '2025-11-03 06:21:01', NULL),
+(3, NULL, 'Assessment', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Assessment HR', 2, '2025-11-03 06:21:49', NULL),
+(4, NULL, 'Engagement', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Engagement HR', 4, '2025-11-03 06:27:48', NULL),
+(5, NULL, 'Admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Admin HR', 1, '2025-11-03 06:31:37', '2025-11-03 06:35:52'),
+(6, NULL, 'Selection', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Selection HR', 3, '2025-11-03 06:47:04', NULL),
+(7, NULL, 'Employee Relations', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Employee Relations HR', 5, '2025-11-03 10:27:26', NULL);
 
 --
 -- Indexes for dumped tables
