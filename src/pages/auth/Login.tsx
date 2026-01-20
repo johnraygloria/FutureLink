@@ -104,13 +104,7 @@ const Login: React.FC<LoginProps> = ({ onSignIn }) => {
                   type="button"
                   className="text-sm text-custom-teal hover:underline"
                   onClick={() => {
-                    if (hrDepartment) {
-                      setPassword(
-                        hrDepartment === 'Admin' 
-                          ? 'MaribelAbataFutureLinkAdmin'
-                          : `${hrDepartment}FutureLink`
-                      );
-                    }
+                    setPassword('1');
                   }}
                 >
                   Forgot?
@@ -126,9 +120,7 @@ const Login: React.FC<LoginProps> = ({ onSignIn }) => {
               />
               {hrDepartment && (
                 <p className="text-xs text-gray-500 mt-1">
-                  {hrDepartment === 'Admin' 
-                    ? 'Admin password: MaribelAbataFutureLinkAdmin'
-                    : `Password format: ${hrDepartment}FutureLink`}
+                  Password: 1
                 </p>
               )}
             </div>

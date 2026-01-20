@@ -37,6 +37,8 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     let { hr_department, password } = req.body;
+    console.log('[LOGIN] Request received:', { hr_department, password: password ? '***' : 'missing' });
+    
     if (!hr_department || !password) {
       return res.status(400).json({ error: 'HR Department and password are required' });
     }
@@ -51,15 +53,16 @@ router.post('/login', async (req, res) => {
     else if (normalized === 'employee relations' || normalized === 'employeerelations' || normalized === 'employee_relations') hr_department = 'Employee Relations';
     else if (normalized === 'admin') hr_department = 'Admin';
     
+    console.log('[LOGIN] Normalized department:', hr_department);
+    
     // Find user by HR department
     let user = await findUserByHrDepartment(hr_department);
+    console.log('[LOGIN] User found:', user ? { id: user.id, hr_department: user.hr_department, has_hash: !!user.password_hash } : 'null');
     
-    // If user doesn't exist, create one automatically with the expected password format
+    // If user doesn't exist, create one automatically with password "1"
     if (!user) {
-      const expectedPassword = hr_department === 'Admin' 
-        ? 'MaribelAbataFutureLinkAdmin' 
-        : `${hr_department}FutureLink`;
-      const password_hash = await bcrypt.hash(expectedPassword, 10);
+      console.log('[LOGIN] User not found, creating new user with password "1"');
+      const password_hash = await bcrypt.hash('1', 10);
       const role = getRoleFromHrDepartment(hr_department);
       const { id } = await createUserByHrDepartment({ 
         hr_department, 
@@ -68,10 +71,53 @@ router.post('/login', async (req, res) => {
         role 
       });
       user = await findUserByHrDepartment(hr_department);
+      console.log('[LOGIN] New user created:', { id: user.id });
     }
     
     // Verify password
-    let valid = await bcrypt.compare(password, user.password_hash);
+    console.log('[LOGIN] Comparing password. Provided:', password, 'Hash exists:', !!user.password_hash);
+    
+    // If no password hash exists, treat as invalid
+    if (!user.password_hash) {
+      console.log('[LOGIN] No password hash found for user, updating...');
+      if (password === '1') {
+        const newHash = await bcrypt.hash('1', 10);
+        await updateUserPasswordByHrDepartment({ hr_department, password_hash: newHash });
+        const refreshed = await findUserByHrDepartment(hr_department);
+        user = refreshed || user;
+      }
+    }
+    
+    let valid = false;
+    if (user.password_hash) {
+      valid = await bcrypt.compare(password, user.password_hash);
+    }
+    console.log('[LOGIN] Initial password check:', valid);
+    
+    // If password is "1" and hash doesn't match, update to correct hash for "1"
+    if (!valid && password === '1') {
+      console.log('[LOGIN] Password is "1" but hash doesn\'t match. Updating hash...');
+      console.log('[LOGIN] Current hash:', user.password_hash?.substring(0, 30) + '...');
+      const newHash = await bcrypt.hash('1', 10);
+      console.log('[LOGIN] New hash generated:', newHash.substring(0, 30) + '...');
+      const updateResult = await updateUserPasswordByHrDepartment({ hr_department, password_hash: newHash });
+      if (updateResult && updateResult.affectedRows > 0) {
+        const refreshed = await findUserByHrDepartment(hr_department);
+        if (refreshed) {
+          user = refreshed;
+          console.log('[LOGIN] User refreshed, new hash:', user.password_hash?.substring(0, 30) + '...');
+        }
+      }
+      valid = await bcrypt.compare(password, user.password_hash);
+      console.log('[LOGIN] After hash update, password check:', valid);
+      if (!valid) {
+        // Test hash directly to verify it works
+        const testHash = await bcrypt.hash('1', 10);
+        const testCompare = await bcrypt.compare('1', testHash);
+        console.log('[LOGIN] Direct hash test (should be true):', testCompare);
+        console.log('[LOGIN] Comparing "1" with stored hash:', user.password_hash);
+      }
+    }
     // If Admin and an older hash exists for a different expected password, update to the new Admin password when correct pass is provided
     if (!valid && hr_department === 'Admin' && password === 'MaribelAbataFutureLinkAdmin') {
       const newHash = await bcrypt.hash('MaribelAbataFutureLinkAdmin', 10);
@@ -80,7 +126,13 @@ router.post('/login', async (req, res) => {
       user = refreshed || user;
       valid = await bcrypt.compare(password, user.password_hash);
     }
-    if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+    
+    if (!valid) {
+      console.log('[LOGIN] Authentication failed. Password provided:', password, 'User hash:', user.password_hash?.substring(0, 20) + '...');
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    console.log('[LOGIN] Authentication successful for:', hr_department);
 
     // Ensure Admin has correct role (0) even if previously created with default role
     const role = getRoleFromHrDepartment(hr_department);

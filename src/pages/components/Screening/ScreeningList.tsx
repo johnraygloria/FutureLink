@@ -7,6 +7,7 @@ import ApplicantsToolbar from "./components/ApplicantsToolbar";
 import { isScreeningStatus, mapScreeningApplicantRow } from "./utils/screeningUtils";
 import FilterBar from "../../../components/Filters/FilterBar";
 import FilterSidebar from "../../../components/Filters/FilterSidebar";
+import ProcessTimer from "../../../components/ProcessTimer";
 
 const ScreeningList: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
@@ -38,7 +39,7 @@ const ScreeningList: React.FC = () => {
     handleOpenFilterSidebar,
   } = useApplicants();
 
-  useEffect(() => {
+  const refreshData = () => {
     setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {
@@ -51,6 +52,10 @@ const ScreeningList: React.FC = () => {
       })
       .catch(() => setUsers([]))
       .finally(() => setIsLoading(false));
+  };
+
+  useEffect(() => {
+    refreshData();
   }, [setUsers]);
 
   useEffect(() => {
@@ -109,13 +114,20 @@ const ScreeningList: React.FC = () => {
     <div className="flex w-full">
       <div className="flex-1 max-w-full mx-auto py-10 px-4">
         <div className="bg-white max-w-[77vw] rounded-2xl shadow-lg overflow-hidden">
-          {/* Filter Bar - NEW */}
-          <FilterBar
-            activeFilters={activeFilters}
-            onOpenFilters={handleOpenFilterSidebar}
-            onRemoveFilter={handleRemoveFilter}
-            onClearAll={handleClearAllFilters}
-          />
+          {/* Timer and Filter Bar */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <ProcessTimer 
+              processName="Screening" 
+              duration={7}
+              onTimerComplete={refreshData}
+            />
+            <FilterBar
+              activeFilters={activeFilters}
+              onOpenFilters={handleOpenFilterSidebar}
+              onRemoveFilter={handleRemoveFilter}
+              onClearAll={handleClearAllFilters}
+            />
+          </div>
 
           {/* Existing Toolbar */}
           <ApplicantsToolbar

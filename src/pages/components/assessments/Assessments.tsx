@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from "react";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
-import AssessmentTable from "./assessmenetTable";
-import { useApplicants } from "../Screening/hooks/useApplicants";
+import AssessmentTable from "./components/AssessmentTable";
+import { useAssessmentApplicants } from "./hooks/useAssessmentApplicants";
 import { useNavigation } from "../../../Global/NavigationContext";
 import { isAssessmentStatus, mapApplicantRow } from "./utils/assessmentUtils";
 import { useAssessmentHistory } from "./hooks/useAssessments";
 import AssessmentHistoryTable from "./components/AssessmentHistoryTable";
+import FilterBar from "../../../components/Filters/FilterBar";
+import FilterSidebar from "../../../components/Filters/FilterSidebar";
+import AssessmentToolbar from "./components/AssessmentToolbar";
+import ProcessTimer from "../../../components/ProcessTimer";
 
 const Assessments: React.FC = () => {
   const {
@@ -20,13 +24,22 @@ const Assessments: React.FC = () => {
     handleScreeningUpdate,
     removeApplicant,
     filteredUsers,
-  } = useApplicants();
+    filters,
+    activeFilters,
+    hasFilters,
+    isFilterSidebarOpen,
+    setIsFilterSidebarOpen,
+    handleApplyFilters,
+    handleRemoveFilter,
+    handleClearAllFilters,
+    handleOpenFilterSidebar,
+  } = useAssessmentApplicants();
   const { currentApplicantNo } = useNavigation();
   const [showHistory, setShowHistory] = useState(false);
   const { history: assessmentHistory } = useAssessmentHistory();
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+  const refreshData = () => {
     setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {
@@ -40,6 +53,10 @@ const Assessments: React.FC = () => {
       })
       .catch(() => setUsers([]))
       .finally(() => setIsLoading(false));
+  };
+
+  useEffect(() => {
+    refreshData();
   }, [setUsers, currentApplicantNo]);
 
   // Listen for applicant status updates and update list without reload
@@ -98,48 +115,60 @@ const Assessments: React.FC = () => {
   return (
     <div className="flex w-full">
       <div className="flex-1 max-w-full mx-auto py-10 px-4">
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="flex flex-col gap-4 p-6 border-b bg-white sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Assessment</h1>
-              <span className="inline-flex items-center rounded-full bg-custom-teal/10 text-custom-teal px-2.5 py-0.5 text-xs font-medium border border-custom-teal/30">{users.length}</span>
-              <button
-                onClick={() => setShowHistory(true)}
-                className="ml-2 px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium shadow-sm focus:outline-none hover:bg-gray-800"
-              >
-                View History
-              </button>
-            </div>
-            <div className="relative w-full sm:w-auto">
-              <span className="pointer-events-none absolute left-3 top-2.5 text-gray-400">
-                <i className="fas fa-search" />
-              </span>
-              <input
-                type="text"
-                placeholder="Search by name or position"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full sm:w-72 pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-custom-teal/30 bg-gray-50"
-                aria-label="Search applicants"
-              />
-            </div>
+        <div className="bg-white max-w-[77vw] rounded-2xl shadow-lg overflow-hidden">
+          {/* Timer and Filter Bar */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <ProcessTimer 
+              processName="Assessment" 
+              duration={7}
+              onTimerComplete={refreshData}
+            />
+            <FilterBar
+              activeFilters={activeFilters}
+              onOpenFilters={handleOpenFilterSidebar}
+              onRemoveFilter={handleRemoveFilter}
+              onClearAll={handleClearAllFilters}
+            />
           </div>
+
+          {/* Toolbar */}
+          <AssessmentToolbar
+            search={search}
+            setSearch={setSearch}
+            usersCount={users.length}
+            showHistory={showHistory}
+            setShowHistory={setShowHistory}
+          />
+
+          {/* Table */}
           <div className="p-0">
             <AssessmentTable
               users={filteredUsers}
               selectedUser={selectedUser}
               onUserClick={handleUserClick}
               isLoading={isLoading}
+              hasActiveFilters={hasFilters}
             />
           </div>
         </div>
       </div>
+
       <ApplicantSidebar
         selectedUser={selectedUser}
         onClose={handleCloseSidebar}
         onStatusChange={handleStatusChangeAndSync}
         onScreeningUpdate={handleScreeningUpdate}
         onRemoveApplicant={removeApplicant}
+      />
+
+      {/* Filter Sidebar Modal */}
+      <FilterSidebar
+        isOpen={isFilterSidebarOpen}
+        onClose={() => setIsFilterSidebarOpen(false)}
+        users={users}
+        filters={filters}
+        onApplyFilters={handleApplyFilters}
+        onClearFilters={handleClearAllFilters}
       />
     </div>
   );

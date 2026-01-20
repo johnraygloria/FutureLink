@@ -43,5 +43,7 @@ router.post('/engagement-history', async (req, res, next) => {
 });
 // Patch specific applicant fields
 router.patch('/', applicantsController.patchApplicant);
+// Get next applicant number
+router.get('/next-number', applicantsController.getNextApplicantNumber);
 
 module.exports = router; 

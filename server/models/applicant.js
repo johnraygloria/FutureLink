@@ -38,14 +38,6 @@ async function ensureTables() {
     contact_number VARCHAR(50),
     position_applied_for VARCHAR(150),
     experience VARCHAR(255),
-    datian VARCHAR(50),
-    hokei VARCHAR(50),
-    pobc VARCHAR(50),
-    jinboway VARCHAR(50),
-    surprise VARCHAR(50),
-    thaleste VARCHAR(50),
-    aolly VARCHAR(50),
-    enjoy VARCHAR(50),
     status VARCHAR(100),
     requirements_status VARCHAR(150),
     final_interview_status VARCHAR(150),
@@ -134,14 +126,6 @@ async function insertRecruitmentApplicant(data) {
     data.contact_number || null,
     data.position_applied_for || null,
     data.experience || null,
-    data.datian || null,
-    data.hokei || null,
-    data.pobc || null,
-    data.jinboway || null,
-    data.surprise || null,
-    data.thaleste || null,
-    data.aolly || null,
-    data.enjoy || null,
     data.status || null,
     data.requirements_status || null,
     data.final_interview_status || null,
@@ -169,8 +153,7 @@ async function insertRecruitmentApplicant(data) {
   const [result] = await pool.execute(
     `INSERT INTO recruitment_applicants (
       applicant_no, referred_by, last_name, first_name, ext, middle_name, gender, size, date_of_birth,
-      date_applied, fb_name, age, location, contact_number, position_applied_for, experience,
-      datian, hokei, pobc, jinboway, surprise, thaleste, aolly, enjoy, status,
+      date_applied, fb_name, age, location, contact_number, position_applied_for, experience, status,
       requirements_status, final_interview_status, medical_status, status_remarks, applicant_remarks,
       recent_picture, psa_birth_certificate, school_credentials, nbi_clearance, police_clearance,
       barangay_clearance, sss, pagibig, cedula, vaccination_status, resume, coe, philhealth, tin_number
@@ -186,6 +169,30 @@ async function fetchRecruitmentApplicants() {
   const [rows] = await pool.query(
     `SELECT * FROM recruitment_applicants ORDER BY created_at DESC`
   );
+  
+  // Fetch clients for each applicant
+  const { getApplicantClientsByName } = require('./applicantClient');
+  for (const row of rows) {
+    if (row.applicant_no) {
+      try {
+        const clientNames = await getApplicantClientsByName(row.applicant_no);
+        // Add clients array to row for backward compatibility
+        row.clients = clientNames;
+        // Also add individual fields for backward compatibility (empty if not selected)
+        row.datian = clientNames.includes('DATIAN') ? 'Ok' : '';
+        row.hokei = clientNames.includes('HOKEI') ? 'Ok' : '';
+        row.pobc = clientNames.includes('POBC') ? 'Ok' : '';
+        row.jinboway = clientNames.includes('JINBOWAY') ? 'Ok' : '';
+        row.surprise = clientNames.includes('SURPRISE') ? 'Ok' : '';
+        row.thaleste = clientNames.includes('THALESTE') ? 'Ok' : '';
+        row.aolly = clientNames.includes('AOLLY') ? 'Ok' : '';
+        row.enjoy = clientNames.includes('ENJOY') ? 'Ok' : '';
+      } catch (error) {
+        console.error('Error fetching clients for applicant:', error);
+      }
+    }
+  }
+  
   return rows;
 }
 
@@ -212,7 +219,7 @@ async function upsertRecruitmentApplicant(data) {
       `UPDATE recruitment_applicants
        SET referred_by=IFNULL(?, referred_by), last_name=IFNULL(?, last_name), first_name=IFNULL(?, first_name), ext=IFNULL(?, ext), middle_name=IFNULL(?, middle_name), gender=IFNULL(?, gender), size=IFNULL(?, size), date_of_birth=IFNULL(?, date_of_birth),
            date_applied=IFNULL(?, date_applied), fb_name=IFNULL(?, fb_name), age=IFNULL(?, age), location=IFNULL(?, location), contact_number=IFNULL(?, contact_number), position_applied_for=IFNULL(?, position_applied_for), experience=IFNULL(?, experience),
-           datian=IFNULL(?, datian), hokei=IFNULL(?, hokei), pobc=IFNULL(?, pobc), jinboway=IFNULL(?, jinboway), surprise=IFNULL(?, surprise), thaleste=IFNULL(?, thaleste), aolly=IFNULL(?, aolly), enjoy=IFNULL(?, enjoy), status=IFNULL(?, status),
+           status=IFNULL(?, status),
            requirements_status=IFNULL(?, requirements_status), final_interview_status=IFNULL(?, final_interview_status), medical_status=IFNULL(?, medical_status), status_remarks=IFNULL(?, status_remarks), applicant_remarks=IFNULL(?, applicant_remarks),
            recent_picture=IFNULL(?, recent_picture), psa_birth_certificate=IFNULL(?, psa_birth_certificate), school_credentials=IFNULL(?, school_credentials), nbi_clearance=IFNULL(?, nbi_clearance), police_clearance=IFNULL(?, police_clearance),
            barangay_clearance=IFNULL(?, barangay_clearance), sss=IFNULL(?, sss), pagibig=IFNULL(?, pagibig), cedula=IFNULL(?, cedula), vaccination_status=IFNULL(?, vaccination_status), resume=IFNULL(?, resume), coe=IFNULL(?, coe), philhealth=IFNULL(?, philhealth), tin_number=IFNULL(?, tin_number)
@@ -233,14 +240,6 @@ async function upsertRecruitmentApplicant(data) {
         normalize(data.contact_number),
         normalize(data.position_applied_for),
         normalize(data.experience),
-        normalize(data.datian),
-        normalize(data.hokei),
-        normalize(data.pobc),
-        normalize(data.jinboway),
-        normalize(data.surprise),
-        normalize(data.thaleste),
-        normalize(data.aolly),
-        normalize(data.enjoy),
         normalize(data.status),
         normalize(data.requirements_status),
         normalize(data.final_interview_status),
@@ -296,6 +295,31 @@ async function updateApplicantFields(applicant_no, fields) {
 }
 
 module.exports.updateApplicantFields = updateApplicantFields;
+
+// Get next unique applicant number
+async function getNextApplicantNumber() {
+  await ensureTables();
+  const pool = await getPool();
+  
+  // Get all applicant numbers
+  const [rows] = await pool.query(
+    `SELECT applicant_no FROM recruitment_applicants WHERE applicant_no IS NOT NULL AND applicant_no != ''`
+  );
+  
+  // Find the highest numeric applicant number
+  let maxNumber = 0;
+  for (const row of rows) {
+    const num = parseInt(row.applicant_no, 10);
+    if (!isNaN(num) && num > maxNumber) {
+      maxNumber = num;
+    }
+  }
+  
+  // Return next number (maxNumber + 1)
+  return (maxNumber + 1).toString();
+}
+
+module.exports.getNextApplicantNumber = getNextApplicantNumber;
 
 // Screening history helpers
 async function addScreeningHistory(entry) {
