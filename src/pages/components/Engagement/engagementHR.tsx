@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import type { User, ApplicationStatus } from "../../../api/applicant";
+import type { User } from "../../../api/applicant";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
 import { useNavigation } from "../../../Global/NavigationContext";
 import { isEngagementStatus, mapEngagementApplicantRow } from "./utils/engagementUtils";
@@ -61,7 +61,6 @@ const EngagementHR: React.FC = () => {
     setUsers,
     handleUserClick,
     handleCloseSidebar,
-    handleStatusChange,
     handleStatusChangeAndSync,
     removeApplicant: removeUser,
     filteredUsers,

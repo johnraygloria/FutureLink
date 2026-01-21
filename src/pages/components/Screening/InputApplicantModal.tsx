@@ -16,28 +16,25 @@ export const initialFormState = {
   datian: '', hokei: '', pobc: '', jinboway: '', surprise: '', thaleste: '', aolly: '', enjoy: '', status: '', requirementsStatus: '', finalInterviewStatus: '', medicalStatus: '', statusRemarks: '', applicantRemarks: '',
 };
 
-const InputApplicantModal: React.FC<InputApplicantModalProps> = ({ isOpen, onClose, onSubmit, onUpdateStatus }) => {
+const InputApplicantModal: React.FC<InputApplicantModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [form, setForm] = useState(initialFormState);
   const [step, setStep] = useState(1);
-  const [isLoadingNumber, setIsLoadingNumber] = useState(false);
+  // Removed unused isLoadingNumber state
 
   const reset = () => { setStep(1); setForm(initialFormState); };
 
   // Auto-generate applicant number when modal opens
   useEffect(() => {
     if (isOpen) {
-      setIsLoadingNumber(true);
       fetch('/api/applicants/next-number')
         .then(res => res.json())
         .then(data => {
           if (data.applicant_no) {
             setForm(prev => ({ ...prev, no: data.applicant_no }));
           }
-          setIsLoadingNumber(false);
         })
         .catch(error => {
           console.error('Failed to fetch next applicant number:', error);
-          setIsLoadingNumber(false);
         });
     } else {
       // Reset form when modal closes
@@ -45,7 +42,9 @@ const InputApplicantModal: React.FC<InputApplicantModalProps> = ({ isOpen, onClo
     }
   }, [isOpen]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type } = e.target;
     const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
     let updatedForm = { ...form, [name]: type === 'checkbox' ? checked : value };
