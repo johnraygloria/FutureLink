@@ -25,7 +25,7 @@ const getInitials = (user: User) => {
   const composite = `${user.firstName || ''} ${user.lastName || ''}`.trim() || (user as any).facebook || '';
   const parts = composite.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';
-  const initials = parts.slice(0, 2).map(p => p[0]).join('').toUpperCase();
+  const initials = parts.slice(0, 2).map((p: string) => p[0]).join('').toUpperCase();
   return initials || '?';
 };
 

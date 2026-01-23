@@ -31,7 +31,17 @@ const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({ form, handleC
     <form onSubmit={onNext} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
       <div className="flex flex-col gap-2">
         <label htmlFor="no" className="text-sm font-medium text-gray-700">No *</label>
-        <input id="no" name="no" value={form.no} onChange={handleChange} className="input" required aria-required="true" />
+        <input 
+          id="no" 
+          name="no" 
+          value={form.no} 
+          onChange={handleChange} 
+          className="input bg-gray-50 cursor-not-allowed" 
+          required 
+          aria-required="true" 
+          readOnly
+          title="Applicant number is auto-generated"
+        />
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="referredBy" className="text-sm font-medium text-gray-700">Referred By</label>

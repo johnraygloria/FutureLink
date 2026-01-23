@@ -1,8 +1,8 @@
 import React from "react";
 import type { User } from "../../../../api/applicant";
-import { formatAppliedDate, getUserInitials, ADDITIONAL_SCREENING_COLUMNS, mapUserToDisplayFormat } from "../utils/screeningUtils";
+import { formatAppliedDate, getUserInitials, ADDITIONAL_SELECTION_COLUMNS, mapUserToDisplayFormat } from "../utils/selectionUtils";
 
-type ApplicantsTableProps = {
+type SelectionTableProps = {
   users: User[];
   selectedUser: User | null;
   onUserClick: (user: User) => void;
@@ -10,9 +10,7 @@ type ApplicantsTableProps = {
   hasActiveFilters?: boolean;
 };
 
-// moved utilities to ../utils/screeningUtils
-
-const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, onUserClick, isLoading, hasActiveFilters = false }) => (
+const SelectionTable: React.FC<SelectionTableProps> = ({ users, selectedUser, onUserClick, isLoading, hasActiveFilters = false }) => (
   <div className="overflow-x-auto">
     <table className="min-w-full divide-y divide-gray-200">
       <thead className="bg-gray-50 sticky top-0 z-10">
@@ -21,7 +19,7 @@ const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, 
           <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Position</th>
           <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Applied Date</th>
           <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
-          {ADDITIONAL_SCREENING_COLUMNS.map((columnKey) => (
+          {ADDITIONAL_SELECTION_COLUMNS.map((columnKey) => (
             <th key={columnKey} scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
               {columnKey}
             </th>
@@ -36,7 +34,7 @@ const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, 
               <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-2/5" /></td>
               <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-1/4" /></td>
               <td className="px-6 py-4"><div className="h-6 bg-gray-200 rounded w-24" /></td>
-              {ADDITIONAL_SCREENING_COLUMNS.map((_, colIdx) => (
+              {ADDITIONAL_SELECTION_COLUMNS.map((_, colIdx) => (
                 <td key={colIdx} className="px-4 py-4"><div className="h-4 bg-gray-200 rounded w-20" /></td>
               ))}
             </tr>
@@ -84,9 +82,18 @@ const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, 
                 <div className="text-sm text-gray-900">{formatAppliedDate(user.dateApplied)}</div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">{user.status}</span>
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                  user.status === 'For Completion' ? 'bg-green-100 text-green-800' :
+                  user.status === 'For Medical' ? 'bg-blue-100 text-blue-800' :
+                  user.status === 'For SBMA Gate Pass' ? 'bg-yellow-100 text-yellow-800' :
+                  user.status === 'For Deployment' ? 'bg-purple-100 text-purple-800' :
+                  user.status === 'Deployed' ? 'bg-emerald-100 text-emerald-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {user.status}
+                </span>
               </td>
-              {ADDITIONAL_SCREENING_COLUMNS.map((columnKey) => (
+              {ADDITIONAL_SELECTION_COLUMNS.map((columnKey) => (
                 <td key={columnKey} className="px-4 py-3 whitespace-nowrap">
                   {columnKey === "CLIENTS" ? (
                     <div className="flex flex-wrap gap-1">
@@ -116,4 +123,4 @@ const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, 
   </div>
 );
 
-export default ApplicantsTable; 
+export default SelectionTable;

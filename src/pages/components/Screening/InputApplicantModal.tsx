@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PersonalDetailsForm from './PersonalDetailsForm';
 import DocumentChecklistForm from './DocumentChecklistForm';
 
@@ -16,13 +16,35 @@ export const initialFormState = {
   datian: '', hokei: '', pobc: '', jinboway: '', surprise: '', thaleste: '', aolly: '', enjoy: '', status: '', requirementsStatus: '', finalInterviewStatus: '', medicalStatus: '', statusRemarks: '', applicantRemarks: '',
 };
 
-const InputApplicantModal: React.FC<InputApplicantModalProps> = ({ isOpen, onClose, onSubmit, onUpdateStatus }) => {
+const InputApplicantModal: React.FC<InputApplicantModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [form, setForm] = useState(initialFormState);
   const [step, setStep] = useState(1);
+  // Removed unused isLoadingNumber state
 
   const reset = () => { setStep(1); setForm(initialFormState); };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // Auto-generate applicant number when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/applicants/next-number')
+        .then(res => res.json())
+        .then(data => {
+          if (data.applicant_no) {
+            setForm(prev => ({ ...prev, no: data.applicant_no }));
+          }
+        })
+        .catch(error => {
+          console.error('Failed to fetch next applicant number:', error);
+        });
+    } else {
+      // Reset form when modal closes
+      reset();
+    }
+  }, [isOpen]);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type } = e.target;
     const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
     let updatedForm = { ...form, [name]: type === 'checkbox' ? checked : value };

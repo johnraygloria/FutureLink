@@ -1,5 +1,6 @@
-const { insertRecruitmentApplicant, fetchRecruitmentApplicants, upsertRecruitmentApplicant, updateApplicantFields, addScreeningHistory, fetchScreeningHistory, fetchScreeningHistoryEnriched, addAssessmentHistory, fetchAssessmentHistoryEnriched, addSelectionHistory, fetchSelectionHistoryEnriched, addEngagementHistory, fetchEngagementHistoryEnriched } = require('../models/applicant');
-
+const { insertRecruitmentApplicant, fetchRecruitmentApplicants, upsertRecruitmentApplicant, updateApplicantFields, addScreeningHistory, fetchScreeningHistory, fetchScreeningHistoryEnriched, addAssessmentHistory, fetchAssessmentHistoryEnriched, addSelectionHistory, fetchSelectionHistoryEnriched, addEngagementHistory, fetchEngagementHistoryEnriched, getNextApplicantNumber } = require('../models/applicant');
+const { setApplicantClients, getApplicantClients } = require('../models/applicantClient');
+const { getAllClients } = require('../models/client');
 
 exports.createApplicant = (req, res) => {
   res.status(201).json({ message: 'Applicant created', data: req.body });
@@ -28,8 +29,10 @@ const toBitOrUndefined = (v) => (v === undefined ? undefined : toBit(v));
 exports.addOrUpdateApplicant = async (req, res) => {
   try {
     const body = req.body || {};
-    await upsertRecruitmentApplicant({
-      applicant_no: body.NO || body.applicant_no,
+    const applicantNo = body.NO || body.applicant_no;
+
+    const result = await upsertRecruitmentApplicant({
+      applicant_no: applicantNo,
       referred_by: body.REFFERED_BY || body.referred_by,
       last_name: body.LAST_NAME || body.last_name,
       first_name: body.FIRST_NAME || body.first_name,
@@ -45,14 +48,6 @@ exports.addOrUpdateApplicant = async (req, res) => {
       contact_number: body.CONTACT_NUMBER || body.contact_number,
       position_applied_for: body.POSITION_APPLIED_FOR || body.position_applied_for,
       experience: body.EXPERIENCE || body.experience,
-      datian: body.DATIAN || body.datian,
-      hokei: body.HOKEI || body.hokei,
-      pobc: body.POBC || body.pobc,
-      jinboway: body.JINBOWAY || body.jinboway,
-      surprise: body.SURPRISE || body.surprise,
-      thaleste: body.THALESTE || body.thaleste,
-      aolly: body.AOLLY || body.aolly,
-      enjoy: body.ENJOY || body.enjoy,
       status: body.STATUS || body.status,
       requirements_status: body.REQUIREMENTS_STATUS || body.requirements_status,
       final_interview_status: body.FINAL_INTERVIEW_STATUS || body.final_interview_status,
@@ -75,9 +70,41 @@ exports.addOrUpdateApplicant = async (req, res) => {
       tin_number: toBitOrUndefined(body.TIN_NUMBER ?? body.tinNumber ?? body.tin_number),
     });
 
+    // Handle clients: Save to junction table
+    // Only update clients if CLIENT_IDS is explicitly provided OR old client fields are provided
+    // Otherwise, preserve existing clients
+    if (Array.isArray(body.CLIENT_IDS)) {
+      // New way: use CLIENT_IDS array
+      const clientIds = body.CLIENT_IDS
+        .map((id) => Number(id))
+        .filter((id) => !Number.isNaN(id));
+      await setApplicantClients(result.id, clientIds);
+    } else {
+      // Old way: check for individual client fields
+      const allClients = await getAllClients();
+      const selectedClientIds = [];
+      const clientFields = ['DATIAN', 'HOKEI', 'POBC', 'JINBOWAY', 'SURPRISE', 'THALESTE', 'AOLLY', 'ENJOY'];
+      let hasClientFields = false;
+
+      for (const clientName of clientFields) {
+        const clientValue = body[clientName];
+        if (clientValue === 'Ok') {
+          hasClientFields = true;
+          const client = allClients.find(c => c.name === clientName);
+          if (client) selectedClientIds.push(client.id);
+        }
+      }
+
+      // Only update clients if old client fields were actually provided
+      // If neither CLIENT_IDS nor old fields are provided, preserve existing clients
+      if (hasClientFields) {
+        await setApplicantClients(result.id, selectedClientIds);
+      }
+      // Otherwise, don't call setApplicantClients - existing clients are preserved
+    }
+
     // If assessment-related fields are provided, log to assessment history as a safety net
     try {
-      const applicantNo = body.NO || body.applicant_no;
       const hasAssessmentField = [
         'REQUIREMENTS_STATUS', 'requirements_status',
         'FINAL_INTERVIEW_STATUS', 'final_interview_status',
@@ -340,5 +367,15 @@ exports.addEngagementHistory = async (req, res) => {
   } catch (e) {
     console.error('addEngagementHistory error:', e);
     res.status(500).json({ error: 'Failed to add engagement history' });
+  }
+};
+
+exports.getNextApplicantNumber = async (req, res) => {
+  try {
+    const nextNumber = await getNextApplicantNumber();
+    res.json({ applicant_no: nextNumber });
+  } catch (error) {
+    console.error('getNextApplicantNumber error:', error);
+    res.status(500).json({ error: 'Failed to get next applicant number' });
   }
 };
