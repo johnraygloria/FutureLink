@@ -16,38 +16,38 @@ const ActionsBar: React.FC<ActionsBarProps> = ({ selectedCount, onAction }) => {
   ];
 
   return (
-    <div className="mb-4 p-4 bg-custom-teal/10 rounded-lg border border-custom-teal/20">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-4 flex-wrap">
-          {selectedCount > 0 && (
-            <span className="text-sm font-medium text-custom-teal">
-              {selectedCount} applicant(s) selected
+    <div className="mb-4 p-3 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-white/5 flex items-center justify-between gap-4 shadow-lg">
+      <div className="flex items-center gap-4 flex-wrap flex-1">
+        {selectedCount > 0 ? (
+          <>
+            <span className="text-sm font-bold text-white bg-primary/20 px-3 py-1 rounded-full border border-primary/30">
+              {selectedCount} Selected
             </span>
-          )}
-          {selectedCount > 0 && (
             <div className="flex gap-2 flex-wrap">
               {actions.map((action) => (
                 <button
                   key={action.label}
                   onClick={() => onAction(action.label)}
-                  className={`px-4 py-2 ${action.color} text-white rounded-md transition text-sm`}
+                  className={`px-3 py-1.5 ${action.color} text-white rounded-lg transition-all text-xs font-semibold shadow-md active:scale-95`}
                 >
-                  Go to {action.label}
+                  To {action.label}
                 </button>
               ))}
             </div>
-          )}
-        </div>
-        
-        {/* Export to Excel button - always visible */}
-        <button
-          onClick={() => onAction('Export to Excel')}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition text-sm flex items-center gap-2"
-        >
-          <i className="fas fa-file-excel"></i>
-          Export to Excel
-        </button>
+          </>
+        ) : (
+          <span className="text-sm text-text-secondary italic pl-2">Select applicants to perform actions</span>
+        )}
       </div>
+
+      {/* Export to Excel button */}
+      <button
+        onClick={() => onAction('Export to Excel')}
+        className="px-4 py-2 bg-[#10b981] hover:bg-[#059669] text-white rounded-lg transition-all text-sm font-bold shadow-lg flex items-center gap-2 border border-white/10 active:scale-95"
+      >
+        <i className="fas fa-file-excel"></i>
+        Export to Excel
+      </button>
     </div>
   );
 };

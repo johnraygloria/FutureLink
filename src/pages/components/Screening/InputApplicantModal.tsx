@@ -45,9 +45,11 @@ const InputApplicantModal: React.FC<InputApplicantModalProps> = ({ isOpen, onClo
     }
   }, [isOpen]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
+    // Check if property 'checked' exists (it's on HTMLInputElement)
+    const checked = (type === 'checkbox' && 'checked' in e.target) ? (e.target as HTMLInputElement).checked : undefined;
+
     let updatedForm = { ...form, [name]: type === 'checkbox' ? checked : value };
     if (name === 'dateOfBirth') {
       // Calculate age
@@ -73,10 +75,10 @@ const InputApplicantModal: React.FC<InputApplicantModalProps> = ({ isOpen, onClo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-800/60 backdrop-blur-sm transition-all duration-300" aria-modal="true" role="dialog" tabIndex={-1}>
-      <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-10 w-full max-w-4xl relative animate-fade-in border border-gray-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all duration-300 p-4" aria-modal="true" role="dialog" tabIndex={-1}>
+      <div className="bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl p-5 sm:p-6 w-full max-w-3xl relative animate-fade-in border border-white/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
         <button
-          className="absolute top-4 right-4 text-gray-500 hover:bg-gray-100 rounded-full p-2 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-custom-teal"
+          className="absolute top-3 right-3 text-text-secondary hover:text-white hover:bg-white/10 rounded-full p-1.5 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-custom-teal transition-all z-10"
           onClick={() => { onClose(); reset(); }}
           aria-label="Close"
         >

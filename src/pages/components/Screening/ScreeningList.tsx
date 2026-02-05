@@ -83,15 +83,15 @@ const ScreeningList: React.FC = () => {
   if (showHistory) {
     return (
       <div>
-        <div style={{ 
-          position: 'fixed', 
-          top: '10px', 
-          right: '10px', 
-          background: '#10b981', 
-          color: 'white', 
-          padding: '8px 12px', 
-          borderRadius: '6px', 
-          fontSize: '14px', 
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          background: '#10b981',
+          color: 'white',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          fontSize: '14px',
           fontWeight: 'bold',
           zIndex: 1000,
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
@@ -111,13 +111,13 @@ const ScreeningList: React.FC = () => {
   }
 
   return (
-    <div className="flex w-full">
-      <div className="flex-1 max-w-full mx-auto py-10 px-4">
-        <div className="bg-white max-w-[77vw] rounded-2xl shadow-lg overflow-hidden">
+    <div className="flex w-full relative overflow-hidden">
+      <div className="flex-1 max-w-full mx-auto py-6 px-4 md:px-8">
+        <div className="glass-card max-w-full rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 backdrop-blur-xl relative z-10 transition-all hover:border-white/20">
           {/* Timer and Filter Bar */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <ProcessTimer 
-              processName="Screening" 
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-md">
+            <ProcessTimer
+              processName="Screening"
               duration={7}
               onTimerComplete={refreshData}
             />

@@ -20,27 +20,27 @@ const NumberRangeFilter: React.FC<NumberRangeFilterProps> = ({ title, min, max, 
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-gray-700 mb-2">{title}</h3>
+      <h3 className="text-sm font-bold text-white mb-3 tracking-wide">{title}</h3>
       <div className="flex items-center gap-3">
         <div className="flex-1">
-          <label className="block text-xs text-gray-600 mb-1">Min</label>
+          <label className="block text-xs text-text-secondary mb-1.5 uppercase font-medium tracking-wide">Min</label>
           <input
             type="number"
             value={min ?? ''}
             onChange={handleMinChange}
             placeholder="Min"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-custom-teal focus:border-custom-teal"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
           />
         </div>
-        <span className="text-gray-400 mt-5">—</span>
+        <span className="text-text-secondary/50 mt-6">—</span>
         <div className="flex-1">
-          <label className="block text-xs text-gray-600 mb-1">Max</label>
+          <label className="block text-xs text-text-secondary mb-1.5 uppercase font-medium tracking-wide">Max</label>
           <input
             type="number"
             value={max ?? ''}
             onChange={handleMaxChange}
             placeholder="Max"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-custom-teal focus:border-custom-teal"
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
           />
         </div>
       </div>
