@@ -1,10 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import Filters from './components/filter';
 import ActionsBar from './components/action';
 import { useNavigation } from '../../../Global/NavigationContext';
 import ApplicantTable from './components/applicanttab';
 import type { GoogleSheetApplicant } from './hook/googlesheettab';
+import FilterSidebar from '../../../components/Filters/FilterSidebar';
+import FilterBar from '../../../components/Filters/FilterBar';
+import {
+  initialFilters,
+  applyFilters,
+  filtersToActiveFilters,
+  hasActiveFilters as checkHasActiveFilters,
+  type FilterCriteria,
+  type ActiveFilter
+} from '../../../components/Filters/filterUtils';
+import type { User } from '../../../api/applicant';
 
 function RecruitmentDatabase() {
   const [applicants, setApplicants] = useState<GoogleSheetApplicant[]>([]);
@@ -15,6 +26,28 @@ function RecruitmentDatabase() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedApplicants, setSelectedApplicants] = useState<Set<string>>(new Set());
   const { setActiveSection, setCurrentApplicantNo } = useNavigation();
+
+  // Advanced Filtering State
+  const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterCriteria>(initialFilters);
+
+  // Transform GoogleSheetApplicant to User type for filtering
+  const mappedUsersForFiltering = useMemo(() => {
+    return applicants.map(app => ({
+      id: app["NO"],
+      gender: app["GENDER"],
+      size: app["SIZE"],
+      location: app["LOCATION"],
+      experience: app["EXPERIENCE"],
+      positionApplied: app["POSITION APPLIED FOR"],
+      referredBy: app["REFFERED BY"],
+      age: app["AGE"],
+      status: app["STATUS"],
+      firstName: app["FIRST NAME"],
+      lastName: app["LAST NAME"],
+      dateApplied: app["DATE APPLIED"],
+    } as User));
+  }, [applicants]);
 
   useEffect(() => {
     setLoading(true);
@@ -65,27 +98,38 @@ function RecruitmentDatabase() {
   useEffect(() => {
     let filtered = applicants;
 
+    // 1. Basic Status Filter
     if (statusFilter !== '') {
-      filtered = filtered.filter(applicant => 
+      filtered = filtered.filter(applicant =>
         applicant["STATUS"] === statusFilter
       );
     }
 
+    // 2. Search Filter
     if (searchTerm !== '') {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(applicant => {
         const firstName = String(applicant["FIRST NAME"] || '').toLowerCase();
         const lastName = String(applicant["LAST NAME"] || '').toLowerCase();
         const applicantNo = String(applicant["NO"] || '').toLowerCase();
-        
-        return firstName.includes(searchLower) || 
-               lastName.includes(searchLower) || 
-               applicantNo.includes(searchLower);
+
+        return firstName.includes(searchLower) ||
+          lastName.includes(searchLower) ||
+          applicantNo.includes(searchLower);
       });
     }
 
+    // 3. Advanced Sidebar Filters
+    if (checkHasActiveFilters(filters)) {
+      // Use the mapped users to determine which IDs pass the advanced filters
+      const allowedUsers = applyFilters(mappedUsersForFiltering, filters);
+      const allowedIds = new Set(allowedUsers.map(u => u.id));
+
+      filtered = filtered.filter(app => allowedIds.has(app["NO"]));
+    }
+
     setFilteredApplicants(filtered);
-  }, [statusFilter, searchTerm, applicants]);
+  }, [statusFilter, searchTerm, applicants, filters, mappedUsersForFiltering]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -148,7 +192,7 @@ function RecruitmentDatabase() {
               notes: '',
             })
           });
-        } catch {}
+        } catch { }
       }));
 
       // Set navigation to the appropriate section and open the first selected
@@ -237,50 +281,135 @@ function RecruitmentDatabase() {
     XLSX.writeFile(wb, filename);
   };
 
+  // State handlers for Advanced Filters
+  const handleApplyFilters = (newFilters: FilterCriteria) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    setFilters(initialFilters);
+  };
+
+  const activeFilters = filtersToActiveFilters(filters);
+  const handleRemoveFilter = (activeFilter: ActiveFilter) => {
+    const { field, value } = activeFilter;
+    const newFilters = { ...filters };
+    if (field === 'gender') newFilters.gender = newFilters.gender.filter(v => v !== value);
+    else if (field === 'size') newFilters.size = newFilters.size.filter(v => v !== value);
+    else if (field === 'location') newFilters.location = newFilters.location.filter(v => v !== value);
+    else if (field === 'experience') newFilters.experience = newFilters.experience.filter(v => v !== value);
+    else if (field === 'positionApplied') newFilters.positionApplied = newFilters.positionApplied.filter(v => v !== value);
+    else if (field === 'referredBy') newFilters.referredBy = newFilters.referredBy.filter(v => v !== value);
+    else if (field === 'status') newFilters.status = newFilters.status.filter(v => v !== value);
+    else if (field === 'age') newFilters.age = {};
+
+    setFilters(newFilters);
+  };
+
+  // Get all unique status options from the dataset for the sidebar
+  const allStatusOptions = useMemo(() => Array.from(new Set(applicants.map(a => a.STATUS))).filter(Boolean).sort(), [applicants]);
+
   return (
-    <div className="p-9">
-      <h1 className="text-2xl font-bold mb-6 text-custom-teal">Recruitment Database</h1>
-      
-      <Filters 
-        searchTerm={searchTerm}
-        statusFilter={statusFilter}
-        onSearchChange={setSearchTerm}
-        onStatusFilterChange={setStatusFilter}
-      />
+    <div className="flex w-full relative overflow-hidden h-[calc(100vh-2rem)]">
+      <div className="flex-1 max-w-full mx-auto py-6 px-4 md:px-8 h-full">
+        <div className="glass-card max-w-full h-full rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 backdrop-blur-xl relative z-10 transition-all hover:border-white/20 flex flex-col">
 
-      {(searchTerm || statusFilter) && (
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600">
-            Showing {filteredApplicants.length} of {applicants.length} applicants
-            {searchTerm && ` matching "${searchTerm}"`}
-            {statusFilter && ` with status "${statusFilter}"`}
-          </p>
+          {/* Header Section */}
+          <div className="px-8 py-6 border-b border-white/10 bg-white/5 backdrop-blur-md">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold text-white tracking-wide">Recruitment Database</h1>
+              <button
+                onClick={() => setIsFilterSidebarOpen(true)}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all text-sm font-semibold shadow-sm border border-white/10 flex items-center gap-2 backdrop-blur-sm active:scale-95"
+              >
+                <i className="fas fa-filter"></i>
+                Advanced Filters
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <Filters
+                searchTerm={searchTerm}
+                statusFilter={statusFilter}
+                onSearchChange={setSearchTerm}
+                onStatusFilterChange={setStatusFilter}
+              />
+
+              {/* Advanced Active Filters */}
+              {checkHasActiveFilters(filters) && (
+                <FilterBar
+                  activeFilters={activeFilters}
+                  onOpenFilters={() => setIsFilterSidebarOpen(true)}
+                  onRemoveFilter={handleRemoveFilter}
+                  onClearAll={handleClearFilters}
+                />
+              )}
+            </div>
+
+            {(searchTerm || statusFilter || checkHasActiveFilters(filters)) && (
+              <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm flex justify-between items-center flex-wrap gap-2">
+                <p className="text-sm text-text-secondary">
+                  Showing <span className="text-white font-bold">{filteredApplicants.length}</span> of <span className="text-white font-bold">{applicants.length}</span> applicants
+                </p>
+                {(searchTerm || statusFilter) && (
+                  <span className="text-xs text-text-secondary/70 italic hidden sm:inline">
+                    (Including quick filters)
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="mt-6">
+              <ActionsBar
+                selectedCount={selectedApplicants.size}
+                onAction={handleAction}
+              />
+            </div>
+          </div>
+
+          {/* Content Section */}
+          <div className="flex-1 overflow-hidden relative">
+            {error && (
+              <div className="m-6 bg-danger/10 text-danger border border-danger/20 p-4 rounded-xl flex items-center gap-3">
+                <i className="fas fa-exclamation-circle text-xl"></i>
+                {error}
+              </div>
+            )}
+
+            {loading ? (
+              <div className="flex flex-col items-center justify-center h-full gap-4">
+                <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin"></div>
+                <p className="text-text-secondary font-medium animate-pulse">Loading database records...</p>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center h-full gap-4 text-danger/80">
+                <i className="fas fa-server text-4xl mb-2"></i>
+                <p className="font-medium">Failed to load data</p>
+              </div>
+            ) : (
+              <div className="h-full overflow-hidden">
+                <ApplicantTable
+                  applicants={filteredApplicants}
+                  selectedApplicants={selectedApplicants}
+                  onSelectAll={handleSelectAll}
+                  onSelectApplicant={handleSelectApplicant}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
 
-      <ActionsBar 
-        selectedCount={selectedApplicants.size}
-        onAction={handleAction}
+      {/* Filter Sidebar */}
+      <FilterSidebar
+        isOpen={isFilterSidebarOpen}
+        onClose={() => setIsFilterSidebarOpen(false)}
+        users={mappedUsersForFiltering}
+        filters={filters}
+        onApplyFilters={handleApplyFilters}
+        onClearFilters={handleClearFilters}
+        statusOptions={allStatusOptions}
       />
-
-      {error && (
-        <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="text-center py-8">Loading applicants...</div>
-      ) : error ? (
-        <div className="text-center text-red-500 py-8">{error}</div>
-      ) : (
-        <ApplicantTable
-          applicants={filteredApplicants}
-          selectedApplicants={selectedApplicants}
-          onSelectAll={handleSelectAll}
-          onSelectApplicant={handleSelectApplicant}
-        />
-      )}
     </div>
   );
 }

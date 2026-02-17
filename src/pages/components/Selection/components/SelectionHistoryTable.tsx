@@ -18,41 +18,40 @@ type SelectionHistoryTableProps = {
 };
 
 const SelectionHistoryTable: React.FC<SelectionHistoryTableProps> = ({ rows, getEmployeeInfo }) => (
-  <div className="overflow-x-auto">
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50">
-        <tr>
-          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Position</th>
-          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Application Date</th>
-          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+  <div className="overflow-hidden rounded-xl border border-white/10 bg-black/20">
+    <table className="min-w-full">
+      <thead>
+        <tr className="border-b border-white/10 bg-white/5">
+          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Name</th>
+          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Position</th>
+          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Application Date</th>
+          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Status</th>
+          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Actions</th>
         </tr>
       </thead>
-      <tbody className="bg-white divide-y divide-gray-100">
+      <tbody className="divide-y divide-white/5">
         {rows.map((history) => {
           const info = getEmployeeInfo(history.employeeId);
           return (
-            <tr key={history.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{info.name}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{info.position}</td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{info.dateApplied || history.date}</td>
+            <tr key={history.id} className="group hover:bg-white/5 transition-colors">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{info.name}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary group-hover:text-white transition-colors">{info.position}</td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary group-hover:text-white transition-colors">{info.dateApplied || history.date}</td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                  history.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                  history.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                  history.status === 'Scheduled' ? 'bg-yellow-100 text-yellow-800' :
-                  history.status === 'Failed' ? 'bg-red-100 text-red-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
+                <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full border ${history.status === 'Completed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                    history.status === 'In Progress' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                      history.status === 'Scheduled' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                        history.status === 'Failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                          'bg-white/10 text-text-secondary border-white/10'
+                  }`}>
                   {history.status}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-2">
-                <button className="text-blue-600 hover:text-blue-900 rounded-full p-2 transition" title="View Details">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary flex items-center gap-3">
+                <button className="text-custom-teal hover:text-white transition-colors p-1" title="View Details">
                   <i className="fas fa-eye" />
                 </button>
-                <button className="text-gray-400 hover:text-gray-700 rounded-full p-2 transition" title="More actions">
+                <button className="text-text-secondary hover:text-white transition-colors p-1" title="More actions">
                   <i className="fas fa-ellipsis-h" />
                 </button>
               </td>

@@ -13,28 +13,27 @@ type AssessmentHistoryTableProps = {
 };
 
 const AssessmentHistoryTable: React.FC<AssessmentHistoryTableProps> = ({ rows }) => (
-  <div className="overflow-x-auto">
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50">
-        <tr>
-          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Position</th>
-          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Applied Date</th>
-          <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+  <div className="overflow-hidden rounded-xl border border-white/10 bg-black/20">
+    <table className="min-w-full">
+      <thead>
+        <tr className="border-b border-white/10 bg-white/5">
+          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Name</th>
+          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Position</th>
+          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Applied Date</th>
+          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Status</th>
         </tr>
       </thead>
-      <tbody className="bg-white divide-y divide-gray-100">
+      <tbody className="divide-y divide-white/5">
         {rows.map((history) => (
-          <tr key={history.id} className="hover:bg-gray-50">
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{history.full_name || '-'}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{history.position_applied_for || '-'}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{history.date_applied || ''}</td>
+          <tr key={history.id} className="group hover:bg-white/5 transition-colors">
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{history.full_name || '-'}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary group-hover:text-white transition-colors">{history.position_applied_for || '-'}</td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary group-hover:text-white transition-colors">{history.date_applied || ''}</td>
             <td className="px-6 py-4 whitespace-nowrap">
-              <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                history.status === 'For Completion' ? 'bg-green-100 text-green-800' :
-                history.status === 'For Final Interview/For Assessment' ? 'bg-blue-100 text-blue-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
+              <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full border ${history.status === 'For Completion' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                  history.status === 'For Final Interview/For Assessment' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                    'bg-white/10 text-text-secondary border-white/10'
+                }`}>
                 {history.status}
               </span>
             </td>

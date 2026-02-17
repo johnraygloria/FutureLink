@@ -18,10 +18,10 @@ interface SidebarProps {
   onLogout?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ 
-  isCollapsed, 
-  onToggle, 
-  activeSection, 
+const Sidebar: React.FC<SidebarProps> = ({
+  isCollapsed,
+  onToggle,
+  activeSection,
   onSectionChange,
   onLogout,
 }) => {
@@ -42,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         default: allowedSectionId = undefined;
       }
     }
-  } catch {}
+  } catch { }
   const menuItems = [
     {
       id: 'dashboard',
@@ -95,53 +95,66 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div
       className={
-        `bg-white/90 backdrop-blur-sm border-r border-gray-200/70 rounded-r-2xl shadow-md transition-all duration-300 ease-in-out ` +
-        (isCollapsed ? 'w-16' : 'w-64')
+        `glass-card z-30 border-r-0 border-white/5 rounded-r-3xl transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] transform h-[95vh] my-auto ml-4 ` +
+        (isCollapsed ? 'w-24' : 'w-72')
       }
     >
-      <div className="flex items-center justify-between p-4 border-b border-gray-200/70">
+      <div className="flex items-center justify-between p-6">
         {!isCollapsed && (
-          <div className="flex items-center space-x-2">
-            <img src={FutureLinkLogo} alt="FutureLink Logo" className="w-40 h-16 object-contain" />
-            {/* <h2 className="text-lg font-semibold text-gray-800">FutureLink</h2> */}
+          <div className="flex items-center space-x-2 animate-fadeIn pl-2">
+            <img src={FutureLinkLogo} alt="FutureLink Logo" className="w-full h-12 object-contain filter drop-shadow-lg" />
           </div>
         )}
         <button
           onClick={onToggle}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200"
+          className={`p-2 rounded-xl hover:bg-white/10 text-text-secondary hover:text-white transition-all duration-300 ${isCollapsed ? 'mx-auto' : ''}`}
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
-            <IconChevronRight className="w-5 h-5 text-gray-600" />
+            <IconChevronRight className="w-5 h-5" stroke={2.5} />
           ) : (
-            <IconChevronLeft className="w-5 h-5 text-gray-600" />
+            <IconChevronLeft className="w-5 h-5" stroke={2.5} />
           )}
         </button>
       </div>
 
-      <nav className="p-3">
-        <ul className="space-y-2">
+      <div className="px-6 py-2">
+        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+      </div>
+
+      <nav className="p-4 flex-1 overflow-y-auto custom-scrollbar">
+        <ul className="space-y-3">
           {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
-            
+
             return (
               <li key={item.id}>
                 <button
                   onClick={() => onSectionChange(item.id)}
-                  className={`group relative w-full flex items-center px-3 py-2.5 rounded-xl transition-all duration-200 ${
-                    isActive
-                      ? 'text-custom-teal bg-custom-teal/10 ring-1 ring-custom-teal/20'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                  className={`group relative w-full flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 overflow-hidden ${isActive
+                    ? 'bg-gradient-to-r from-primary/20 to-primary/5 shadow-lg shadow-primary/5 border border-primary/20'
+                    : 'hover:bg-white/5 border border-transparent hover:border-white/5'
+                    } ${isCollapsed ? 'justify-center' : ''}`}
                   title={isCollapsed ? item.name : undefined}
                 >
-                  <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full transition-all ${isActive ? 'bg-custom-teal opacity-100' : 'opacity-0 group-hover:opacity-30 bg-gray-300'}`} />
-                  <Icon className={`w-5 h-5 ${
-                    isActive ? 'text-custom-teal' : 'text-gray-500 group-hover:text-gray-700'
-                  }`} />
+                  {isActive && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_10px_2px_rgba(0,128,129,0.5)]"></div>
+                  )}
+
+                  <Icon className={`w-6 h-6 z-10 transition-colors duration-300 ${isActive ? 'text-primary-light drop-shadow-md' : 'text-text-secondary group-hover:text-white'
+                    }`} stroke={isActive ? 2 : 1.5} />
+
                   {!isCollapsed && (
-                    <span className="ml-3 font-medium tracking-wide">{item.name}</span>
+                    <span className={`ml-4 font-medium tracking-wide z-10 transition-colors duration-300 ${isActive ? 'text-white' : 'text-text-secondary group-hover:text-white'
+                      }`}>
+                      {item.name}
+                    </span>
+                  )}
+
+                  {/* Hover effect glow */}
+                  {!isActive && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   )}
                 </button>
               </li>
@@ -150,31 +163,32 @@ const Sidebar: React.FC<SidebarProps> = ({
         </ul>
       </nav>
 
-      <div className="absolute bottom-0 w-full p-4 border-t border-gray-200">
-        {isCollapsed ? (
-          <div className="flex items-center justify-center">
+      <div className="p-4 pb-8">
+        <div className="bg-white/5 rounded-2xl p-4 border border-white/5 backdrop-blur-md">
+          {isCollapsed ? (
+            <div className="flex items-center justify-center">
+              <button
+                onClick={onLogout}
+                className="p-2.5 rounded-xl text-danger hover:bg-danger/20 transition-all duration-300"
+                title="Log out"
+              >
+                <IconLogout className="w-5 h-5" stroke={2} />
+              </button>
+            </div>
+          ) : (
             <button
               onClick={onLogout}
-              className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+              className="w-full flex items-center justify-center gap-3 text-sm font-medium text-danger/90 hover:text-danger hover:bg-danger/10 py-3 rounded-xl transition-all duration-300 group"
               title="Log out"
-              aria-label="Log out"
             >
-              <IconLogout className="w-5 h-5" />
+              <IconLogout className="w-5 h-5 transition-transform group-hover:-translate-x-1" stroke={2} />
+              <span>Log out session</span>
             </button>
-          </div>
-        ) : (
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center justify-center gap-2 text-sm bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors"
-            title="Log out"
-          >
-            <IconLogout className="w-4 h-4" />
-            <span>Log out</span>
-          </button>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
-export default Sidebar; 
+export default Sidebar;

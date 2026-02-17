@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Logo from "../../assets/logo-default.png";
+import { IconLock, IconChevronDown, IconBriefcase, IconEye, IconEyeOff } from "@tabler/icons-react";
 
 type LoginProps = {
   onSignIn?: (userData?: { token: string; user: any }) => void;
@@ -19,11 +20,12 @@ const Login: React.FC<LoginProps> = ({ onSignIn }) => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     if (!hrDepartment || !password) {
       setError("Please select HR Department and enter password");
       return;
@@ -51,13 +53,11 @@ const Login: React.FC<LoginProps> = ({ onSignIn }) => {
         return;
       }
 
-      // Store token in localStorage
       if (data.token) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
       }
 
-      // Call the onSignIn callback if provided
       if (onSignIn) {
         onSignIn(data);
       }
@@ -68,88 +68,144 @@ const Login: React.FC<LoginProps> = ({ onSignIn }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <div className="flex items-center justify-center ">
-            <img src={Logo} alt="FutureLink" className="h-24" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1 text-center">Sign in</h1>
-          {/* <p className="text-gray-600 mb-6 text-center">Enter your HR department and password to continue</p> */}
+    <div className="min-h-screen bg-background relative flex items-center justify-center px-4 overflow-hidden">
+      {/* Background Decorative Elements */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] animate-pulse"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary-light/10 rounded-full blur-[120px] animate-pulse delay-700"></div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+      {/* Animated Mesh Pattern Background */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2v-4h4v-2h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2v-4h4v-2H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }}></div>
+
+      <div className="max-w-md w-full relative z-10 transition-all duration-500 hover:scale-[1.01]">
+        <div className="glass-card rounded-[2.5rem] p-10 animate-fadeIn">
+          <div className="flex flex-col items-center mb-10">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-110"></div>
+              <img src={Logo} alt="FutureLink" className="h-28 relative z-10 drop-shadow-2xl animate-pulse-once" />
+            </div>
+            <h1 className="text-3xl font-bold text-white tracking-tight text-center">
+              Welcome Back
+            </h1>
+            <p className="text-text-secondary mt-2 text-center text-sm">
+              Please enter your credentials to access your workspace
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-secondary ml-1">
                 HR Department
               </label>
-              <select
-                value={hrDepartment}
-                onChange={(e) => setHrDepartment(e.target.value)}
-                className="input"
-                required
-              >
-                <option value="">Select HR Department</option>
-                {HR_DEPARTMENTS.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-gray-700">Password</label>
-                <button 
-                  type="button"
-                  className="text-sm text-custom-teal hover:underline"
-                  onClick={() => {
-                    setPassword('1');
-                  }}
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40 group-focus-within:text-primary transition-colors">
+                  <IconBriefcase size={20} stroke={2} />
+                </div>
+                <select
+                  value={hrDepartment}
+                  onChange={(e) => setHrDepartment(e.target.value)}
+                  className="glass-input w-full pl-12 pr-10 py-3.5 rounded-2xl appearance-none cursor-pointer"
+                  required
                 >
-                  Forgot?
+                  <option value="" className="bg-slate-900">Select HR Department</option>
+                  {HR_DEPARTMENTS.map((dept) => (
+                    <option key={dept} value={dept} className="bg-slate-900 border-none">
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-white/40">
+                  <IconChevronDown size={18} />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-sm font-medium text-text-secondary">Password</label>
+                <button
+                  type="button"
+                  className="text-xs text-primary-light hover:text-white transition-colors font-medium"
+                  onClick={() => setPassword('1')}
+                >
+                  Forgot password?
                 </button>
               </div>
-              <input
-                type="password"
-                className="input"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40 group-focus-within:text-primary transition-colors">
+                  <IconLock size={20} stroke={2} />
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="glass-input w-full pl-12 pr-12 py-3.5 rounded-2xl"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-white/40 hover:text-white transition-colors"
+                >
+                  {showPassword ? <IconEyeOff size={20} /> : <IconEye size={20} />}
+                </button>
+              </div>
               {hrDepartment && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Password: 1
-                </p>
+                <div className="flex items-center gap-1.5 px-1 mt-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary/60"></div>
+                  <p className="text-[11px] text-text-secondary">
+                    Quick Access: Password is <span className="text-primary-light font-bold">1</span>
+                  </p>
+                </div>
               )}
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-danger/10 border border-danger/20 text-danger-light px-4 py-3 rounded-xl text-sm flex items-center gap-2 animate-shake">
+                <div className="w-1 h-1 rounded-full bg-danger animate-ping"></div>
                 {error}
               </div>
             )}
 
-            <div className="flex items-center gap-2">
-              <input
-                id="remember"
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal"
-              />
-              <label htmlFor="remember" className="text-sm text-gray-700">
-                Remember me
+            <div className="flex items-center gap-3 px-1">
+              <div className="relative flex items-center">
+                <input
+                  id="remember"
+                  type="checkbox"
+                  className="peer h-5 w-5 rounded-lg border-white/10 bg-white/5 text-primary focus:ring-primary/30 transition-all checked:bg-primary"
+                />
+              </div>
+              <label htmlFor="remember" className="text-sm text-text-secondary cursor-pointer hover:text-white transition-colors">
+                Regular workspace device
               </label>
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-custom-teal text-white py-2.5 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-premium w-full flex items-center justify-center gap-2 group"
             >
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Securing entry...</span>
+                </>
+              ) : (
+                <>
+                  <span>Sign into Portal</span>
+                  <div className="transition-transform group-hover:translate-x-1">
+                    →
+                  </div>
+                </>
+              )}
             </button>
           </form>
+
+          <div className="mt-8 text-center">
+            <p className="text-xs text-text-secondary/60">
+              © 2026 FutureLink Innovations. All rights reserved.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -157,5 +213,6 @@ const Login: React.FC<LoginProps> = ({ onSignIn }) => {
 };
 
 export default Login;
+
 
 

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import type { User, ApplicationStatus, ScreeningStatus } from '../api/applicant';
-import { 
-  IconArrowLeft, 
-  IconUser, 
-  IconClipboardCheck, 
-  IconPhone, 
+import {
+  IconArrowLeft,
+  IconUser,
+  IconClipboardCheck,
+  IconPhone,
   IconEye,
   IconCalendarEvent,
 } from "@tabler/icons-react";
@@ -89,7 +89,7 @@ const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatu
     } catch (error) {
       console.error('Failed to fetch clients for status update:', error);
     }
-    
+
     const payloadBody: Record<string, any> = {
       NO: user.no,
       REFFERED_BY: user.referredBy,
@@ -108,31 +108,31 @@ const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatu
       POSITION_APPLIED_FOR: user.positionApplied,
       EXPERIENCE: user.experience,
       STATUS: newStatus,
-        REQUIREMENTS_STATUS: user.requirementsStatus,
-        FINAL_INTERVIEW_STATUS: user.finalInterviewStatus,
-        MEDICAL_STATUS: user.medicalStatus,
-        STATUS_REMARKS: user.statusRemarks,
-        APPLICANT_REMARKS: user.applicantRemarks,
-        RECENT_PICTURE: user.recentPicture ? '1' : '0',
-        PSA_BIRTH_CERTIFICATE: user.psaBirthCertificate ? '1' : '0',
-        SCHOOL_CREDENTIALS: user.schoolCredentials ? '1' : '0',
-        NBI_CLEARANCE: user.nbiClearance ? '1' : '0',
-        POLICE_CLEARANCE: user.policeClearance ? '1' : '0',
-        BARANGAY_CLEARANCE: user.barangayClearance ? '1' : '0',
-        SSS: user.sss ? '1' : '0',
-        PAGIBIG: user.pagibig ? '1' : '0',
-        CEDULA: user.cedula ? '1' : '0',
-        VACCINATION_STATUS: user.vaccinationStatus ? '1' : '0',
-        RESUME: (user as any).resume ? '1' : '0',
-        COE: (user as any).coe ? '1' : '0',
-        PHILHEALTH: (user as any).philhealth ? '1' : '0',
-        TIN_NUMBER: (user as any).tinNumber ? '1' : '0',
+      REQUIREMENTS_STATUS: user.requirementsStatus,
+      FINAL_INTERVIEW_STATUS: user.finalInterviewStatus,
+      MEDICAL_STATUS: user.medicalStatus,
+      STATUS_REMARKS: user.statusRemarks,
+      APPLICANT_REMARKS: user.applicantRemarks,
+      RECENT_PICTURE: user.recentPicture ? '1' : '0',
+      PSA_BIRTH_CERTIFICATE: user.psaBirthCertificate ? '1' : '0',
+      SCHOOL_CREDENTIALS: user.schoolCredentials ? '1' : '0',
+      NBI_CLEARANCE: user.nbiClearance ? '1' : '0',
+      POLICE_CLEARANCE: user.policeClearance ? '1' : '0',
+      BARANGAY_CLEARANCE: user.barangayClearance ? '1' : '0',
+      SSS: user.sss ? '1' : '0',
+      PAGIBIG: user.pagibig ? '1' : '0',
+      CEDULA: user.cedula ? '1' : '0',
+      VACCINATION_STATUS: user.vaccinationStatus ? '1' : '0',
+      RESUME: (user as any).resume ? '1' : '0',
+      COE: (user as any).coe ? '1' : '0',
+      PHILHEALTH: (user as any).philhealth ? '1' : '0',
+      TIN_NUMBER: (user as any).tinNumber ? '1' : '0',
     };
-    
+
     // Always send CLIENT_IDS (even if empty) so backend knows to preserve clients
     // Backend will only update if CLIENT_IDS is explicitly provided
     payloadBody.CLIENT_IDS = clientIds;
-    
+
     await fetch('/api/applicants', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -150,7 +150,7 @@ const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatu
           notes: '',
         })
       });
-    } catch {}
+    } catch { }
     // Also log to assessment history so assessment view stays in sync regardless of where status was changed
     try {
       await fetch('/api/applicants/assessment-history', {
@@ -163,12 +163,12 @@ const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatu
           notes: '',
         })
       });
-      try { window.dispatchEvent(new CustomEvent('assessment-history-updated')); } catch {}
-    } catch {}
+      try { window.dispatchEvent(new CustomEvent('assessment-history-updated')); } catch { }
+    } catch { }
     // Broadcast change to other lists without reload
     try {
       window.dispatchEvent(new CustomEvent('applicant-updated', { detail: { no: user.no, status: newStatus } }));
-    } catch {}
+    } catch { }
   } catch (error) {
     console.error('Failed to sync status:', error);
   }
@@ -197,11 +197,11 @@ const updateStatusOnly = async (user: User, newStatus: ApplicationStatus) => {
           notes: '',
         })
       });
-    } catch {}
+    } catch { }
     // Broadcast change
     try {
       window.dispatchEvent(new CustomEvent('applicant-updated', { detail: { no: user.no, status: newStatus } }));
-    } catch {}
+    } catch { }
   } catch (error) {
     console.error('Failed to update status:', error);
   }
@@ -238,16 +238,16 @@ const updateDocumentFlag = async (user: User, key: string, checked: boolean) => 
   }
 };
 
-const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({ 
-  selectedUser, 
-  onClose, 
+const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
+  selectedUser,
+  onClose,
   onStatusChange,
   // onOpenScreening,
   onScreeningUpdate,
-  onRemoveApplicant
+
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'screening'>('overview');
-  const { setActiveSection, activeSection, setCurrentApplicantNo } = useNavigation();
+  const { activeSection } = useNavigation();
   const isOpen = !!selectedUser;
 
   // Ensure the correct tab is selected based on the current app section
@@ -262,7 +262,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   const handleStatusChange = (newStatus: ApplicationStatus) => {
     if (selectedUser) {
       onStatusChange?.(selectedUser.id, newStatus);
-      
+
       // For Assessment, only update status without full data fetch
       if (activeSection === 'assessment') {
         updateStatusOnly(selectedUser, newStatus);
@@ -302,34 +302,34 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
 
   return (
     <>
-      <div 
+      <div
         className={`fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 z-30 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
       <div
-        className={`fixed right-0 top-0 h-full w-full z-40 flex flex-col transform transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed right-0 top-0 h-full w-full z-50 flex flex-col transform transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
         style={{ maxWidth: '800px' }}
       >
-        <div className="bg-white border-l border-gray-200 shadow-2xl flex flex-col h-full relative">
+        <div className="bg-gray-900/95 z-[9999] backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col h-full relative">
 
-          <div className="absolute left-0 top-0 h-full w-2 bg-custom-teal rounded-l-xl" />
+          <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-custom-teal to-transparent opacity-50" />
 
-          <div className="bg-white border-b border-gray-200 flex-shrink-0 relative z-10">
-            <div className="flex items-center justify-between px-5 py-3.5">
-              <div className="flex items-center gap-4">
+          <div className="bg-transparent border-b border-white/10 flex-shrink-0 relative z-10">
+            <div className="flex items-center justify-between px-6 py-5">
+              <div className="flex items-center gap-5">
                 <button
                   onClick={onClose}
-                  className="flex items-center gap-2 text-gray-600 hover:text-custom-teal rounded-md p-2 transition-colors"
+                  className="flex items-center gap-2 text-text-secondary hover:text-white hover:bg-white/10 rounded-lg p-2 transition-all active:scale-95"
                   title="Close sidebar"
                 >
-                  <IconArrowLeft size={20} />
+                  <IconArrowLeft size={22} />
                 </button>
-                <div className="h-5 w-px bg-gray-200" />
-                <div className="flex items-center gap-3">
+                <div className="h-6 w-px bg-white/10" />
+                <div className="flex items-center gap-4">
                   {selectedUser && getAvatar(selectedUser?.facebook)}
                   <div>
-                    <h1 className="text-base text-gray-900 font-semibold leading-tight">{selectedUser?.facebook}</h1>
-                    <p className="text-sm text-gray-600">{selectedUser?.positionApplied}</p>
+                    <h1 className="text-lg text-white font-bold leading-tight tracking-wide">{selectedUser?.facebook}</h1>
+                    <p className="text-sm text-text-secondary mt-0.5 font-medium">{selectedUser?.positionApplied}</p>
                   </div>
                 </div>
               </div>
@@ -337,12 +337,12 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                 {getStatusBadge(selectedUser?.status || '')}
               </div>
             </div>
-            <div className="flex border-t border-gray-100 bg-gray-50 relative">
+            <div className="flex border-t border-white/10 bg-white/5 relative px-2 pt-2">
               {(() => {
                 // Build tabs based on current section
                 const tabs = [
-                  { id: 'overview', label: 'Details', icon: <IconUser size={16} /> },
-                  { id: 'screening', label: 'Assessment', icon: <IconClipboardCheck size={16} /> },
+                  { id: 'overview', label: 'Details', icon: <IconUser size={18} /> },
+                  { id: 'screening', label: 'Assessment', icon: <IconClipboardCheck size={18} /> },
                 ];
                 // Filter: show relevant tabs in each section
                 const showBothTabs = activeSection === 'assessment' || activeSection === 'selection' || activeSection === 'engagement';
@@ -352,17 +352,16 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                 return visibleTabs.map((tab) => (
                   <button
                     key={tab.id}
-                    className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center justify-center gap-2 ${
-                      activeTab === tab.id
-                        ? 'text-custom-teal bg-white'
-                        : 'text-gray-600 hover:text-custom-teal'
-                    }`}
+                    className={`flex-1 px-4 py-3 text-sm font-semibold transition-all relative flex items-center justify-center gap-2 rounded-t-lg mx-1 ${activeTab === tab.id
+                      ? 'text-custom-teal bg-white/10 shadow-[0_-2px_10px_rgba(0,0,0,0.2)]'
+                      : 'text-text-secondary hover:text-white hover:bg-white/5'
+                      }`}
                     onClick={() => setActiveTab(tab.id as any)}
                   >
                     {tab.icon}
                     {tab.label}
                     {activeTab === tab.id && (
-                      <span className="absolute left-1/2 -translate-x-1/2 bottom-0 w-8 h-0.5 bg-custom-teal rounded-full" />
+                      <span className="absolute left-0 top-0 w-full h-0.5 bg-custom-teal rounded-t-full shadow-[0_0_10px_rgba(20,184,166,0.5)]" />
                     )}
                   </button>
                 ));
@@ -371,187 +370,197 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto bg-gray-50">
-            <div className="p-5 space-y-5">
+          <div className="flex-1 overflow-y-auto bg-transparent custom-scrollbar">
+            <div className="p-6 space-y-6">
               {activeTab === 'overview' && selectedUser && (
-                <div className="space-y-5">
-{selectedUser && (
-  <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm mb-2">
-    <h2 className="text-sm font-semibold text-gray-800 mb-2">Status</h2>
-    <select
-      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white"
-      value={selectedUser.status || ''}
-      onChange={e => handleStatusChange(e.target.value as ApplicationStatus)}
-    >
-      {/* Show only screening-related statuses when in screening section */}
-      {activeSection === 'screening' ? (
-        <>
-          <option value="For Screening">For Screening</option>
-          <option value="Doc Screening">Doc Screening</option>
-          <option value="Physical Screening">Physical Screening</option>
-          <option value="Initial Interview">Initial Interview</option>
-        </>
-      ) : activeSection === 'assessment' ? (
-        <>
-          {/* Assessment statuses */}
-          <option value="For Final Interview/For Assessment">For Final Interview/For Assessment</option>
-          <option value="Final Interview">Final Interview</option>
-          <option value="Final Interview/Incomplete Requirements">Final Interview/Incomplete Requirements</option>
-          <option value="Final Interview/Complete Requirements">Final Interview/Complete Requirements</option>
-          <option value="For Completion">For Completion</option>
-        </>
-      ) : activeSection === 'selection' ? (
-        <>
-          {/* Selection statuses */}
-          <option value="For Completion">For Completion</option>
-          <option value="For Medical">For Medical</option>
-          <option value="For SBMA Gate Pass">For SBMA Gate Pass</option>
-          <option value="For Deployment">For Deployment</option>
-        </>
-      ) : activeSection === 'engagement' ? (
-        <>
-          {/* Engagement statuses */}
-          <option value="For Deployment">For Deployment</option>
-          <option value="Deployed">Deployed</option>
-        </>
-      ) : (
-        <>
-          <option value="For Screening">For Screening</option>
-          <option value="Doc Screening">Doc Screening</option>
-          <option value="Physical Screening">Physical Screening</option>
-          <option value="Initial Interview">Initial Interview</option>
-          <option value="For Final Interview/For Assessment">For Final Interview/For Assessment</option>
-          <option value="Final Interview">Final Interview</option>
-          <option value="Final Interview/Incomplete Requirements">Final Interview/Incomplete Requirements</option>
-          <option value="Final Interview/Complete Requirements">Final Interview/Complete Requirements</option>
-          <option value="For Completion">For Completion</option>
-          <option value="For Medical">For Medical</option>
-          <option value="For SBMA Gate Pass">For SBMA Gate Pass</option>
-          <option value="For Deployment">For Deployment</option>
-          <option value="Deployed">Deployed</option>
-        </>
-      )}
-    </select>
-    <p className="text-xs text-gray-500 mt-1">
-      Change the applicant's status.
-    </p>
-  </div>
-)}
-                  <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <h2 className="text-sm font-semibold text-gray-800">Personal Details</h2>
+                <div className="space-y-6">
+                  {selectedUser && (
+                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10 shadow-lg backdrop-blur-sm">
+                      <h2 className="text-sm font-bold text-white mb-3 uppercase tracking-wider">Status</h2>
+                      <div className="relative">
+                        <select
+                          className="w-full border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal/50 focus:border-custom-teal bg-white/5 text-white appearance-none transition-all hover:bg-white/10"
+                          value={selectedUser.status || ''}
+                          onChange={e => handleStatusChange(e.target.value as ApplicationStatus)}
+                        >
+                          {/* Show only screening-related statuses when in screening section */}
+                          {activeSection === 'screening' ? (
+                            <>
+                              <option value="For Screening" className="bg-gray-800 text-white">For Screening</option>
+                              <option value="Doc Screening" className="bg-gray-800 text-white">Doc Screening</option>
+                              <option value="Physical Screening" className="bg-gray-800 text-white">Physical Screening</option>
+                              <option value="Initial Interview" className="bg-gray-800 text-white">Initial Interview</option>
+                            </>
+                          ) : activeSection === 'assessment' ? (
+                            <>
+                              {/* Assessment statuses */}
+                              <option value="For Final Interview/For Assessment" className="bg-gray-800 text-white">For Final Interview/For Assessment</option>
+                              <option value="Final Interview" className="bg-gray-800 text-white">Final Interview</option>
+                              <option value="Final Interview/Incomplete Requirements" className="bg-gray-800 text-white">Final Interview/Incomplete Requirements</option>
+                              <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
+                              <option value="For Completion" className="bg-gray-800 text-white">For Completion</option>
+                            </>
+                          ) : activeSection === 'selection' ? (
+                            <>
+                              {/* Selection statuses */}
+                              <option value="For Completion" className="bg-gray-800 text-white">For Completion</option>
+                              <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
+                              <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
+                              <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
+                            </>
+                          ) : activeSection === 'engagement' ? (
+                            <>
+                              {/* Engagement statuses */}
+                              <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
+                              <option value="Deployed" className="bg-gray-800 text-white">Deployed</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="For Screening" className="bg-gray-800 text-white">For Screening</option>
+                              <option value="Doc Screening" className="bg-gray-800 text-white">Doc Screening</option>
+                              <option value="Physical Screening" className="bg-gray-800 text-white">Physical Screening</option>
+                              <option value="Initial Interview" className="bg-gray-800 text-white">Initial Interview</option>
+                              <option value="For Final Interview/For Assessment" className="bg-gray-800 text-white">For Final Interview/For Assessment</option>
+                              <option value="Final Interview" className="bg-gray-800 text-white">Final Interview</option>
+                              <option value="Final Interview/Incomplete Requirements" className="bg-gray-800 text-white">Final Interview/Incomplete Requirements</option>
+                              <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
+                              <option value="For Completion" className="bg-gray-800 text-white">For Completion</option>
+                              <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
+                              <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
+                              <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
+                              <option value="Deployed" className="bg-gray-800 text-white">Deployed</option>
+                            </>
+                          )}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-secondary">
+                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                        </div>
+                      </div>
+                      <p className="text-xs text-text-secondary/70 mt-2 font-medium">
+                        Change the applicant's status to move them through the pipeline.
+                      </p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700">
-                      <div><span className="text-gray-500">Applicant No.:</span> <span className="font-medium text-gray-900">{selectedUser.no}</span></div>
-                      <div><span className="text-gray-500">Referred By:</span> <span className="font-medium text-gray-900">{selectedUser.referredBy}</span></div>
-                      <div><span className="text-gray-500">Last Name:</span> <span className="font-medium text-gray-900">{selectedUser.lastName}</span></div>
-                      <div><span className="text-gray-500">First Name:</span> <span className="font-medium text-gray-900">{selectedUser.firstName}</span></div>
-                      <div><span className="text-gray-500">Extension:</span> <span className="font-medium text-gray-900">{selectedUser.ext}</span></div>
-                      <div><span className="text-gray-500">Middle Name:</span> <span className="font-medium text-gray-900">{selectedUser.middle}</span></div>
-                      <div><span className="text-gray-500">Gender:</span> <span className="font-medium text-gray-900">{selectedUser.gender}</span></div>
-                      <div><span className="text-gray-500">Size:</span> <span className="font-medium text-gray-900">{selectedUser.size}</span></div>
-                      <div><span className="text-gray-500">Date of Birth:</span> <span className="font-medium text-gray-900">{selectedUser.dateOfBirth}</span></div>
-                      <div><span className="text-gray-500">Date Applied:</span> <span className="font-medium text-gray-900">{selectedUser.dateApplied}</span></div>
-                      <div><span className="text-gray-500">Facebook Name:</span> <span className="font-medium text-gray-900">{selectedUser.facebook}</span></div>
-                      <div><span className="text-gray-500">Age:</span> <span className="font-medium text-gray-900">{selectedUser.age}</span></div>
-                      <div><span className="text-gray-500">Location:</span> <span className="font-medium text-gray-900">{selectedUser.location}</span></div>
-                      <div><span className="text-gray-500">Contact Number:</span> <span className="font-medium text-gray-900">{selectedUser.contactNumber}</span></div>
-                      <div><span className="text-gray-500">Position Applied For:</span> <span className="font-medium text-gray-900">{selectedUser.positionApplied}</span></div>
-                      <div className="md:col-span-2"><span className="text-gray-500">Experience:</span> <span className="font-medium text-gray-900">{selectedUser.experience}</span></div>
+                  )}
+
+                  <div className="bg-white/5 rounded-2xl p-6 border border-white/10 shadow-lg backdrop-blur-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-sm font-bold text-white uppercase tracking-wider">Personal Details</h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6 text-sm">
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Applicant No.</span> <span className="font-semibold text-white bg-white/5 py-1.5 px-3 rounded-lg border border-white/5">{selectedUser.no}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Referred By</span> <span className="font-medium text-white/90 px-1">{selectedUser.referredBy}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Last Name</span> <span className="font-semibold text-white px-1 tracking-wide">{selectedUser.lastName}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">First Name</span> <span className="font-semibold text-white px-1 tracking-wide">{selectedUser.firstName}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Extension</span> <span className="font-medium text-white/90 px-1">{selectedUser.ext}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Middle Name</span> <span className="font-medium text-white/90 px-1">{selectedUser.middle}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Gender</span> <span className="font-medium text-white/90 px-1">{selectedUser.gender}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Size</span> <span className="font-medium text-white/90 px-1">{selectedUser.size}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Date of Birth</span> <span className="font-medium text-white/90 px-1">{selectedUser.dateOfBirth}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Date Applied</span> <span className="font-medium text-white/90 px-1">{selectedUser.dateApplied}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Facebook Name</span> <span className="font-medium text-white/90 px-1 text-custom-teal underline decoration-custom-teal/30 underline-offset-4">{selectedUser.facebook}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Age</span> <span className="font-medium text-white/90 px-1">{selectedUser.age}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Location</span> <span className="font-medium text-white/90 px-1">{selectedUser.location}</span></div>
+                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Contact Number</span> <span className="font-medium text-white/90 px-1">{selectedUser.contactNumber}</span></div>
+                      <div className="col-span-1 md:col-span-2 flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Position Applied For</span> <span className="font-semibold text-custom-teal bg-custom-teal/10 py-2 px-3 rounded-lg border border-custom-teal/20 w-full">{selectedUser.positionApplied}</span></div>
+                      <div className="col-span-1 md:col-span-2 flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Experience</span> <span className="font-medium text-white/90 px-3 py-2 bg-white/5 rounded-lg border border-white/5 leading-relaxed italic text-sm">{selectedUser.experience || 'No experience listed'}</span></div>
                     </div>
                   </div>
-                  <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <h2 className="text-sm font-semibold text-gray-800 mb-3">Document Checklist</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
-                      <label className="flex items-center gap-2">
+
+                  <div className="bg-white/5 rounded-2xl p-6 border border-white/10 shadow-lg backdrop-blur-sm">
+                    <h2 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2">
+                      <IconClipboardCheck size={18} className="text-custom-teal" />
+                      Document Checklist
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal"
+                          className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
                           checked={!!selectedUser.recentPicture}
                           onChange={(e) => {
                             onScreeningUpdate?.(selectedUser.id, 'recentPicture' as any, e.target.checked as any);
                             updateDocumentFlag(selectedUser, 'recentPicture', e.target.checked);
                           }}
                         />
-                        Recent 2x2 picture
+                        <span className="text-text-secondary group-hover:text-white transition-colors">Recent 2x2 picture</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!selectedUser.psaBirthCertificate}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.psaBirthCertificate}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'psaBirthCertificate' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'psaBirthCertificate', e.target.checked); }}
                         />
-                        PSA Birth Certificate
+                        <span className="text-text-secondary group-hover:text-white transition-colors">PSA Birth Certificate</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!selectedUser.schoolCredentials}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.schoolCredentials}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'schoolCredentials' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'schoolCredentials', e.target.checked); }}
                         />
-                        School Credentials/Certificate
+                        <span className="text-text-secondary group-hover:text-white transition-colors">School Credentials</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!selectedUser.nbiClearance}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.nbiClearance}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'nbiClearance' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'nbiClearance', e.target.checked); }}
                         />
-                        NBI Clearance
+                        <span className="text-text-secondary group-hover:text-white transition-colors">NBI Clearance</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!selectedUser.policeClearance}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.policeClearance}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'policeClearance' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'policeClearance', e.target.checked); }}
                         />
-                        Police Clearance
+                        <span className="text-text-secondary group-hover:text-white transition-colors">Police Clearance</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!selectedUser.barangayClearance}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.barangayClearance}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'barangayClearance' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'barangayClearance', e.target.checked); }}
                         />
-                        Barangay Clearance
+                        <span className="text-text-secondary group-hover:text-white transition-colors">Barangay Clearance</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!selectedUser.sss}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.sss}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'sss' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'sss', e.target.checked); }}
                         />
-                        SSS No. / E1 Form / Static Information
+                        <span className="text-text-secondary group-hover:text-white transition-colors">SSS No. / Static Info</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!selectedUser.pagibig}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.pagibig}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'pagibig' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'pagibig', e.target.checked); }}
                         />
-                        Pag-IBIG #
+                        <span className="text-text-secondary group-hover:text-white transition-colors">Pag-IBIG #</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!selectedUser.cedula}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.cedula}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'cedula' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'cedula', e.target.checked); }}
                         />
-                        Cedula
+                        <span className="text-text-secondary group-hover:text-white transition-colors">Cedula</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!selectedUser.vaccinationStatus}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.vaccinationStatus}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'vaccinationStatus' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'vaccinationStatus', e.target.checked); }}
                         />
-                        Vaccination Status
+                        <span className="text-text-secondary group-hover:text-white transition-colors">Vaccination Status</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!(selectedUser as any).resume}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!(selectedUser as any).resume}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'resume' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'resume', e.target.checked); }}
                         />
-                        Resume
+                        <span className="text-text-secondary group-hover:text-white transition-colors">Resume</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!(selectedUser as any).coe}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!(selectedUser as any).coe}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'coe' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'coe', e.target.checked); }}
                         />
-                        Certificate of Employment (COE)
+                        <span className="text-text-secondary group-hover:text-white transition-colors">COE</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!(selectedUser as any).philhealth}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!(selectedUser as any).philhealth}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'philhealth' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'philhealth', e.target.checked); }}
                         />
-                        PhilHealth
+                        <span className="text-text-secondary group-hover:text-white transition-colors">PhilHealth</span>
                       </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-custom-teal focus:ring-custom-teal" checked={!!(selectedUser as any).tinNumber}
+                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
+                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!(selectedUser as any).tinNumber}
                           onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'tinNumber' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'tinNumber', e.target.checked); }}
                         />
-                        TIN Number
+                        <span className="text-text-secondary group-hover:text-white transition-colors">TIN Number</span>
                       </label>
                     </div>
                   </div>
@@ -563,308 +572,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
               )}
             </div>
           </div>
-          <div className="bg-white border-t border-gray-200 p-4 shadow-sm flex-shrink-0">
-            <div className="flex gap-2">
-              <button
-                className="cursor-pointer flex-1 bg-custom-teal hover:bg-custom-teal/90 text-white font-medium py-2.5 rounded-md transition-colors text-sm flex items-center justify-center gap-2"
-                onClick={async () => {
-                  if (activeSection === 'screening') {
-                    if (selectedUser?.no) setCurrentApplicantNo(selectedUser.no);
-                    // Move out of Screening: update status so Screening table (which shows only "For Screening") hides it
-                    if (selectedUser) {
-                      onStatusChange?.(selectedUser.id, 'For Final Interview/For Assessment' as any);
-                      await updateStatusInGoogleSheet(selectedUser, 'For Final Interview/For Assessment' as any);
-                      // log screening history
-                      try {
-                        await fetch('/api/applicants/screening-history', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            applicant_no: selectedUser.no,
-                            action: 'Proceeded to Assessment',
-                            status: 'For Final Interview/For Assessment',
-                            notes: '',
-                          })
-                        });
-                      } catch {}
-                      // Remove from Screening table immediately
-                      onRemoveApplicant?.(selectedUser.id);
-                    }
-                    // Do not navigate to Assessment automatically; just close the sidebar
-                    onClose();
-                  } else if (activeSection === 'assessment') {
-                    // Handle assessment workflow based on current status
-                    if (selectedUser) {
-                      const currentStatus = selectedUser.status || '';
-                      
-                      if (currentStatus === 'Final Interview') {
-                        // Show requirement completion options
-                        const requirementStatus = prompt('Requirements Status:\n1. Complete Requirements\n2. Incomplete Requirements\n\nEnter 1 or 2:');
-                        
-                        if (requirementStatus === '1') {
-                          // Complete Requirements - change status to Final Interview/Complete Requirements
-                          onStatusChange?.(selectedUser.id, 'Final Interview/Complete Requirements' as any);
-                          await updateStatusInGoogleSheet(selectedUser, 'Final Interview/Complete Requirements' as any);
-                          
-                          // Log the progression
-                          try {
-                            await fetch('/api/applicants/assessment-history', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                applicant_no: selectedUser.no,
-                                action: 'Final Interview - Requirements Complete',
-                                status: 'Final Interview/Complete Requirements',
-                                notes: 'Requirements completed successfully',
-                              })
-                            });
-                          } catch {}
-                          try { window.dispatchEvent(new CustomEvent('assessment-history-updated')); } catch {}
-                          
-                          // Don't remove from Assessment table - just change status
-                        } else if (requirementStatus === '2') {
-                          // Incomplete Requirements - change status to Final Interview/Incomplete Requirements
-                          onStatusChange?.(selectedUser.id, 'Final Interview/Incomplete Requirements' as any);
-                          await updateStatusInGoogleSheet(selectedUser, 'Final Interview/Incomplete Requirements' as any);
-                          
-                          // Log the progression
-                          try {
-                            await fetch('/api/applicants/assessment-history', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                applicant_no: selectedUser.no,
-                                action: 'Final Interview - Requirements Incomplete',
-                                status: 'Final Interview/Incomplete Requirements',
-                                notes: 'Requirements incomplete',
-                              })
-                            });
-                          } catch {}
-                          try { window.dispatchEvent(new CustomEvent('assessment-history-updated')); } catch {}
-                          
-                          // Don't remove from Assessment table - just change status
-                        }
-                      } else if (currentStatus === 'Final Interview/Complete Requirements') {
-                        // Complete Requirements - proceed to For Medical
-                        onStatusChange?.(selectedUser.id, 'For Medical' as any);
-                        await updateStatusInGoogleSheet(selectedUser, 'For Medical' as any);
-                        
-                        // Log the progression
-                        try {
-                          await fetch('/api/applicants/assessment-history', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              applicant_no: selectedUser.no,
-                              action: 'Requirements Complete - Proceeded to Medical',
-                              status: 'For Medical',
-                              notes: 'Requirements completed successfully',
-                            })
-                          });
-                        } catch {}
-                        try { window.dispatchEvent(new CustomEvent('assessment-history-updated')); } catch {}
-                        
-                        // Remove from Assessment table immediately
-                        onRemoveApplicant?.(selectedUser.id);
-                        setActiveSection('engagement'); // Go to engagement/medical section
-                      } else if (currentStatus === 'Final Interview/Incomplete Requirements') {
-                        // Incomplete Requirements - send back to screening
-                        onStatusChange?.(selectedUser.id, 'For Screening' as any);
-                        await updateStatusInGoogleSheet(selectedUser, 'For Screening' as any);
-                        
-                        // Log the progression
-                        try {
-                          await fetch('/api/applicants/assessment-history', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              applicant_no: selectedUser.no,
-                              action: 'Requirements Incomplete - Returned to Screening',
-                              status: 'For Screening',
-                              notes: 'Requirements incomplete, returned to screening',
-                            })
-                          });
-                        } catch {}
-                        try { window.dispatchEvent(new CustomEvent('assessment-history-updated')); } catch {}
-                        
-                        // Remove from Assessment table immediately
-                        onRemoveApplicant?.(selectedUser.id);
-                        setActiveSection('screening'); // Go back to screening
-                      } else if (currentStatus === 'Initial Interview') {
-                        // Initial Interview automatically proceeds to assessment
-                        onStatusChange?.(selectedUser.id, 'For Final Interview/For Assessment' as any);
-                        await updateStatusInGoogleSheet(selectedUser, 'For Final Interview/For Assessment' as any);
-                        
-                        // Log the progression
-                        try {
-                          await fetch('/api/applicants/assessment-history', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              applicant_no: selectedUser.no,
-                              action: 'Initial Interview Complete - Proceeded to Assessment',
-                              status: 'For Final Interview/For Assessment',
-                              notes: 'Initial interview completed, proceeding to assessment',
-                            })
-                          });
-                        } catch {}
-                        try { window.dispatchEvent(new CustomEvent('assessment-history-updated')); } catch {}
-                        
-                        // Don't remove from Assessment table - just change status and stay
-                        // The applicant will remain visible in assessment with new status
-                      } else if (currentStatus === 'Completion') {
-                        // Don't auto-proceed for Completion
-                        alert(`Status "${currentStatus}" requires manual progression. Please change the status to proceed.`);
-                        return;
-                      } else {
-                        // Default assessment progression for other statuses
-                      if (selectedUser.status !== 'For Completion') {
-                        onStatusChange?.(selectedUser.id, 'For Completion' as any);
-                        updateStatusInGoogleSheet(selectedUser, 'For Completion' as any);
-                      }
-                      // Log the progression
-                      try {
-                        await fetch('/api/applicants/assessment-history', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            applicant_no: selectedUser.no,
-                            action: 'Proceeded to Selection',
-                            status: 'For Completion',
-                            notes: '',
-                          })
-                        });
-                      } catch {}
-                      // Remove from Assessment table immediately
-                      onRemoveApplicant?.(selectedUser.id);
-                        setActiveSection('selection');
-                      }
-                    }
-                  } else if (activeSection === 'selection') {
-                    // Handle Selection workflow based on current status
-                    if (selectedUser) {
-                      const currentStatus = selectedUser.status || '';
-                      
-                      if (currentStatus === 'For Completion') {
-                        // For Completion -> For Medical
-                        onStatusChange?.(selectedUser.id, 'For Medical' as any);
-                        await updateStatusInGoogleSheet(selectedUser, 'For Medical' as any);
-                        
-                        // Log the progression
-                        try {
-                          await fetch('/api/applicants/screening-history', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              applicant_no: selectedUser.no,
-                              action: 'Proceeded to Medical',
-                              status: 'For Medical',
-                              notes: 'Moved to medical stage',
-                            })
-                          });
-                        } catch {}
-                        
-                        // Remove from Selection table immediately
-                        onRemoveApplicant?.(selectedUser.id);
-                        setActiveSection('engagement'); // Go to engagement section
-                      } else if (currentStatus === 'For Medical') {
-                        // For Medical -> For SBMA Gate Pass
-                        onStatusChange?.(selectedUser.id, 'For SBMA Gate Pass' as any);
-                        await updateStatusInGoogleSheet(selectedUser, 'For SBMA Gate Pass' as any);
-                        
-                        // Log the progression
-                        try {
-                          await fetch('/api/applicants/screening-history', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              applicant_no: selectedUser.no,
-                              action: 'Medical Complete - Proceeded to SBMA Gate Pass',
-                              status: 'For SBMA Gate Pass',
-                              notes: 'Medical completed, proceeding to SBMA gate pass',
-                            })
-                          });
-                        } catch {}
-                        
-                        // Don't remove from Selection table - just change status
-                      } else if (currentStatus === 'For SBMA Gate Pass') {
-                        // For SBMA Gate Pass -> For Deployment
-                        onStatusChange?.(selectedUser.id, 'For Deployment' as any);
-                        await updateStatusInGoogleSheet(selectedUser, 'For Deployment' as any);
-                        
-                        // Log the progression
-                        try {
-                          await fetch('/api/applicants/screening-history', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              applicant_no: selectedUser.no,
-                              action: 'SBMA Gate Pass Complete - Proceeded to Deployment',
-                              status: 'For Deployment',
-                              notes: 'SBMA gate pass completed, proceeding to deployment',
-                            })
-                          });
-                        } catch {}
-                        
-                        // Remove from Selection table immediately
-                        onRemoveApplicant?.(selectedUser.id);
-                        setActiveSection('engagement'); // Go to engagement section
-                      } else {
-                        // Default Selection progression
-                      const engagementAllowed = new Set(['For Deployment', 'Deployed']);
-                        const nextStatus = engagementAllowed.has(currentStatus) ? currentStatus : 'For Medical';
-                        if (nextStatus !== currentStatus) {
-                        onStatusChange?.(selectedUser.id, nextStatus as any);
-                        updateStatusInGoogleSheet(selectedUser, nextStatus as any);
-                      }
-                      // Log the progression
-                      try {
-                        await fetch('/api/applicants/screening-history', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            applicant_no: selectedUser.no,
-                            action: 'Proceeded to Engagement',
-                            status: nextStatus,
-                            notes: '',
-                          })
-                        });
-                      } catch {}
-                      // Remove from Selection table immediately
-                      onRemoveApplicant?.(selectedUser.id);
-                        setActiveSection('engagement');
-                      }
-                    }
-                  } else if (activeSection === 'engagement') {
-                    // Update status to move applicant to Recruitment Database
-                    if (selectedUser) {
-                      onStatusChange?.(selectedUser.id, 'Deployed' as any);
-                      updateStatusInGoogleSheet(selectedUser, 'Deployed' as any);
-                      // Log the progression
-                      try {
-                        await fetch('/api/applicants/screening-history', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            applicant_no: selectedUser.no,
-                            action: 'Proceeded to Recruitment Database',
-                            status: 'Deployed',
-                            notes: '',
-                          })
-                        });
-                      } catch {}
-                      // Remove from Engagement table immediately
-                      onRemoveApplicant?.(selectedUser.id);
-                    }
-                    setActiveSection('recruitment-database');
-                  }
-                }}
-              >
-                <IconClipboardCheck size={16} />
-                Proceed
-              </button>
-            </div>
-          </div>
+
         </div>
       </div>
     </>
