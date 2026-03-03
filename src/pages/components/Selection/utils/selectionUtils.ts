@@ -1,7 +1,7 @@
 import type { User } from "../../../../api/applicant";
 
 export const ALLOWED_SELECTION_STATUSES = new Set([
-  'For Completion',
+  'Final Interview/Complete Requirements',
   'For Medical',
   'For SBMA Gate Pass',
 ]);
@@ -88,7 +88,7 @@ export const mapUserToDisplayFormat = (user: User): Record<string, any> => {
   // Get clients from the user object (from backend row.clients array)
   const clients = (user as any).clients || [];
   const clientsDisplay = Array.isArray(clients) ? clients.join(', ') : '';
-  
+
   return {
     "NO": user.no || '',
     "REFFERED BY": user.referredBy || '',

@@ -126,6 +126,9 @@ export default function SelectionEmployees() {
         }
 
         // Preserve all existing fields including clients when updating status
+        if (!allowed) {
+          return prev.filter(u => u.no !== no);
+        }
         const updated = [...prev];
         updated[idx] = { ...updated[idx], status } as any;
         return updated;

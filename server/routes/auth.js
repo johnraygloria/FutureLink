@@ -38,7 +38,7 @@ router.post('/login', async (req, res) => {
   try {
     let { hr_department, password } = req.body;
     console.log('[LOGIN] Request received:', { hr_department, password: password ? '***' : 'missing' });
-    
+
     if (!hr_department || !password) {
       return res.status(400).json({ error: 'HR Department and password are required' });
     }
@@ -52,31 +52,31 @@ router.post('/login', async (req, res) => {
     else if (normalized === 'engagement') hr_department = 'Engagement';
     else if (normalized === 'employee relations' || normalized === 'employeerelations' || normalized === 'employee_relations') hr_department = 'Employee Relations';
     else if (normalized === 'admin') hr_department = 'Admin';
-    
+
     console.log('[LOGIN] Normalized department:', hr_department);
-    
+
     // Find user by HR department
     let user = await findUserByHrDepartment(hr_department);
     console.log('[LOGIN] User found:', user ? { id: user.id, hr_department: user.hr_department, has_hash: !!user.password_hash } : 'null');
-    
+
     // If user doesn't exist, create one automatically with password "1"
     if (!user) {
       console.log('[LOGIN] User not found, creating new user with password "1"');
       const password_hash = await bcrypt.hash('1', 10);
       const role = getRoleFromHrDepartment(hr_department);
-      const { id } = await createUserByHrDepartment({ 
-        hr_department, 
-        password_hash, 
-        full_name: hr_department + ' HR', 
-        role 
+      const { id } = await createUserByHrDepartment({
+        hr_department,
+        password_hash,
+        full_name: hr_department + ' HR',
+        role
       });
       user = await findUserByHrDepartment(hr_department);
       console.log('[LOGIN] New user created:', { id: user.id });
     }
-    
+
     // Verify password
     console.log('[LOGIN] Comparing password. Provided:', password, 'Hash exists:', !!user.password_hash);
-    
+
     // If no password hash exists, treat as invalid
     if (!user.password_hash) {
       console.log('[LOGIN] No password hash found for user, updating...');
@@ -87,13 +87,13 @@ router.post('/login', async (req, res) => {
         user = refreshed || user;
       }
     }
-    
+
     let valid = false;
     if (user.password_hash) {
       valid = await bcrypt.compare(password, user.password_hash);
     }
     console.log('[LOGIN] Initial password check:', valid);
-    
+
     // If password is "1" and hash doesn't match, update to correct hash for "1"
     if (!valid && password === '1') {
       console.log('[LOGIN] Password is "1" but hash doesn\'t match. Updating hash...');
@@ -126,40 +126,38 @@ router.post('/login', async (req, res) => {
       user = refreshed || user;
       valid = await bcrypt.compare(password, user.password_hash);
     }
-    
-    
+
+
     if (!valid) {
       console.log('[LOGIN] Authentication failed. Password provided:', password, 'User hash:', user.password_hash?.substring(0, 20) + '...');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     console.log('[LOGIN] Authentication successful for:', hr_department);
 
     // Ensure Admin has correct role (0) even if previously created with default role
-    const role = getRoleFromHrDepartment(hr_department);
+    // const role = getRoleFromHrDepartment(hr_department);
     // if (hr_department === 'Admin' && user.role !== role) {
-    //   // await updateUserRoleByHrDepartment({ hr_department: 'Admin', role });
-    //   // const refreshed = await findUserByHrDepartment('Admin');
-    //   if (refreshed) user = refreshed;
+    //   await updateUserRoleByHrDepartment({ hr_department: 'Admin', role });
     // }
-    
+
     // Ensure role in response/token matches computed role for this department
     const computedRole = getRoleFromHrDepartment(hr_department);
     user.role = computedRole;
-    const token = jwt.sign({ 
-      id: user.id, 
-      hr_department: user.hr_department, 
-      role: computedRole 
+    const token = jwt.sign({
+      id: user.id,
+      hr_department: user.hr_department,
+      role: computedRole
     }, JWT_SECRET, { expiresIn: '7d' });
-    
-    return res.json({ 
-      token, 
-      user: { 
-        id: user.id, 
-        hr_department: user.hr_department, 
-        full_name: user.full_name, 
-        role: computedRole 
-      } 
+
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        hr_department: user.hr_department,
+        full_name: user.full_name,
+        role: computedRole
+      }
     });
   } catch (e) {
     console.error('Login error:', e);

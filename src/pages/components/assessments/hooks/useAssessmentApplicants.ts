@@ -8,6 +8,7 @@ import {
 } from "../../../../components/Filters/filterUtils";
 import type { FilterCriteria, ActiveFilter } from "../../../../components/Filters/filterUtils";
 import { fetchClients } from "../../../../api/client";
+import { isAssessmentStatus } from "../utils/assessmentUtils";
 
 export function useAssessmentApplicants() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -40,7 +41,7 @@ export function useAssessmentApplicants() {
   const handleStatusChangeAndSync = async (userId: number, newStatus: ApplicationStatus) => {
     const user = users.find(u => u.id === userId);
     if (!user) return;
-    
+
     // Always fetch current clients from database to preserve them
     let clientIds: number[] = [];
     try {
@@ -68,7 +69,7 @@ export function useAssessmentApplicants() {
     } catch (error) {
       console.error('Failed to fetch clients for status update:', error);
     }
-    
+
     const payload: Record<string, any> = {
       NO: user.no || '',
       REFFERED_BY: user.referredBy || '',
@@ -93,11 +94,16 @@ export function useAssessmentApplicants() {
       STATUS_REMARKS: user.statusRemarks || '',
       APPLICANT_REMARKS: user.applicantRemarks || '',
     };
-    
+
     // Always send CLIENT_IDS (even if empty) so backend knows to preserve clients
     // Backend will only update if CLIENT_IDS is explicitly provided
     payload.CLIENT_IDS = clientIds;
-    setUsers(prevUsers => prevUsers.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+    setUsers(prevUsers => {
+      if (!isAssessmentStatus(newStatus)) {
+        return prevUsers.filter(u => u.id !== userId);
+      }
+      return prevUsers.map(u => u.id === userId ? { ...u, status: newStatus } : u);
+    });
     await fetch('/api/applicants', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -105,7 +111,7 @@ export function useAssessmentApplicants() {
     });
     try {
       window.dispatchEvent(new CustomEvent('applicant-updated', { detail: { no: user.no, status: newStatus } }));
-    } catch {}
+    } catch { }
   };
 
   const handleScreeningUpdate = () => {
