@@ -66,7 +66,7 @@ export default function SelectionEmployees() {
         nextDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       };
       setSelectionHistory(prev => [newHistoryEntry, ...prev]);
-      
+
       // Remove from employees list
       removeEmployee(employeeId);
     }
@@ -96,11 +96,11 @@ export default function SelectionEmployees() {
       const detail = e?.detail || {};
       const { no, status } = detail;
       if (!no) return;
-      
+
       setEmployees(prev => {
         const idx = prev.findIndex(u => u.no === no);
         const allowed = isSelectionStatus(status);
-        
+
         if (idx === -1) {
           // If applicant is new to this section and status matches, refetch data to get full details including clients
           if (allowed) {
@@ -124,16 +124,16 @@ export default function SelectionEmployees() {
           }
           return prev;
         }
-        
+
         // Preserve all existing fields including clients when updating status
         const updated = [...prev];
         updated[idx] = { ...updated[idx], status } as any;
         return updated;
       });
     };
-    
+
     window.addEventListener('applicant-updated', onUpdated);
-    
+
     return () => {
       window.removeEventListener('applicant-updated', onUpdated);
     };
@@ -188,13 +188,13 @@ export default function SelectionEmployees() {
 
   // Main Selection Page
   return (
-    <div className="flex w-full">
-      <div className="flex-1 max-w-full mx-auto py-10 px-4">
-        <div className="bg-white max-w-[77vw] rounded-2xl shadow-lg overflow-hidden">
+    <div className="flex w-full relative overflow-hidden">
+      <div className="flex-1 max-w-full mx-auto py-6 px-4 md:px-8">
+        <div className="glass-card max-w-full rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 backdrop-blur-xl relative z-10 transition-all hover:border-white/20">
           {/* Timer and Filter Bar */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <ProcessTimer 
-              processName="Selection" 
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-md">
+            <ProcessTimer
+              processName="Selection"
               duration={7}
               onTimerComplete={refreshData}
             />

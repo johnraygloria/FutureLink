@@ -1,9 +1,163 @@
 @import "tailwindcss";
 
 @theme {
-  --color-custom-teal: #007071;
+  --color-custom-teal: #008081;
+  --color-primary: #008081;
+  --color-primary-light: #00a6a7;
+  --color-primary-dark: #005a5a;
+  --color-secondary: #64748b;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #0ea5e9;
+  --color-background: #0f172a;
+  --color-surface: #ffffff;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #94a3b8;
 }
 
+.glass-card {
+  @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl;
+}
+
+.glass-input {
+  @apply bg-black/20 border border-white/5 text-white placeholder-white/30 focus:bg-black/40 focus:border-custom-teal/50 focus:ring-4 focus:ring-custom-teal/10 transition-all duration-300;
+}
+
+.btn-premium {
+  @apply relative overflow-hidden bg-gradient-to-r from-primary to-primary-light text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300;
+}
+
+
 .input {
-  @apply w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-custom-teal focus:ring-2 focus:ring-custom-teal/30 transition-all duration-200 bg-white placeholder-gray-400;
+  @apply w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/30 transition-all duration-200 bg-white placeholder-gray-400;
+}
+
+.input-label {
+  @apply block text-sm font-semibold text-text-primary mb-1.5;
+}
+
+.typography {
+  /* Base typography settings */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+}
+
+.text-xs {
+  font-size: var(--font-size-xs);
+}
+
+.text-sm {
+  font-size: var(--font-size-sm);
+}
+
+.text-base {
+  font-size: var(--font-size-base);
+}
+
+.text-lg {
+  font-size: var(--font-size-lg);
+}
+
+.text-xl {
+  font-size: var(--font-size-xl);
+}
+
+.text-2xl {
+  font-size: var(--font-size-2xl);
+}
+
+.text-3xl {
+  font-size: var(--font-size-3xl);
+}
+
+.font-normal {
+  font-weight: var(--font-weight-normal);
+}
+
+.font-medium {
+  font-weight: var(--font-weight-medium);
+}
+
+.font-semibold {
+  font-weight: var(--font-weight-semibold);
+}
+
+.font-bold {
+  font-weight: var(--font-weight-bold);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.delay-100 {
+  animation-delay: 0.1s;
+}
+
+.animate-pulse-once {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) 1;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-4px);
+  }
+
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.2s ease-in-out 0s 2;
+}
+
+.bg-background {
+  background-color: #0c111d;
+}
+
+.text-danger-light {
+  color: #fca5a5;
 }

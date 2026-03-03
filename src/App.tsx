@@ -95,7 +95,7 @@ const App: React.FC = () => {
 
   return (
     <NavigationProvider activeSection={activeSection as any} setActiveSection={setActiveSection as any}>
-      <div className="min-h-screen bg-gray-100 flex">
+      <div className="min-h-screen bg-background flex typography transition-opacity duration-300">
         <Sidebar
           isCollapsed={isSidebarCollapsed}
           onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -112,8 +112,8 @@ const App: React.FC = () => {
           }}
         />
         
-        <div className="flex-1 flex flex-col">
-          <main className="flex-1 p-6">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto transition-opacity duration-300">
             {renderContent()}
           </main>
         </div>

@@ -13,6 +13,7 @@ interface FilterSidebarProps {
   filters: FilterCriteria;
   onApplyFilters: (filters: FilterCriteria) => void;
   onClearFilters: () => void;
+  statusOptions?: string[];
 }
 
 const FilterSidebar: React.FC<FilterSidebarProps> = ({
@@ -21,7 +22,8 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
   users,
   filters,
   onApplyFilters,
-  onClearFilters
+  onClearFilters,
+  statusOptions
 }) => {
   // Local state for staged filter changes
   const [localFilters, setLocalFilters] = useState<FilterCriteria>(filters);
@@ -53,29 +55,29 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 z-30 ${
-          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 z-30 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={onClose}
       />
 
       {/* Sliding Sidebar */}
       <div
-        className={`fixed right-0 top-0 h-full w-full z-40 flex flex-col transform transition-transform duration-500 ease-in-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`fixed right-0 top-0 h-full w-full z-40 flex flex-col transform transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
         style={{ maxWidth: '600px' }}
       >
-        <div className="bg-white h-full flex flex-col shadow-2xl border-l border-gray-200">
+        <div className="bg-[#0f172a]/95 backdrop-blur-2xl h-full flex flex-col shadow-2xl border-l border-white/10 relative">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between bg-white/5">
             <div className="flex items-center gap-3">
-              <IconFilter size={24} className="text-custom-teal" />
-              <h2 className="text-xl font-bold text-gray-800">Filter Applicants</h2>
+              <div className="p-2 bg-primary/20 rounded-lg">
+                <IconFilter size={24} className="text-primary-light" />
+              </div>
+              <h2 className="text-xl font-bold text-white tracking-wide">Filter Applicants</h2>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
+              className="text-text-secondary hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-2 rounded-lg"
               aria-label="Close filters"
             >
               <IconX size={24} />
@@ -83,7 +85,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
           </div>
 
           {/* Scrollable Filter Content */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 custom-scrollbar">
             {/* Gender Filter */}
             <FilterGroup
               title="Gender"
@@ -140,26 +142,26 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
               onChange={(min, max) => setLocalFilters({ ...localFilters, age: { min, max } })}
             />
 
-            {/* Status Filter - Hardcoded 3 options */}
+            {/* Status Filter */}
             <FilterGroup
               title="Status"
-              options={STATUS_OPTIONS}
+              options={statusOptions || STATUS_OPTIONS}
               selected={localFilters.status}
               onChange={(selected) => setLocalFilters({ ...localFilters, status: selected })}
             />
           </div>
 
           {/* Footer Actions */}
-          <div className="px-6 py-4 border-t border-gray-200 flex gap-3">
+          <div className="px-6 py-6 border-t border-white/10 flex gap-4 bg-white/5">
             <button
               onClick={handleClear}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-3 border border-white/10 rounded-xl text-text-secondary hover:text-white hover:bg-white/5 transition-all font-medium"
             >
               Clear Filters
             </button>
             <button
               onClick={handleApply}
-              className="flex-1 px-4 py-2 bg-custom-teal text-white rounded-md hover:bg-teal-700 transition-colors"
+              className="flex-1 btn-premium"
             >
               Apply Filters
             </button>

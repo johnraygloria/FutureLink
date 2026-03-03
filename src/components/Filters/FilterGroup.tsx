@@ -18,23 +18,23 @@ const FilterGroup: React.FC<FilterGroupProps> = ({ title, options, selected, onC
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-gray-700 mb-2">{title}</h3>
-      <div className="space-y-2 max-h-48 overflow-y-auto">
+      <h3 className="text-sm font-bold text-white mb-3 tracking-wide">{title}</h3>
+      <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
         {options.length === 0 && (
-          <p className="text-sm text-gray-500 italic">No data available</p>
+          <p className="text-sm text-text-secondary/60 italic px-1">No data available</p>
         )}
         {options.map(option => (
           <label
             key={option}
-            className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
+            className="flex items-center gap-3 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors group"
           >
             <input
               type="checkbox"
               checked={selected.includes(option)}
               onChange={() => handleToggle(option)}
-              className="w-4 h-4 text-custom-teal focus:ring-custom-teal border-gray-300 rounded"
+              className="w-4 h-4 rounded border-white/20 bg-white/5 text-primary focus:ring-primary/50 focus:ring-offset-0 transition-all cursor-pointer"
             />
-            <span className="text-sm text-gray-700">{option}</span>
+            <span className="text-sm text-text-secondary group-hover:text-white transition-colors">{option}</span>
           </label>
         ))}
       </div>

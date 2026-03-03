@@ -17,16 +17,16 @@ const FilterBar: React.FC<FilterBarProps> = ({
   onClearAll
 }) => {
   return (
-    <div className="bg-white px-6 py-3 border-b border-gray-200 flex items-center gap-3 flex-wrap">
+    <div className="bg-white/5 backdrop-blur-md px-6 py-3 border-b border-white/10 flex items-center gap-3 flex-wrap">
       {/* Filter Button */}
       <button
         onClick={onOpenFilters}
-        className="flex items-center gap-2 px-4 py-2 bg-custom-teal text-white rounded-md hover:bg-teal-700 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-primary/20 text-primary-light border border-primary/30 rounded-xl hover:bg-primary/30 transition-all active:scale-95 group"
       >
-        <IconFilter size={18} />
-        <span>Filters</span>
+        <IconFilter size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+        <span className="font-semibold text-sm">Filters</span>
         {activeFilters.length > 0 && (
-          <span className="ml-1 px-2 py-0.5 bg-white text-custom-teal rounded-full text-xs font-semibold">
+          <span className="ml-1 px-1.5 py-0.5 bg-primary text-white rounded-md text-[10px] font-bold shadow-sm">
             {activeFilters.length}
           </span>
         )}
@@ -45,7 +45,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
       {activeFilters.length > 0 && (
         <button
           onClick={onClearAll}
-          className="ml-auto text-sm text-gray-600 hover:text-red-600 transition-colors"
+          className="ml-auto text-sm text-text-secondary hover:text-danger hover:underline transition-colors"
         >
           Clear All
         </button>
