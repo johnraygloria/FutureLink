@@ -27,12 +27,7 @@ const getStatusIcon = (status: string) => {
     'Doc Screening': <IconClipboardCheck size={16} />,
     'Physical Screening': <IconUser size={16} />,
     'Initial Interview': <IconCalendarEvent size={16} />,
-    'Completion': <IconClipboardCheck size={16} />,
-    'Final Interview': <IconCalendarEvent size={16} />,
-    'Final Interview/Incomplete Requirements': <IconCalendarEvent size={16} />,
-    'Final Interview/Complete Requirements': <IconCalendarEvent size={16} />,
-    'For Final Interview/For Assessment': <IconCalendarEvent size={16} />,
-    'For Completion': <IconClipboardCheck size={16} />,
+    'Final Interview/Complete Requirements': <IconClipboardCheck size={16} />,
     'For Medical': <IconUser size={16} />,
     'For SBMA Gate Pass': <IconUser size={16} />,
     'On Boarding': <IconUser size={16} />,
@@ -261,14 +256,22 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
 
   const handleStatusChange = (newStatus: ApplicationStatus) => {
     if (selectedUser) {
-      onStatusChange?.(selectedUser.id, newStatus);
+      let finalStatus = newStatus;
+
+      // LOGIC: If moving to Selection Stage via "Final Interview/Complete Requirements", 
+      // automatically set status to "For Medical"
+      if (newStatus === 'Final Interview/Complete Requirements' && activeSection === 'assessment') {
+        finalStatus = 'For Medical' as ApplicationStatus;
+      }
+
+      onStatusChange?.(selectedUser.id, finalStatus);
 
       // For Assessment, only update status without full data fetch
       if (activeSection === 'assessment') {
-        updateStatusOnly(selectedUser, newStatus);
+        updateStatusOnly(selectedUser, finalStatus);
       } else {
         // For other sections, use full update
-        updateStatusInGoogleSheet(selectedUser, newStatus);
+        updateStatusInGoogleSheet(selectedUser, finalStatus);
       }
       // Status change only updates status - no automatic removal or navigation
     }
@@ -398,11 +401,11 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               <option value="Final Interview" className="bg-gray-800 text-white">Final Interview</option>
                               <option value="Final Interview/Incomplete Requirements" className="bg-gray-800 text-white">Final Interview/Incomplete Requirements</option>
                               <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
-                              <option value="For Completion" className="bg-gray-800 text-white">For Completion</option>
                             </>
                           ) : activeSection === 'selection' ? (
                             <>
                               {/* Selection statuses */}
+                              <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
                               <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
                               <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
                               <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
@@ -423,7 +426,6 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               <option value="Final Interview" className="bg-gray-800 text-white">Final Interview</option>
                               <option value="Final Interview/Incomplete Requirements" className="bg-gray-800 text-white">Final Interview/Incomplete Requirements</option>
                               <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
-                              <option value="For Completion" className="bg-gray-800 text-white">For Completion</option>
                               <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
                               <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
                               <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>

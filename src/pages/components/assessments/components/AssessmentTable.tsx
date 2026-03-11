@@ -87,7 +87,8 @@ const AssessmentTable: React.FC<AssessmentTableProps> = ({ users, selectedUser, 
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${user.status.includes('Rejected') ? 'bg-danger/10 text-danger border-danger/20' :
-                    user.status.includes('Hired') ? 'bg-success/10 text-success border-success/20' :
+                  user.status.includes('Hired') ? 'bg-success/10 text-success border-success/20' :
+                    user.status === 'Final Interview/Complete Requirements' ? 'bg-success/10 text-success border-success/20' :
                       'bg-info/10 text-info border-info/20'
                   }`}>
                   {user.status}

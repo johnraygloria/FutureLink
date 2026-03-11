@@ -33,14 +33,14 @@ async function ensureUserTable() {
     KEY idx_hr_department (hr_department),
     KEY idx_email (email)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
-  
+
   // Migrate existing table if needed - add hr_department column if it doesn't exist
   try {
     await pool.query(`ALTER TABLE users ADD COLUMN hr_department VARCHAR(255) UNIQUE AFTER email`);
   } catch (e) {
     // Column already exists, ignore
   }
-  
+
   // Ensure email allows NULL so HR-department-only users can be created
   try {
     await pool.query(`ALTER TABLE users MODIFY COLUMN email VARCHAR(255) NULL`);
@@ -94,6 +94,16 @@ async function updateUserPasswordByHrDepartment({ hr_department, password_hash }
   return result;
 }
 
+async function updateUserRoleByHrDepartment({ hr_department, role }) {
+  await ensureUserTable();
+  const pool = await getPool();
+  const [result] = await pool.execute(
+    `UPDATE users SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE hr_department = ? LIMIT 1`,
+    [role, hr_department]
+  );
+  return result;
+}
+
 module.exports = {
   getPool,
   ensureUserTable,
@@ -102,6 +112,7 @@ module.exports = {
   createUser,
   createUserByHrDepartment,
   updateUserPasswordByHrDepartment,
+  updateUserRoleByHrDepartment,
 };
 
 
