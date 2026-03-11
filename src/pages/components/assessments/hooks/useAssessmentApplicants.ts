@@ -41,7 +41,6 @@ export function useAssessmentApplicants() {
     const user = users.find(u => u.id === userId);
     if (!user) return;
     
-    // Always fetch current clients from database to preserve them
     let clientIds: number[] = [];
     try {
       // First, try to get clients from user object

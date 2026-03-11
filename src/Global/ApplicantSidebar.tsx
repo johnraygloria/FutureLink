@@ -403,7 +403,6 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                           ) : activeSection === 'selection' ? (
                             <>
                               {/* Selection statuses */}
-                              <option value="For Completion" className="bg-gray-800 text-white">For Completion</option>
                               <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
                               <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
                               <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
