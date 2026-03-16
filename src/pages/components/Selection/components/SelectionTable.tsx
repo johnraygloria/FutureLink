@@ -89,9 +89,10 @@ const SelectionTable: React.FC<SelectionTableProps> = ({ users, selectedUser, on
                 <span className={`px-3 py-1 text-xs font-bold rounded-full border ${user.status === 'Final Interview/Complete Requirements' ? 'bg-info/10 text-info border-info/20' :
                   user.status === 'For Medical' ? 'bg-primary/10 text-primary-light border-primary/20' :
                     user.status === 'For SBMA Gate Pass' ? 'bg-warning/10 text-warning border-warning/20' :
-                      user.status === 'For Deployment' ? 'bg-primary/20 text-primary border-primary/30' :
-                        user.status === 'Deployed' ? 'bg-success/10 text-success border-success/20' :
-                          'bg-white/5 text-text-secondary border-white/10'
+                      user.status === 'Biometrics' ? 'bg-primary/20 text-primary-light border-primary/30 shadow-[0_0_10px_rgba(0,166,167,0.2)]' :
+                        user.status === 'For Deployment' ? 'bg-primary/20 text-primary border-primary/30' :
+                          user.status === 'Deployed' ? 'bg-success/10 text-success border-success/20' :
+                            'bg-white/5 text-text-secondary border-white/10'
                   }`}>
                   {user.status}
                 </span>

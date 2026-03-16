@@ -4,6 +4,7 @@ export const ALLOWED_SELECTION_STATUSES = new Set([
   'Final Interview/Complete Requirements',
   'For Medical',
   'For SBMA Gate Pass',
+  'Biometrics',
 ]);
 
 export const isSelectionStatus = (status?: string) => ALLOWED_SELECTION_STATUSES.has(status || '');

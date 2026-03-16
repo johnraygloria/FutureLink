@@ -7,9 +7,12 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
     // Proxy API calls to the Express server (defaults to port 5000) '/api': 'http://192.168.1.10:5000',
     proxy: {
       '/api': 'http://localhost:5000',
     },
+    // http://192.168.1.24:5173/
   },
 })

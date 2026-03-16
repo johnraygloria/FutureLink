@@ -82,7 +82,7 @@ export default function Dashboard() {
             newMetrics.screening++;
           }
           // Assessment Phase
-          else if (['For Final Interview/For Assessment', 'Final Interview', 'Final Interview/Incomplete Requirements', 'Final Interview/Complete Requirements'].includes(status)) {
+          else if (['Final Interview', 'Final Interview/Incomplete Requirements', 'Final Interview/Complete Requirements'].includes(status)) {
             newMetrics.assessment++;
           }
           // Selection Phase

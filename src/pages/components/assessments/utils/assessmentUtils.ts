@@ -1,7 +1,5 @@
 export const ALLOWED_ASSESSMENT_STATUSES = new Set([
-  "For Final Interview/For Assessment",
   "Initial Interview",
-  "Final Interview/Complete Requirements",
   "Final Interview",
   "Final Interview/Incomplete Requirements",
 ]);

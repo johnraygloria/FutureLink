@@ -31,6 +31,7 @@ const getStatusIcon = (status: string) => {
     'For Medical': <IconUser size={16} />,
     'For SBMA Gate Pass': <IconUser size={16} />,
     'On Boarding': <IconUser size={16} />,
+    'Biometrics': <IconClipboardCheck size={16} />,
     'Metrex': <IconUser size={16} />,
     'For Deployment': <IconUser size={16} />,
     'Deployed': <IconUser size={16} />,
@@ -245,12 +246,11 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   const { activeSection } = useNavigation();
   const isOpen = !!selectedUser;
 
-  // Ensure the correct tab is selected based on the current app section
   useEffect(() => {
     if (activeSection === 'assessment') {
-      setActiveTab('screening'); // default to Assessment content, but allow switching to Screening
+      setActiveTab('screening');
     } else {
-      setActiveTab('overview'); // show Screening content
+      setActiveTab('overview');
     }
   }, [activeSection, isOpen]);
 
@@ -258,22 +258,13 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
     if (selectedUser) {
       let finalStatus = newStatus;
 
-      // LOGIC: If moving to Selection Stage via "Final Interview/Complete Requirements", 
-      // automatically set status to "For Medical"
-      if (newStatus === 'Final Interview/Complete Requirements' && activeSection === 'assessment') {
-        finalStatus = 'For Medical' as ApplicationStatus;
-      }
-
       onStatusChange?.(selectedUser.id, finalStatus);
 
-      // For Assessment, only update status without full data fetch
       if (activeSection === 'assessment') {
         updateStatusOnly(selectedUser, finalStatus);
       } else {
-        // For other sections, use full update
         updateStatusInGoogleSheet(selectedUser, finalStatus);
       }
-      // Status change only updates status - no automatic removal or navigation
     }
   };
 
@@ -397,7 +388,6 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                           ) : activeSection === 'assessment' ? (
                             <>
                               {/* Assessment statuses */}
-                              <option value="For Final Interview/For Assessment" className="bg-gray-800 text-white">For Final Interview/For Assessment</option>
                               <option value="Final Interview" className="bg-gray-800 text-white">Final Interview</option>
                               <option value="Final Interview/Incomplete Requirements" className="bg-gray-800 text-white">Final Interview/Incomplete Requirements</option>
                               <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
@@ -405,8 +395,8 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                           ) : activeSection === 'selection' ? (
                             <>
                               {/* Selection statuses */}
-                              <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
                               <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
+                              <option value="Biometrics" className="bg-gray-800 text-white">Biometrics</option>
                               <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
                               <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
                             </>
@@ -422,11 +412,11 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               <option value="Doc Screening" className="bg-gray-800 text-white">Doc Screening</option>
                               <option value="Physical Screening" className="bg-gray-800 text-white">Physical Screening</option>
                               <option value="Initial Interview" className="bg-gray-800 text-white">Initial Interview</option>
-                              <option value="For Final Interview/For Assessment" className="bg-gray-800 text-white">For Final Interview/For Assessment</option>
                               <option value="Final Interview" className="bg-gray-800 text-white">Final Interview</option>
                               <option value="Final Interview/Incomplete Requirements" className="bg-gray-800 text-white">Final Interview/Incomplete Requirements</option>
                               <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
                               <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
+                              <option value="Biometrics" className="bg-gray-800 text-white">Biometrics</option>
                               <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
                               <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
                               <option value="Deployed" className="bg-gray-800 text-white">Deployed</option>
