@@ -1,10 +1,7 @@
 export const ALLOWED_ASSESSMENT_STATUSES = new Set([
-  "For Final Interview/For Assessment",
   "Initial Interview",
-  "Completion",
   "Final Interview",
   "Final Interview/Incomplete Requirements",
-  "Final Interview/Complete Requirements",
 ]);
 
 export const isAssessmentStatus = (status?: string) => ALLOWED_ASSESSMENT_STATUSES.has(status || "");
@@ -99,7 +96,7 @@ export const mapUserToDisplayFormat = (user: User): Record<string, any> => {
   // Get clients from the user object (from backend row.clients array)
   const clients = (user as any).clients || [];
   const clientsDisplay = Array.isArray(clients) ? clients.join(', ') : '';
-  
+
   return {
     "NO": user.no || '',
     "REFFERED BY": user.referredBy || '',

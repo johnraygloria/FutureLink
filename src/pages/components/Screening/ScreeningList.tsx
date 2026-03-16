@@ -39,8 +39,8 @@ const ScreeningList: React.FC = () => {
     handleOpenFilterSidebar,
   } = useApplicants();
 
-  const refreshData = () => {
-    setIsLoading(true);
+  const refreshData = (silent = false) => {
+    if (!silent) setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch applicants');
@@ -51,7 +51,9 @@ const ScreeningList: React.FC = () => {
         setUsers(mapped);
       })
       .catch(() => setUsers([]))
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (!silent) setIsLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -119,7 +121,7 @@ const ScreeningList: React.FC = () => {
             <ProcessTimer
               processName="Screening"
               duration={7}
-              onTimerComplete={refreshData}
+              onTimerComplete={() => refreshData(true)}
             />
             <FilterBar
               activeFilters={activeFilters}

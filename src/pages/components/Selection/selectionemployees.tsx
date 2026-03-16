@@ -15,7 +15,7 @@ interface SelectionHistory {
   id: number;
   employeeId: number;
   date: string;
-  stage: 'Medical Referral' | 'Trade Test' | 'Medical Clearance' | 'Orientation' | 'SBMA Processing' | 'Gate Pass Issued';
+  stage: 'Medical Referral' | 'Trade Test' | 'Biometrics' | 'Medical Clearance' | 'Orientation' | 'SBMA Processing' | 'Gate Pass Issued';
   status: 'Completed' | 'In Progress' | 'Scheduled' | 'Failed' | 'Pending';
   facilitator: string;
   notes: string;
@@ -73,7 +73,8 @@ export default function SelectionEmployees() {
   };
 
   // Fetch selection-stage applicants from API
-  const refreshData = () => {
+  const refreshData = (silent = false) => {
+    if (!silent) setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch applicants');
@@ -86,7 +87,9 @@ export default function SelectionEmployees() {
         setEmployees(mapped);
       })
       .catch(() => setEmployees([]))
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (!silent) setIsLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -126,6 +129,9 @@ export default function SelectionEmployees() {
         }
 
         // Preserve all existing fields including clients when updating status
+        if (!allowed) {
+          return prev.filter(u => u.no !== no);
+        }
         const updated = [...prev];
         updated[idx] = { ...updated[idx], status } as any;
         return updated;
@@ -196,7 +202,7 @@ export default function SelectionEmployees() {
             <ProcessTimer
               processName="Selection"
               duration={7}
-              onTimerComplete={refreshData}
+              onTimerComplete={() => refreshData(true)}
             />
             <FilterBar
               activeFilters={activeFilters}

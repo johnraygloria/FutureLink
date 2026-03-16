@@ -39,8 +39,8 @@ const Assessments: React.FC = () => {
   const { history: assessmentHistory } = useAssessmentHistory();
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshData = () => {
-    setIsLoading(true);
+  const refreshData = (silent = false) => {
+    if (!silent) setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch applicants');
@@ -52,7 +52,9 @@ const Assessments: React.FC = () => {
         setUsers(assessmentUsers);
       })
       .catch(() => setUsers([]))
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (!silent) setIsLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -122,7 +124,7 @@ const Assessments: React.FC = () => {
             <ProcessTimer
               processName="Assessment"
               duration={7}
-              onTimerComplete={refreshData}
+              onTimerComplete={() => refreshData(true)}
             />
             <FilterBar
               activeFilters={activeFilters}
