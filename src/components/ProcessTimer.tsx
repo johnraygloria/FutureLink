@@ -9,7 +9,7 @@ interface ProcessTimerProps {
 const ProcessTimer: React.FC<ProcessTimerProps> = ({
   processName,
   onTimerComplete,
-  duration = 7
+  duration = 5
 }) => {
   const [seconds, setSeconds] = useState(duration);
   const [isActive, setIsActive] = useState(true);

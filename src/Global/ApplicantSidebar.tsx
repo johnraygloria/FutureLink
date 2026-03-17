@@ -7,6 +7,9 @@ import {
   IconPhone,
   IconEye,
   IconCalendarEvent,
+  IconPencil,
+  IconCheck,
+  IconX,
 } from "@tabler/icons-react";
 import Assessment from "../pages/components/assessments/assessmentStatus";
 import { useNavigation } from "./NavigationContext";
@@ -170,6 +173,109 @@ const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatu
   }
 };
 
+const updateUserDetails = async (user: User) => {
+  try {
+    // Always fetch current clients from database to preserve them
+    let clientIds: number[] = [];
+    try {
+      const userClients = (user as any).clients || [];
+      if (Array.isArray(userClients) && userClients.length > 0) {
+        const allClients = await fetchClients();
+        clientIds = allClients
+          .filter(client => userClients.includes(client.name))
+          .map(client => client.id);
+      } else {
+        const response = await fetch(`/api/applicants?NO=${encodeURIComponent(user.no || '')}`);
+        if (response.ok) {
+          const applicants = await response.json();
+          const applicant = applicants.find((a: any) => a.applicant_no === user.no);
+          if (applicant && Array.isArray(applicant.clients) && applicant.clients.length > 0) {
+            const allClients = await fetchClients();
+            clientIds = allClients
+              .filter(client => applicant.clients.includes(client.name))
+              .map(client => client.id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch clients for update:', error);
+    }
+
+    const payloadBody: Record<string, any> = {
+      NO: user.no,
+      REFFERED_BY: user.referredBy,
+      LAST_NAME: user.lastName,
+      FIRST_NAME: user.firstName,
+      EXT: user.ext,
+      MIDDLE: user.middle,
+      GENDER: user.gender,
+      SIZE: user.size,
+      DATE_OF_BIRTH: user.dateOfBirth,
+      DATE_APPLIED: user.dateApplied,
+      FB_NAME: user.facebook,
+      AGE: user.age,
+      LOCATION: user.location,
+      CONTACT_NUMBER: user.contactNumber,
+      POSITION_APPLIED_FOR: user.positionApplied,
+      EXPERIENCE: user.experience,
+      STATUS: user.status,
+      REQUIREMENTS_STATUS: (user as any).requirementsStatus,
+      FINAL_INTERVIEW_STATUS: (user as any).finalInterviewStatus,
+      MEDICAL_STATUS: (user as any).medicalStatus,
+      STATUS_REMARKS: (user as any).statusRemarks,
+      APPLICANT_REMARKS: (user as any).applicantRemarks,
+      RECENT_PICTURE: (user as any).recentPicture ? '1' : '0',
+      PSA_BIRTH_CERTIFICATE: (user as any).psaBirthCertificate ? '1' : '0',
+      SCHOOL_CREDENTIALS: (user as any).schoolCredentials ? '1' : '0',
+      NBI_CLEARANCE: (user as any).nbiClearance ? '1' : '0',
+      POLICE_CLEARANCE: (user as any).policeClearance ? '1' : '0',
+      BARANGAY_CLEARANCE: (user as any).barangayClearance ? '1' : '0',
+      SSS: (user as any).sss ? '1' : '0',
+      PAGIBIG: (user as any).pagibig ? '1' : '0',
+      CEDULA: (user as any).cedula ? '1' : '0',
+      VACCINATION_STATUS: (user as any).vaccinationStatus ? '1' : '0',
+      RESUME: (user as any).resume ? '1' : '0',
+      COE: (user as any).coe ? '1' : '0',
+      PHILHEALTH: (user as any).philhealth ? '1' : '0',
+      TIN_NUMBER: (user as any).tinNumber ? '1' : '0',
+      CLIENT_IDS: clientIds
+    };
+
+    const res = await fetch('/api/applicants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payloadBody)
+    });
+
+    if (!res.ok) throw new Error('Failed to update applicant details');
+
+    // Add to history
+    try {
+      await fetch('/api/applicants/screening-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          applicant_no: user.no,
+          action: 'Details Updated',
+          status: user.status,
+          notes: 'Personal details updated via edit mode.',
+        })
+      });
+    } catch { }
+
+    // Broadcast change
+    window.dispatchEvent(new CustomEvent('applicant-updated', { 
+      detail: { 
+        no: user.no, 
+        ...user 
+      } 
+    }));
+  } catch (error) {
+    console.error('Failed to sync details:', error);
+    throw error;
+  }
+};
+
 // Update only the status without triggering full data fetch
 const updateStatusOnly = async (user: User, newStatus: ApplicationStatus) => {
   try {
@@ -224,11 +330,21 @@ const updateDocumentFlag = async (user: User, key: string, checked: boolean) => 
   const payloadKey = map[key];
   if (!payloadKey) return;
   try {
-    await fetch('/api/applicants', {
-      method: 'PATCH',
+    const res = await fetch('/api/applicants', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ NO: user.no, [payloadKey]: checked ? '1' : '0' })
     });
+    if (!res.ok) throw new Error('Failed to update document flag');
+    // Broadcast change
+    try {
+      window.dispatchEvent(new CustomEvent('applicant-updated', { 
+        detail: { 
+          no: user.no, 
+          [key]: checked 
+        } 
+      }));
+    } catch { }
   } catch (e) {
     console.error('Failed to sync document flag', key, e);
   }
@@ -243,8 +359,37 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
 
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'screening'>('overview');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedUser, setEditedUser] = useState<User | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const { activeSection } = useNavigation();
   const isOpen = !!selectedUser;
+
+  useEffect(() => {
+    if (selectedUser) {
+      setEditedUser(selectedUser);
+      setIsEditing(false);
+    }
+  }, [selectedUser?.id]);
+
+  const handleSaveDetails = async () => {
+    if (!editedUser) return;
+    setIsSaving(true);
+    try {
+      await updateUserDetails(editedUser);
+      setIsEditing(false);
+    } catch (error) {
+      alert('Failed to save details. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleInputChange = (key: keyof User, value: string) => {
+    if (editedUser) {
+      setEditedUser({ ...editedUser, [key]: value });
+    }
+  };
 
   useEffect(() => {
     if (activeSection === 'assessment') {
@@ -436,24 +581,252 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                   <div className="bg-white/5 rounded-2xl p-6 border border-white/10 shadow-lg backdrop-blur-sm">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-sm font-bold text-white uppercase tracking-wider">Personal Details</h2>
+                      {activeSection === 'screening' && (
+                        <div className="flex items-center gap-2">
+                          {isEditing && (
+                            <button
+                              onClick={() => {
+                                setIsEditing(false);
+                                setEditedUser(selectedUser);
+                              }}
+                              className="text-text-secondary hover:text-white px-2 py-1 text-xs rounded-lg transition-all flex items-center gap-1"
+                              disabled={isSaving}
+                            >
+                              <IconX size={14} /> Cancel
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              if (isEditing) {
+                                handleSaveDetails();
+                              } else {
+                                setIsEditing(true);
+                              }
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isEditing
+                              ? 'bg-custom-teal text-white shadow-lg shadow-custom-teal/20 scale-105'
+                              : 'text-custom-teal bg-custom-teal/10 hover:bg-custom-teal/20'
+                              }`}
+                            disabled={isSaving}
+                          >
+                            {isSaving ? (
+                              <span className="flex items-center gap-2">
+                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Saving...
+                              </span>
+                            ) : isEditing ? (
+                              <><IconCheck size={14} /> Save Details</>
+                            ) : (
+                              <><IconPencil size={14} /> Edit Details</>
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6 text-sm">
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Applicant No.</span> <span className="font-semibold text-white bg-white/5 py-1.5 px-3 rounded-lg border border-white/5">{selectedUser.no}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Referred By</span> <span className="font-medium text-white/90 px-1">{selectedUser.referredBy}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Last Name</span> <span className="font-semibold text-white px-1 tracking-wide">{selectedUser.lastName}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">First Name</span> <span className="font-semibold text-white px-1 tracking-wide">{selectedUser.firstName}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Extension</span> <span className="font-medium text-white/90 px-1">{selectedUser.ext}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Middle Name</span> <span className="font-medium text-white/90 px-1">{selectedUser.middle}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Gender</span> <span className="font-medium text-white/90 px-1">{selectedUser.gender}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Size</span> <span className="font-medium text-white/90 px-1">{selectedUser.size}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Date of Birth</span> <span className="font-medium text-white/90 px-1">{selectedUser.dateOfBirth}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Date Applied</span> <span className="font-medium text-white/90 px-1">{selectedUser.dateApplied}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Facebook Name</span> <span className="font-medium text-white/90 px-1 text-custom-teal underline decoration-custom-teal/30 underline-offset-4">{selectedUser.facebook}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Age</span> <span className="font-medium text-white/90 px-1">{selectedUser.age}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Location</span> <span className="font-medium text-white/90 px-1">{selectedUser.location}</span></div>
-                      <div className="flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Contact Number</span> <span className="font-medium text-white/90 px-1">{selectedUser.contactNumber}</span></div>
-                      <div className="col-span-1 md:col-span-2 flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Position Applied For</span> <span className="font-semibold text-custom-teal bg-custom-teal/10 py-2 px-3 rounded-lg border border-custom-teal/20 w-full">{selectedUser.positionApplied}</span></div>
-                      <div className="col-span-1 md:col-span-2 flex flex-col gap-1"><span className="text-text-secondary text-xs uppercase font-medium">Experience</span> <span className="font-medium text-white/90 px-3 py-2 bg-white/5 rounded-lg border border-white/5 leading-relaxed italic text-sm">{selectedUser.experience || 'No experience listed'}</span></div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Applicant No.</span>
+                        <span className="font-semibold text-white bg-white/5 py-1.5 px-3 rounded-lg border border-white/5">
+                          {selectedUser.no}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Referred By</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.referredBy || ''}
+                            onChange={(e) => handleInputChange('referredBy', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-1">{selectedUser.referredBy}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Last Name</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.lastName || ''}
+                            onChange={(e) => handleInputChange('lastName', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-semibold text-white px-1 tracking-wide">{selectedUser.lastName}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">First Name</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.firstName || ''}
+                            onChange={(e) => handleInputChange('firstName', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-semibold text-white px-1 tracking-wide">{selectedUser.firstName}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Extension</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.ext || ''}
+                            onChange={(e) => handleInputChange('ext', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-1">{selectedUser.ext}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Middle Name</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.middle || ''}
+                            onChange={(e) => handleInputChange('middle', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-1">{selectedUser.middle}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Gender</span>
+                        {isEditing ? (
+                          <select
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.gender || ''}
+                            onChange={(e) => handleInputChange('gender', e.target.value)}
+                          >
+                            <option value="" className="bg-gray-800">Select Gender</option>
+                            <option value="Male" className="bg-gray-800">Male</option>
+                            <option value="Female" className="bg-gray-800">Female</option>
+                          </select>
+                        ) : (
+                          <span className="font-medium text-white/90 px-1">{selectedUser.gender}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Size</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.size || ''}
+                            onChange={(e) => handleInputChange('size', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-1">{selectedUser.size}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Date of Birth</span>
+                        {isEditing ? (
+                          <input
+                            type="date"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.dateOfBirth || ''}
+                            onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-1">{selectedUser.dateOfBirth}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Date Applied</span>
+                        {isEditing ? (
+                          <input
+                            type="date"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.dateApplied || ''}
+                            onChange={(e) => handleInputChange('dateApplied', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-1">{selectedUser.dateApplied}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Facebook Name</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.facebook || ''}
+                            onChange={(e) => handleInputChange('facebook', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-1 text-custom-teal underline decoration-custom-teal/30 underline-offset-4">{selectedUser.facebook}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Age</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.age || ''}
+                            onChange={(e) => handleInputChange('age', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-1">{selectedUser.age}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Location</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.location || ''}
+                            onChange={(e) => handleInputChange('location', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-1">{selectedUser.location}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Contact Number</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.contactNumber || ''}
+                            onChange={(e) => handleInputChange('contactNumber', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-1">{selectedUser.contactNumber}</span>
+                        )}
+                      </div>
+                      <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Position Applied For</span>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-custom-teal font-semibold outline-none focus:ring-1 focus:ring-custom-teal"
+                            value={editedUser?.positionApplied || ''}
+                            onChange={(e) => handleInputChange('positionApplied', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-semibold text-custom-teal bg-custom-teal/10 py-2 px-3 rounded-lg border border-custom-teal/20 w-full">{selectedUser.positionApplied}</span>
+                        )}
+                      </div>
+                      <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Experience</span>
+                        {isEditing ? (
+                          <textarea
+                            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:ring-1 focus:ring-custom-teal min-h-[80px]"
+                            value={editedUser?.experience || ''}
+                            onChange={(e) => handleInputChange('experience' as any, e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-3 py-2 bg-white/5 rounded-lg border border-white/5 leading-relaxed italic text-sm">{selectedUser.experience || 'No experience listed'}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -559,7 +932,8 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
               )}
 
               {activeTab === 'screening' && selectedUser && (
-                <Assessment applicantNo={selectedUser.no} showApplicantHeader={false} />
+                <Assessment applicantNo={selectedUser.no} showApplicantHeader={false} 
+                />
               )}
             </div>
           </div>

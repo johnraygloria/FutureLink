@@ -22,6 +22,7 @@ const ScreeningList: React.FC = () => {
     setIsModalOpen,
     handleUserClick,
     handleCloseSidebar,
+    setSelectedUser,
     handleStatusChangeAndSync,
     handleScreeningUpdate,
     handleAddApplicant,
@@ -65,22 +66,43 @@ const ScreeningList: React.FC = () => {
       const detail = e?.detail || {};
       const { no, status } = detail;
       if (!no) return;
+      
       setUsers(prev => {
         const idx = prev.findIndex(u => u.no === no);
         if (idx === -1) return prev;
-        if (!isScreeningStatus(status)) {
-          const updated = [...prev];
+
+        const updated = [...prev];
+        // If status is provided, check if it's still allowed in this view
+        if (status && !isScreeningStatus(status)) {
           updated.splice(idx, 1);
           return updated;
         }
-        const updated = [...prev];
-        updated[idx] = { ...updated[idx], status } as any;
+
+        updated[idx] = { ...updated[idx], ...detail } as any;
         return updated;
+      });
+
+      // Also update selectedUser if it's the one that was updated
+      setSelectedUser(prev => {
+        if (prev && prev.no === no) {
+          return { ...prev, ...detail };
+        }
+        return prev;
       });
     }
     window.addEventListener('applicant-updated', onUpdated);
     return () => window.removeEventListener('applicant-updated', onUpdated);
-  }, [setUsers]);
+  }, [setUsers, setSelectedUser]);
+
+  // Keep selectedUser in sync when users list is refreshed in the background
+  useEffect(() => {
+    if (selectedUser) {
+      const updated = users.find(u => u.no === selectedUser.no);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(selectedUser)) {
+        setSelectedUser(updated);
+      }
+    }
+  }, [users, selectedUser?.id]);
 
   if (showHistory) {
     return (
@@ -120,7 +142,7 @@ const ScreeningList: React.FC = () => {
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-md">
             <ProcessTimer
               processName="Screening"
-              duration={7}
+              duration={5}
               onTimerComplete={() => refreshData(true)}
             />
             <FilterBar

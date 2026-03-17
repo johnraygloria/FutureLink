@@ -114,8 +114,11 @@ export function useAssessmentApplicants() {
     } catch { }
   };
 
-  const handleScreeningUpdate = () => {
-    // Not used in assessment
+  const handleScreeningUpdate = (userId: number, key: keyof User, status: any) => {
+    setUsers(prevUsers => prevUsers.map(user => user.id === userId ? { ...user, [key]: status } : user));
+    if (selectedUser && selectedUser.id === userId) {
+      setSelectedUser(prev => prev ? { ...prev, [key]: status } : null);
+    }
   };
 
   const removeApplicant = (userId: number) => {

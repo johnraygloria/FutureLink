@@ -13,6 +13,6 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:5000',
     },
-    // http://192.168.1.24:5173/
+    // http://192.168.1.22:4173/
   },
 })

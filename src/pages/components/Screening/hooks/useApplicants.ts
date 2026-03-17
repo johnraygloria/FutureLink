@@ -157,7 +157,7 @@ export function useApplicants() {
   const handleStatusChangeAndSync = async (userId: number, newStatus: ApplicationStatus) => {
     const user = users.find(u => u.id === userId);
     if (!user) return;
-    
+
     // Always fetch current clients from database to preserve them
     let clientIds: number[] = [];
     try {
@@ -186,7 +186,7 @@ export function useApplicants() {
     } catch (error) {
       console.error('Failed to fetch clients for status update:', error);
     }
-    
+
     const payload: Record<string, any> = {
       NO: user.no || '',
       REFFERED_BY: user.referredBy || '',
@@ -211,7 +211,7 @@ export function useApplicants() {
       STATUS_REMARKS: user.statusRemarks || '',
       APPLICANT_REMARKS: user.applicantRemarks || '',
     };
-    
+
     // Always send CLIENT_IDS (even if empty) so backend knows to preserve clients
     // Backend will only update if CLIENT_IDS is explicitly provided
     payload.CLIENT_IDS = clientIds;
@@ -223,7 +223,7 @@ export function useApplicants() {
     });
     try {
       window.dispatchEvent(new CustomEvent('applicant-updated', { detail: { no: user.no, status: newStatus } }));
-    } catch {}
+    } catch { }
   };
 
   const removeApplicant = (userId: number) => {

@@ -35,8 +35,26 @@ export async function fetchApplicantByNo(no: string) {
     REQUIREMENTS_STATUS: r.requirements_status || '',
     FINAL_INTERVIEW_STATUS: r.final_interview_status || '',
     MEDICAL_STATUS: r.medical_status || '',
+    PHYSICAL_SCREENING_STATUS: r.physical_screening_status || '',
+    DOC_SCREENING_STATUS: r.doc_screening_status || '',
     STATUS_REMARKS: r.status_remarks || '',
     APPLICANT_REMARKS: r.applicant_remarks || '',
+    // Document Checklist - Map to boolean for frontend convenience
+    recentPicture: r.recent_picture === '1' || r.recent_picture === 1,
+    psaBirthCertificate: r.psa_birth_certificate === '1' || r.psa_birth_certificate === 1,
+    schoolCredentials: r.school_credentials === '1' || r.school_credentials === 1,
+    nbiClearance: r.nbi_clearance === '1' || r.nbi_clearance === 1,
+    policeClearance: r.police_clearance === '1' || r.police_clearance === 1,
+    barangayClearance: r.barangay_clearance === '1' || r.barangay_clearance === 1,
+    sss: r.sss === '1' || r.sss === 1,
+    pagibig: r.pagibig === '1' || r.pagibig === 1,
+    cedula: r.cedula === '1' || r.cedula === 1,
+    vaccinationStatus: r.vaccination_status === '1' || r.vaccination_status === 1,
+    resume: r.resume === '1' || r.resume === 1,
+    coe: r.coe === '1' || r.coe === 1,
+    philhealth: r.philhealth === '1' || r.philhealth === 1,
+    tinNumber: r.tin_number === '1' || r.tin_number === 1,
+    id: r.id, // Ensure ID is included for identification
   }));
 }
 
@@ -48,4 +66,4 @@ export async function saveApplicantAssessment(applicantData: any) {
   });
   if (!response.ok) throw new Error('Failed to save applicant assessment');
   return response.json();
-} 
+}

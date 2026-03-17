@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchApplicantByNo, saveApplicantAssessment } from '../../../api/assessmentStatus';
 import { fetchClients, createClient, deleteClient, type Client } from '../../../api/client';
 
-const emptyApplicant: { [key: string]: string } = {
+const emptyApplicant: { [key: string]: any } = {
   NO: "",
   REFFERED_BY: "",
   LAST_NAME: "",
@@ -26,7 +26,22 @@ const emptyApplicant: { [key: string]: string } = {
   DOC_SCREENING_STATUS: "",
   PHYSICAL_SCREENING_STATUS: "",
   STATUS_REMARKS: "",
-  APPLICANT_REMARKS: ""
+  APPLICANT_REMARKS: "",
+  id: undefined,
+  recentPicture: false,
+  psaBirthCertificate: false,
+  schoolCredentials: false,
+  nbiClearance: false,
+  policeClearance: false,
+  barangayClearance: false,
+  sss: false,
+  pagibig: false,
+  cedula: false,
+  vaccinationStatus: false,
+  resume: false,
+  coe: false,
+  philhealth: false,
+  tinNumber: false,
 };
 
 interface AssessmentProps {
@@ -47,7 +62,8 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
   const [statusRemarks, setStatusRemarks] = useState<string>('');
   const [applicantRemarks, setApplicantRemarks] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [applicantData, setApplicantData] = useState<{ [key: string]: string }>(emptyApplicant);
+  const [applicantData, setApplicantData] = useState<{ [key: string]: any }>(emptyApplicant);
+
   const [newClientName, setNewClientName] = useState<string>('');
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [deletingClientId, setDeletingClientId] = useState<number | null>(null);
@@ -115,7 +131,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
         setMedicalStatus(applicant.MEDICAL_STATUS || "");
         setDocScreeningStatus(applicant.DOC_SCREENING_STATUS || "");
         setPhysicalScreeningStatus(applicant.PHYSICAL_SCREENING_STATUS || "");
-        setStatusRemarks(applicant.Status_REMARKS || applicant.STATUS_REMARKS || "");
+        setStatusRemarks(applicant.STATUS_REMARKS || applicant.Status_REMARKS || "");
         setApplicantRemarks(applicant.APPLICANT_REMARKS || "");
 
         // Check selected companies based on current clients from API
@@ -182,10 +198,29 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
     updatedApplicantData["STATUS_REMARKS"] = statusRemarks;
     updatedApplicantData["APPLICANT_REMARKS"] = applicantRemarks;
 
+    updatedApplicantData["STATUS_REMARKS"] = statusRemarks;
+    updatedApplicantData["APPLICANT_REMARKS"] = applicantRemarks;
+
     try {
       await saveApplicantAssessment(updatedApplicantData);
       setStatus('Ok');
-      setApplicantData(updatedApplicantData);
+
+      // Update local state
+      const finalData = { ...updatedApplicantData };
+      setApplicantData(finalData);
+
+      // Broadcast update for real-time reflection
+      try {
+        window.dispatchEvent(new CustomEvent('applicant-updated', {
+          detail: {
+            no: no,
+            id: applicantData.id,
+            status: applicantData.STATUS, // Keep existing status
+          }
+        }));
+      } catch (e) {
+        console.error('Failed to dispatch update event:', e);
+      }
       // Log to assessment history
       try {
         await fetch('/api/applicants/assessment-history', {
@@ -218,6 +253,29 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
       fetchApplicantData(no);
     }
   }, [no, clients]);
+
+  // Listen for external updates to keep local state in sync (e.g. from Sidebar Overview tab or data refresh)
+  useEffect(() => {
+    const handleUpdate = (e: any) => {
+      const detail = e.detail || {};
+      const { no: updatedNo } = detail;
+      if (updatedNo === no) {
+        // Sync other assessment fields if they were provided (e.g. from a data refresh)
+        if (detail.requirementsStatus !== undefined) setRequirementsStatus(detail.requirementsStatus);
+        if (detail.finalInterviewStatus !== undefined) setFinalInterviewStatus(detail.finalInterviewStatus);
+        if (detail.medicalStatus !== undefined) setMedicalStatus(detail.medicalStatus);
+        if (detail.docScreeningStatus !== undefined) setDocScreeningStatus(detail.docScreeningStatus);
+        if (detail.physicalScreeningStatus !== undefined) setPhysicalScreeningStatus(detail.physicalScreeningStatus);
+        if (detail.statusRemarks !== undefined) setStatusRemarks(detail.statusRemarks);
+        if (detail.applicantRemarks !== undefined) setApplicantRemarks(detail.applicantRemarks);
+        
+        // Update full applicant data too
+        setApplicantData(prev => ({ ...prev, ...detail }));
+      }
+    };
+    window.addEventListener('applicant-updated', handleUpdate);
+    return () => window.removeEventListener('applicant-updated', handleUpdate);
+  }, [no]);
 
   // Handle adding a new client
   const handleAddClient = async (e: React.SyntheticEvent) => {
@@ -438,6 +496,8 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                   />
                 </div>
               </div>
+
+
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-white/5 rounded-xl p-4 border border-white/10 shadow-sm backdrop-blur-sm">
                 <div className="flex flex-col gap-2">
