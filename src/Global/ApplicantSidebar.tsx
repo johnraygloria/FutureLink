@@ -362,7 +362,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState<User | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const { activeSection } = useNavigation();
+  const { activeSection, setActiveSection, setCurrentApplicantNo } = useNavigation();
   const isOpen = !!selectedUser;
 
   useEffect(() => {
@@ -402,6 +402,16 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   const handleStatusChange = (newStatus: ApplicationStatus) => {
     if (selectedUser) {
       let finalStatus = newStatus;
+
+      // Assessment "push through" behavior:
+      // When requirements are complete in Assessment, the applicant should move to Selection as "For Medical".
+      if (activeSection === 'assessment' && newStatus === 'Final Interview/Complete Requirements') {
+        finalStatus = 'For Medical';
+        try {
+          setCurrentApplicantNo(selectedUser.no);
+          setActiveSection('selection');
+        } catch { }
+      }
 
       onStatusChange?.(selectedUser.id, finalStatus);
 
@@ -541,6 +551,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                             <>
                               {/* Selection statuses */}
                               <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
+                              <option value="Pending For Medical" className="bg-gray-800 text-white">Pending For Medical</option>
                               <option value="Biometrics" className="bg-gray-800 text-white">Biometrics</option>
                               <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
                               <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
@@ -561,6 +572,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               <option value="Final Interview/Incomplete Requirements" className="bg-gray-800 text-white">Final Interview/Incomplete Requirements</option>
                               <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
                               <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
+                              <option value="Pending For Medical" className="bg-gray-800 text-white">Pending For Medical</option>
                               <option value="Biometrics" className="bg-gray-800 text-white">Biometrics</option>
                               <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
                               <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>

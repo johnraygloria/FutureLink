@@ -200,6 +200,7 @@ function RecruitmentDatabase() {
       if (firstNo) setCurrentApplicantNo(firstNo);
       if (action === 'Screening') setActiveSection('screening' as any);
       else if (action === 'Assessment' || action === 'Final Interview') setActiveSection('assessment' as any);
+      else if (action === 'Medical' || action === 'SBMA Gate Pass') setActiveSection('selection' as any);
       else setActiveSection('engagement' as any);
 
       // Clear selection and refresh list

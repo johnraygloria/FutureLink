@@ -3,6 +3,7 @@ import type { User } from "../../../../api/applicant";
 export const ALLOWED_SELECTION_STATUSES = new Set([
   'Final Interview/Complete Requirements',
   'For Medical',
+  'Pending For Medical',
   'For SBMA Gate Pass',
   'Biometrics',
 ]);

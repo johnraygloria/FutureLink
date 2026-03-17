@@ -133,8 +133,16 @@ export default function SelectionEmployees() {
           return prev.filter(u => u.no !== no);
         }
         const updated = [...prev];
-        updated[idx] = { ...updated[idx], status } as any;
+        updated[idx] = { ...updated[idx], ...detail } as any;
         return updated;
+      });
+
+      // Also update selectedEmployee if it's the one that was updated
+      setSelectedEmployee(prev => {
+        if (prev && prev.no === no) {
+          return { ...prev, ...detail };
+        }
+        return prev;
       });
     };
 
@@ -153,6 +161,16 @@ export default function SelectionEmployees() {
       setSelectedEmployee(proceededEmployee);
     }
   }, [currentApplicantNo, employees, setSelectedEmployee]);
+
+  // Keep selectedEmployee in sync when employees list is refreshed in the background
+  useEffect(() => {
+    if (selectedEmployee) {
+      const updated = employees.find(e => e.no === selectedEmployee.no);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(selectedEmployee)) {
+        setSelectedEmployee(updated);
+      }
+    }
+  }, [employees, selectedEmployee?.no]);
 
   // Selection History Page
   if (showHistory) {

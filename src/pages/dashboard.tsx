@@ -86,7 +86,7 @@ export default function Dashboard() {
             newMetrics.assessment++;
           }
           // Selection Phase
-          else if (['For Completion', 'For Medical', 'For SBMA Gate Pass'].includes(status)) {
+          else if (['For Completion', 'For Medical', 'Pending For Medical', 'For SBMA Gate Pass'].includes(status)) {
             newMetrics.selection++;
           }
           // Engagement Phase

@@ -58,6 +58,8 @@ const SelectionTable: React.FC<SelectionTableProps> = ({ users, selectedUser, on
         {!isLoading && users.map((user) => {
           const displayData = mapUserToDisplayFormat(user);
           const isSelected = selectedUser?.id === user.id;
+          const normalizedStatus =
+            user.status === 'Final Interview/Complete Requirements' ? 'For Medical' : user.status;
           return (
             <tr
               key={user.id}
@@ -86,15 +88,15 @@ const SelectionTable: React.FC<SelectionTableProps> = ({ users, selectedUser, on
                 <div className="text-sm text-text-secondary">{formatAppliedDate(user.dateApplied)}</div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <span className={`px-3 py-1 text-xs font-bold rounded-full border ${user.status === 'Final Interview/Complete Requirements' ? 'bg-info/10 text-info border-info/20' :
-                  user.status === 'For Medical' ? 'bg-primary/10 text-primary-light border-primary/20' :
-                    user.status === 'For SBMA Gate Pass' ? 'bg-warning/10 text-warning border-warning/20' :
-                      user.status === 'Biometrics' ? 'bg-primary/20 text-primary-light border-primary/30 shadow-[0_0_10px_rgba(0,166,167,0.2)]' :
-                        user.status === 'For Deployment' ? 'bg-primary/20 text-primary border-primary/30' :
-                          user.status === 'Deployed' ? 'bg-success/10 text-success border-success/20' :
-                            'bg-white/5 text-text-secondary border-white/10'
+                <span className={`px-3 py-1 text-xs font-bold rounded-full border ${normalizedStatus === 'For Medical' ? 'bg-primary/10 text-primary-light border-primary/20' :
+                  normalizedStatus === 'Pending For Medical' ? 'bg-info/10 text-info border-info/20' :
+                  normalizedStatus === 'For SBMA Gate Pass' ? 'bg-warning/10 text-warning border-warning/20' :
+                    normalizedStatus === 'Biometrics' ? 'bg-primary/20 text-primary-light border-primary/30 shadow-[0_0_10px_rgba(0,166,167,0.2)]' :
+                      normalizedStatus === 'For Deployment' ? 'bg-primary/20 text-primary border-primary/30' :
+                        normalizedStatus === 'Deployed' ? 'bg-success/10 text-success border-success/20' :
+                          'bg-white/5 text-text-secondary border-white/10'
                   }`}>
-                  {user.status}
+                  {normalizedStatus}
                 </span>
               </td>
               {ADDITIONAL_SELECTION_COLUMNS.map((columnKey) => (

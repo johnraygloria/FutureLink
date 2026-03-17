@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface ProcessTimerProps {
   processName: string;
@@ -6,37 +6,84 @@ interface ProcessTimerProps {
   duration?: number; // in seconds
 }
 
+type PersistedTimer = {
+  nextAtMs: number;
+  durationSec: number;
+};
+
 const ProcessTimer: React.FC<ProcessTimerProps> = ({
   processName,
   onTimerComplete,
   duration = 5
 }) => {
-  const [seconds, setSeconds] = useState(duration);
-  const [isActive, setIsActive] = useState(true);
+  const storageKey = useMemo(() => `processTimer:${processName}`, [processName]);
+  const [seconds, setSeconds] = useState<number>(duration);
+  const [isDue, setIsDue] = useState(false);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    const now = Date.now();
+    const durationMs = Math.max(1, duration) * 1000;
 
-    if (isActive && seconds > 0) {
-      interval = setInterval(() => {
-        setSeconds(seconds => seconds - 1);
-      }, 1000);
-    } else if (seconds === 0) {
-      setIsActive(false);
-      if (onTimerComplete) {
-        onTimerComplete();
+    const readPersisted = (): PersistedTimer | null => {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as Partial<PersistedTimer>;
+        if (!parsed || typeof parsed.nextAtMs !== 'number' || typeof parsed.durationSec !== 'number') return null;
+        return { nextAtMs: parsed.nextAtMs, durationSec: parsed.durationSec };
+      } catch {
+        return null;
       }
-      // Reset timer after completion
-      setTimeout(() => {
-        setSeconds(duration);
-        setIsActive(true);
-      }, 100);
+    };
+
+    const writePersisted = (value: PersistedTimer) => {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(value));
+      } catch { }
+    };
+
+    let persisted = readPersisted();
+    if (!persisted || persisted.durationSec !== duration) {
+      // Reset schedule when duration changes or nothing is stored yet.
+      persisted = { nextAtMs: now + durationMs, durationSec: duration };
+      writePersisted(persisted);
     }
 
-    return () => {
-      if (interval) clearInterval(interval);
+    const tick = () => {
+      const current = Date.now();
+      const p = readPersisted() || persisted!;
+
+      if (current >= p.nextAtMs) {
+        // Timer elapsed while on another page: trigger once and schedule the next run.
+        setIsDue(true);
+        try {
+          onTimerComplete?.();
+        } catch { }
+        const next = { nextAtMs: current + durationMs, durationSec: duration };
+        persisted = next;
+        writePersisted(next);
+        setSeconds(duration);
+        setIsDue(false);
+        return;
+      }
+
+      const remaining = Math.max(0, Math.ceil((p.nextAtMs - current) / 1000));
+      setSeconds(remaining);
+      setIsDue(false);
     };
-  }, [isActive, seconds, onTimerComplete, duration]);
+
+    // Initial sync (and catch-up if it already elapsed).
+    tick();
+
+    const interval = window.setInterval(tick, 1000);
+    const onVisibility = () => tick(); // resync on tab focus
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [duration, onTimerComplete, storageKey]);
 
   const formatTime = (secs: number) => {
     return secs.toString().padStart(2, '0');
@@ -54,7 +101,7 @@ const ProcessTimer: React.FC<ProcessTimerProps> = ({
         </span>
         <span className="text-xs text-white/70">s</span>
       </div>
-      {!isActive && (
+      {isDue && (
         <div className="ml-1 w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]"></div>
       )}
     </div>

@@ -140,8 +140,16 @@ const EngagementHR: React.FC = () => {
           return prev.filter(u => u.no !== no);
         }
         const updated = [...prev];
-        updated[idx] = { ...updated[idx], status } as any;
+        updated[idx] = { ...updated[idx], ...detail } as any;
         return updated;
+      });
+
+      // Also update selectedUser if it's the one that was updated
+      setSelectedUser(prev => {
+        if (prev && prev.no === no) {
+          return { ...prev, ...detail };
+        }
+        return prev;
       });
     };
 
@@ -160,6 +168,16 @@ const EngagementHR: React.FC = () => {
       setSelectedUser(proceededUser);
     }
   }, [currentApplicantNo, users, setSelectedUser]);
+
+  // Keep selectedUser in sync when users list is refreshed in the background
+  useEffect(() => {
+    if (selectedUser) {
+      const updated = users.find(u => u.no === selectedUser.no);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(selectedUser)) {
+        setSelectedUser(updated);
+      }
+    }
+  }, [users, selectedUser?.no]);
 
   // Assessment History Page
   if (showHistory) {

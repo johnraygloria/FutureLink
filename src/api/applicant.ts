@@ -21,6 +21,7 @@ export type ApplicationStatus =
   | 'Final Interview/Complete Requirements'
   | 'For Completion'
   | 'For Medical'
+  | 'Pending For Medical'
   | 'For SBMA Gate Pass'
   | 'Biometrics'
   | 'On Boarding'

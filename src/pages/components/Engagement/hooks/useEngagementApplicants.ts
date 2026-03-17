@@ -104,13 +104,26 @@ export function useEngagementApplicants() {
       }
       return prevUsers.map(u => u.id === userId ? { ...u, status: newStatus } : u);
     });
+
+    // Also update selectedUser immediately for instant Sidebar feedback
+    if (selectedUser && selectedUser.id === userId) {
+      setSelectedUser(prev => prev ? { ...prev, status: newStatus } : null);
+    }
+
     await fetch('/api/applicants', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     try {
-      window.dispatchEvent(new CustomEvent('applicant-updated', { detail: { no: user.no, status: newStatus } }));
+      window.dispatchEvent(new CustomEvent('applicant-updated', { 
+        detail: { 
+          ...user,
+          status: newStatus,
+          no: user.no,
+          id: userId
+        } 
+      }));
     } catch { }
   };
 
