@@ -493,10 +493,11 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                   { id: 'overview', label: 'Details', icon: <IconUser size={18} /> },
                   { id: 'screening', label: 'Assessment', icon: <IconClipboardCheck size={18} /> },
                 ];
-                // Filter: show relevant tabs in each section
-                const showBothTabs = activeSection === 'assessment' || activeSection === 'selection' || activeSection === 'engagement';
+                // Filter: only the Assessment section should show the "Assessment" tab.
+                // Screening/Selection/Engagement should behave like "details-only".
+                const showBothTabs = activeSection === 'assessment';
                 const visibleTabs = showBothTabs
-                  ? tabs // Show both tabs in assessment/selection/engagement sections
+                  ? tabs // Show both tabs in Assessment section
                   : tabs.filter(t => t.id === 'overview');
                 return visibleTabs.map((tab) => (
                   <button
