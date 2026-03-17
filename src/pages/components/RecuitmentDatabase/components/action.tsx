@@ -9,10 +9,8 @@ const ActionsBar: React.FC<ActionsBarProps> = ({ selectedCount, onAction }) => {
   const actions = [
     { label: 'Screening', color: 'bg-blue-600 hover:bg-blue-700' },
     { label: 'Assessment', color: 'bg-green-600 hover:bg-green-700' },
-    { label: 'Final Interview', color: 'bg-purple-600 hover:bg-purple-700' },
-    { label: 'Medical', color: 'bg-orange-600 hover:bg-orange-700' },
-    { label: 'SBMA Gate Pass', color: 'bg-indigo-600 hover:bg-indigo-700' },
-    { label: 'Deployment', color: 'bg-red-600 hover:bg-red-700' },
+    { label: 'Selection', color: 'bg-orange-600 hover:bg-orange-700' },
+    { label: 'Engagement', color: 'bg-purple-600 hover:bg-purple-700' },
   ];
 
   return (

@@ -162,15 +162,26 @@ function RecruitmentDatabase() {
     }
 
     const selectedIds = Array.from(selectedApplicants);
+    // Map "stage" actions to a status value that each module accepts (see utils/*Utils.ts).
     const toStatusMap: Record<string, string> = {
-      'Screening': 'For Screening',
-      'Assessment': 'For Final Interview/For Assessment',
-      'Final Interview': 'For Final Interview/For Assessment',
-      'Medical': 'For Medical',
-      'SBMA Gate Pass': 'For SBMA Gate Pass',
-      'Deployment': 'For Deployment',
+      Screening: 'For Screening',
+      Assessment: 'Initial Interview',
+      Selection: 'For Medical',
+      Engagement: 'On Boarding',
     };
     const targetStatus = toStatusMap[action];
+    if (!targetStatus) {
+      alert('Unknown action. Please try again.');
+      return;
+    }
+
+    const historyEndpointByAction: Record<string, string> = {
+      Screening: '/api/applicants/screening-history',
+      Assessment: '/api/applicants/assessment-history',
+      Selection: '/api/applicants/selection-history',
+      Engagement: '/api/applicants/engagement-history',
+    };
+    const historyEndpoint = historyEndpointByAction[action] || '/api/applicants/screening-history';
 
     try {
       // Update status in backend for each selected applicant
@@ -180,14 +191,14 @@ function RecruitmentDatabase() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ NO: no, STATUS: targetStatus })
         });
-        // Log movement in history where relevant
+        // Log movement in history
         try {
-          await fetch('/api/applicants/screening-history', {
+          await fetch(historyEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               applicant_no: no,
-              action: action === 'Screening' ? 'Returned to Screening' : `Proceeded to ${action}`,
+              action: `Moved to ${action}`,
               status: targetStatus,
               notes: '',
             })
@@ -199,8 +210,8 @@ function RecruitmentDatabase() {
       const firstNo = selectedIds[0];
       if (firstNo) setCurrentApplicantNo(firstNo);
       if (action === 'Screening') setActiveSection('screening' as any);
-      else if (action === 'Assessment' || action === 'Final Interview') setActiveSection('assessment' as any);
-      else if (action === 'Medical' || action === 'SBMA Gate Pass') setActiveSection('selection' as any);
+      else if (action === 'Assessment') setActiveSection('assessment' as any);
+      else if (action === 'Selection') setActiveSection('selection' as any);
       else setActiveSection('engagement' as any);
 
       // Clear selection and refresh list
