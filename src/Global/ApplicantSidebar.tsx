@@ -104,6 +104,7 @@ const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatu
       AGE: user.age,
       LOCATION: user.location,
       CONTACT_NUMBER: user.contactNumber,
+      EMAIL: user.email,
       POSITION_APPLIED_FOR: user.positionApplied,
       EXPERIENCE: user.experience,
       STATUS: newStatus,
@@ -216,6 +217,7 @@ const updateUserDetails = async (user: User) => {
       AGE: user.age,
       LOCATION: user.location,
       CONTACT_NUMBER: user.contactNumber,
+      EMAIL: user.email,
       POSITION_APPLIED_FOR: user.positionApplied,
       EXPERIENCE: user.experience,
       STATUS: user.status,
@@ -813,6 +815,19 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                           />
                         ) : (
                           <span className="font-medium text-white/90 px-1">{selectedUser.contactNumber}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-text-secondary text-xs uppercase font-medium">Email</span>
+                        {isEditing ? (
+                          <input
+                            type="email"
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            value={editedUser?.email || ''}
+                            onChange={(e) => handleInputChange('email', e.target.value)}
+                          />
+                        ) : (
+                          <span className="font-medium text-white/90 px-1">{selectedUser.email}</span>
                         )}
                       </div>
                       <div className="col-span-1 md:col-span-2 flex flex-col gap-1">

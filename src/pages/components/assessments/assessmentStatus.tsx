@@ -17,6 +17,7 @@ const emptyApplicant: { [key: string]: any } = {
   AGE: "",
   LOCATION: "",
   CONTACT_NUMBER: "",
+  EMAIL: "",
   POSITION_APPLIED_FOR: "",
   EXPERIENCE: "",
   STATUS: "",
@@ -362,6 +363,12 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                     <span className="text-xs uppercase font-medium text-text-secondary">Contact</span>
                     <span className="text-base font-semibold text-white">
                       {applicantData.CONTACT_NUMBER}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs uppercase font-medium text-text-secondary">Email</span>
+                    <span className="text-base font-semibold text-white">
+                      {applicantData.EMAIL}
                     </span>
                   </div>
                   <div className="flex flex-col">

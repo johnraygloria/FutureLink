@@ -13,6 +13,7 @@ export interface ApplicantPersonal {
   age?: string;
   location?: string;
   contactNumber?: string;
+  email?: string;
   positionApplied?: string;
   experience?: string;
 } 

@@ -85,6 +85,7 @@ export function useSelectionApplicants() {
       AGE: user.age || '',
       LOCATION: user.location || '',
       CONTACT_NUMBER: user.contactNumber || '',
+      EMAIL: user.email || '',
       POSITION_APPLIED_FOR: user.positionApplied || '',
       EXPERIENCE: user.experience || '',
       STATUS: newStatus || '',
@@ -179,7 +180,8 @@ export function useSelectionApplicants() {
       result = result.filter((user) =>
         (`${user.firstName || ''} ${user.lastName || ''}`.toLowerCase()).includes(search.toLowerCase()) ||
         (user.positionApplied?.toLowerCase() || '').includes(search.toLowerCase()) ||
-        (user.contactNumber?.toLowerCase() || '').includes(search.toLowerCase())
+        (user.contactNumber?.toLowerCase() || '').includes(search.toLowerCase()) ||
+        (user.email?.toLowerCase() || '').includes(search.toLowerCase())
       );
     }
 

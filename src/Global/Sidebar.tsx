@@ -7,6 +7,8 @@ import {
   IconDatabase,
   IconClipboardList,
   IconLogout,
+  IconHeartHandshake,
+  IconUserCog,
 } from '@tabler/icons-react';
 import FutureLinkLogo from '../assets/logo-default.png'
 
@@ -71,13 +73,13 @@ const Sidebar: React.FC<SidebarProps> = ({
     {
       id: 'engagement',
       name: 'Engagement',
-      icon: IconFileText,
+      icon: IconHeartHandshake,
       description: 'engagement process and results'
     },
     {
       id: 'employee_relations',
       name: 'Employee Relations',
-      icon: IconFileText,
+      icon: IconUserCog,
       description: 'employee management'
     },
     {
@@ -95,19 +97,22 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div
       className={
-        `glass-card z-30 border-r-0 border-white/5 rounded-r-3xl transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] transform h-[95vh] my-auto ml-4 ` +
+        `relative z-30 mt-4 mb-4 ml-4 flex h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-r-[2rem] border border-l-0 border-white/10 bg-[#151b28]/95 shadow-[0_24px_70px_rgba(0,0,0,0.35)] backdrop-blur-2xl transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ` +
         (isCollapsed ? 'w-24' : 'w-72')
       }
     >
-      <div className="flex items-center justify-between p-6">
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-primary/70 to-transparent" />
+      <div className="pointer-events-none absolute -right-24 top-10 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
+
+      <div className={`flex items-center ${isCollapsed ? 'justify-center px-4' : 'justify-between px-5'} pt-5 pb-4`}>
         {!isCollapsed && (
-          <div className="flex items-center space-x-2 animate-fadeIn pl-2">
-            <img src={FutureLinkLogo} alt="FutureLink Logo" className="w-full h-12 object-contain filter drop-shadow-lg" />
+          <div className="animate-fadeIn rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 shadow-inner shadow-white/5">
+            <img src={FutureLinkLogo} alt="FutureLink Logo" className="h-10 w-36 object-contain drop-shadow-lg" />
           </div>
         )}
         <button
           onClick={onToggle}
-          className={`p-2 rounded-xl hover:bg-white/10 text-text-secondary hover:text-white transition-all duration-300 ${isCollapsed ? 'mx-auto' : ''}`}
+          className={`grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-text-secondary shadow-sm transition-all duration-300 hover:border-primary/40 hover:bg-primary/10 hover:text-white active:scale-95 ${isCollapsed ? 'mx-auto' : ''}`}
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
@@ -118,12 +123,17 @@ const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      <div className="px-6 py-2">
+      <div className="px-5 py-3">
         <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
       </div>
 
-      <nav className="p-4 flex-1 overflow-y-auto custom-scrollbar">
-        <ul className="space-y-3">
+      <nav className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
+        {!isCollapsed && (
+          <div className="px-3 pb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-white/30">
+            Workspace
+          </div>
+        )}
+        <ul className="space-y-2">
           {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -132,29 +142,36 @@ const Sidebar: React.FC<SidebarProps> = ({
               <li key={item.id}>
                 <button
                   onClick={() => onSectionChange(item.id)}
-                  className={`group relative w-full flex items-center px-4 py-3.5 rounded-2xl transition-all duration-300 overflow-hidden ${isActive
-                    ? 'bg-gradient-to-r from-primary/20 to-primary/5 shadow-lg shadow-primary/5 border border-primary/20'
-                    : 'hover:bg-white/5 border border-transparent hover:border-white/5'
+                  className={`group relative flex w-full items-center overflow-hidden rounded-2xl border px-3.5 py-3 transition-all duration-300 ${isActive
+                    ? 'border-primary/35 bg-gradient-to-r from-primary/25 via-primary/12 to-white/[0.03] text-white shadow-[0_14px_34px_rgba(0,128,129,0.18)]'
+                    : 'border-transparent text-text-secondary hover:border-white/10 hover:bg-white/[0.05] hover:text-white'
                     } ${isCollapsed ? 'justify-center' : ''}`}
                   title={isCollapsed ? item.name : undefined}
                 >
                   {isActive && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_10px_2px_rgba(0,128,129,0.5)]"></div>
+                    <>
+                      <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-primary-light shadow-[0_0_18px_rgba(0,166,167,0.8)]"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent"></div>
+                    </>
                   )}
 
-                  <Icon className={`w-6 h-6 z-10 transition-colors duration-300 ${isActive ? 'text-primary-light drop-shadow-md' : 'text-text-secondary group-hover:text-white'
-                    }`} stroke={isActive ? 2 : 1.5} />
+                  <span className={`relative z-10 grid h-10 w-10 shrink-0 place-items-center rounded-xl border transition-all duration-300 ${isActive
+                    ? 'border-primary/30 bg-primary/15 text-primary-light'
+                    : 'border-white/10 bg-white/[0.03] text-text-secondary group-hover:border-white/15 group-hover:text-white'
+                    }`}>
+                    <Icon className="h-5 w-5" stroke={isActive ? 2.2 : 1.7} />
+                  </span>
 
                   {!isCollapsed && (
-                    <span className={`ml-4 font-medium tracking-wide z-10 transition-colors duration-300 ${isActive ? 'text-white' : 'text-text-secondary group-hover:text-white'
-                      }`}>
-                      {item.name}
+                    <span className="relative z-10 ml-3 min-w-0 text-left">
+                      <span className={`block truncate text-sm font-semibold tracking-wide transition-colors duration-300 ${isActive ? 'text-white' : 'text-text-secondary group-hover:text-white'
+                        }`}>
+                        {item.name}
+                      </span>
+                      <span className={`mt-0.5 block truncate text-[11px] font-medium ${isActive ? 'text-primary-light/80' : 'text-white/30 group-hover:text-white/45'}`}>
+                        {item.description}
+                      </span>
                     </span>
-                  )}
-
-                  {/* Hover effect glow */}
-                  {!isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   )}
                 </button>
               </li>
@@ -163,13 +180,13 @@ const Sidebar: React.FC<SidebarProps> = ({
         </ul>
       </nav>
 
-      <div className="p-4 pb-8">
-        <div className="bg-white/5 rounded-2xl p-4 border border-white/5 backdrop-blur-md">
+      <div className="mt-auto p-4 pb-6">
+        <div className={`rounded-2xl border border-white/10 bg-white/[0.04] shadow-inner shadow-white/5 ${isCollapsed ? 'p-2' : 'p-3'}`}>
           {isCollapsed ? (
             <div className="flex items-center justify-center">
               <button
                 onClick={onLogout}
-                className="p-2.5 rounded-xl text-danger hover:bg-danger/20 transition-all duration-300"
+                className="grid h-10 w-10 place-items-center rounded-xl text-danger hover:bg-danger/15 transition-all duration-300 active:scale-95"
                 title="Log out"
               >
                 <IconLogout className="w-5 h-5" stroke={2} />
@@ -178,11 +195,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           ) : (
             <button
               onClick={onLogout}
-              className="w-full flex items-center justify-center gap-3 text-sm font-medium text-danger/90 hover:text-danger hover:bg-danger/10 py-3 rounded-xl transition-all duration-300 group"
+              className="group flex w-full items-center justify-between gap-3 rounded-xl border border-danger/10 bg-danger/[0.06] px-3 py-3 text-sm font-semibold text-danger/90 transition-all duration-300 hover:border-danger/25 hover:bg-danger/10 hover:text-danger active:scale-[0.99]"
               title="Log out"
             >
-              <IconLogout className="w-5 h-5 transition-transform group-hover:-translate-x-1" stroke={2} />
-              <span>Log out session</span>
+              <span className="flex items-center gap-3">
+                <IconLogout className="w-5 h-5 transition-transform group-hover:translate-x-0.5" stroke={2} />
+                <span>Log out session</span>
+              </span>
+              <IconChevronRight className="h-4 w-4 opacity-50 transition-transform group-hover:translate-x-0.5" stroke={2} />
             </button>
           )}
         </div>

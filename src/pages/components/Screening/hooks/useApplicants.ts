@@ -63,6 +63,7 @@ export function useApplicants() {
       AGE: data.age || '',
       LOCATION: data.location || '',
       CONTACT_NUMBER: data.contactNumber || '',
+      EMAIL: data.email || '',
       POSITION_APPLIED_FOR: data.positionApplied || '',
       EXPERIENCE: data.experience || '',
       DATIAN: data.datian || '',
@@ -104,6 +105,7 @@ export function useApplicants() {
         id: Date.now(),
         status: 'For Screening',
         contactNumber: data.contactNumber || '',
+        email: data.email || '',
         experience: data.experience || '',
         referredBy: data.referredBy,
         lastName: data.lastName,
@@ -202,6 +204,7 @@ export function useApplicants() {
       AGE: user.age || '',
       LOCATION: user.location || '',
       CONTACT_NUMBER: user.contactNumber || '',
+      EMAIL: user.email || '',
       POSITION_APPLIED_FOR: user.positionApplied || '',
       EXPERIENCE: user.experience || '',
       STATUS: newStatus || '',
@@ -299,7 +302,8 @@ export function useApplicants() {
       result = result.filter((user) =>
         (`${user.firstName || ''} ${user.lastName || ''}`.toLowerCase()).includes(search.toLowerCase()) ||
         (user.positionApplied?.toLowerCase() || '').includes(search.toLowerCase()) ||
-        (user.contactNumber?.toLowerCase() || '').includes(search.toLowerCase())
+        (user.contactNumber?.toLowerCase() || '').includes(search.toLowerCase()) ||
+        (user.email?.toLowerCase() || '').includes(search.toLowerCase())
       );
     }
 

@@ -95,7 +95,7 @@ const App: React.FC = () => {
 
   return (
     <NavigationProvider activeSection={activeSection as any} setActiveSection={setActiveSection as any}>
-      <div className="min-h-screen bg-background flex typography transition-opacity duration-300">
+      <div className="h-screen overflow-hidden bg-background flex items-start typography transition-opacity duration-300">
         <Sidebar
           isCollapsed={isSidebarCollapsed}
           onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}

@@ -49,7 +49,7 @@ export default function SelectionEmployees() {
   const [selectionHistory, setSelectionHistory] = useState<SelectionHistory[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { currentApplicantNo } = useNavigation();
+  const { currentApplicantNo, setCurrentApplicantNo } = useNavigation();
 
   const handleRemoveEmployee = (employeeId: number) => {
     const employee = employees.find(emp => emp.id === employeeId);
@@ -159,8 +159,9 @@ export default function SelectionEmployees() {
     const proceededEmployee = employees.find(emp => emp.no === currentApplicantNo);
     if (proceededEmployee) {
       setSelectedEmployee(proceededEmployee);
+      setCurrentApplicantNo(undefined);
     }
-  }, [currentApplicantNo, employees, setSelectedEmployee]);
+  }, [currentApplicantNo, employees, setSelectedEmployee, setCurrentApplicantNo]);
 
   // Keep selectedEmployee in sync when employees list is refreshed in the background
   useEffect(() => {

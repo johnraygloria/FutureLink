@@ -73,6 +73,7 @@ function RecruitmentDatabase() {
           AGE: r.age || '',
           LOCATION: r.location || '',
           "CONTACT NUMBER": r.contact_number || '',
+          EMAIL: r.email || '',
           "POSITION APPLIED FOR": r.position_applied_for || '',
           EXPERIENCE: r.experience || '',
           CLIENTS: Array.isArray(r.clients) ? r.clients.join(', ') : (r.clients || ''),
@@ -237,6 +238,7 @@ function RecruitmentDatabase() {
           AGE: r.age || '',
           LOCATION: r.location || '',
           "CONTACT NUMBER": r.contact_number || '',
+          EMAIL: r.email || '',
           "POSITION APPLIED FOR": r.position_applied_for || '',
           EXPERIENCE: r.experience || '',
           CLIENTS: Array.isArray(r.clients) ? r.clients.join(', ') : (r.clients || ''),
@@ -260,7 +262,7 @@ function RecruitmentDatabase() {
     // Define the column order as specified
     const columns = [
       'NO', 'REFFERED BY', 'LAST NAME', 'FIRST NAME', 'EXT', 'MIDDLE', 'GENDER', 'SIZE',
-      'DATE OF BIRTH', 'DATE APPLIED', 'FB NAME', 'AGE', 'LOCATION', 'CONTACT NUMBER',
+      'DATE OF BIRTH', 'DATE APPLIED', 'FB NAME', 'AGE', 'LOCATION', 'CONTACT NUMBER', 'EMAIL',
       'POSITION APPLIED FOR', 'EXPERIENCE', 'CLIENTS', 'STATUS', 'REQUIREMENTS STATUS',
       'FINAL INTERVIEW STATUS', 'MEDICAL STATUS', 'STATUS REMARKS', 'APPLICANT REMARKS'
     ];

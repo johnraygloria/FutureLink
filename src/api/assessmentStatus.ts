@@ -21,6 +21,7 @@ export async function fetchApplicantByNo(no: string) {
     AGE: r.age || '',
     LOCATION: r.location || '',
     CONTACT_NUMBER: r.contact_number || '',
+    EMAIL: r.email || '',
     POSITION_APPLIED_FOR: r.position_applied_for || '',
     EXPERIENCE: r.experience || '',
     DATIAN: r.datian || '',

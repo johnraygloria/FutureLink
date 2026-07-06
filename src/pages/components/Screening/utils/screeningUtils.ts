@@ -24,6 +24,7 @@ export const mapScreeningApplicantRow = (r: any): User => ({
   age: r.age || '',
   location: r.location || '',
   contactNumber: r.contact_number || '',
+  email: r.email || '',
   positionApplied: r.position_applied_for || '',
   experience: r.experience || '',
   // Clients from backend (array of names)
@@ -75,6 +76,7 @@ export const ADDITIONAL_SCREENING_COLUMNS = [
   "AGE",
   "LOCATION",
   "CONTACT NUMBER",
+  "EMAIL",
   "EXPERIENCE",
   "CLIENTS",
   "REQUIREMENTS STATUS",
@@ -104,6 +106,7 @@ export const mapUserToDisplayFormat = (user: User): Record<string, any> => {
     "AGE": user.age || '',
     "LOCATION": user.location || '',
     "CONTACT NUMBER": user.contactNumber || '',
+    "EMAIL": user.email || '',
     "POSITION APPLIED FOR": user.positionApplied || '',
     "EXPERIENCE": user.experience || '',
     "CLIENTS": clientsDisplay,

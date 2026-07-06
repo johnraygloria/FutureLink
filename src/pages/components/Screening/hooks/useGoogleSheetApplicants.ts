@@ -17,7 +17,7 @@ export function useGoogleSheetApplicants() {
               status: item.STATUS || '',
               contactNumber: item["CONTACT NUMBER"] || '',
               experience: item.EXPERIENCE || '',
-              email: '',
+              email: item.email || item.EMAIL || '',
               applicationDate: item["DATE APPLIED"] || '',
               referredBy: item["REFFERED BY"] || '',
               lastName: item["LAST NAME"] || '',

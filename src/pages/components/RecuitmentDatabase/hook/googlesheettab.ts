@@ -13,6 +13,7 @@ export interface GoogleSheetApplicant {
   "AGE": string;
   "LOCATION": string;
   "CONTACT NUMBER": string;
+  "EMAIL": string;
   "POSITION APPLIED FOR": string;
   "EXPERIENCE": string;
   "CLIENTS": string;

@@ -228,6 +228,7 @@ CREATE TABLE `recruitment_applicants` (
   `age` varchar(10) DEFAULT NULL,
   `location` varchar(150) DEFAULT NULL,
   `contact_number` varchar(50) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
   `position_applied_for` varchar(150) DEFAULT NULL,
   `experience` varchar(255) DEFAULT NULL,
   `status` varchar(100) DEFAULT NULL,
@@ -258,8 +259,8 @@ CREATE TABLE `recruitment_applicants` (
 -- Dumping data for table `recruitment_applicants`
 --
 
-INSERT INTO `recruitment_applicants` (`id`, `applicant_no`, `referred_by`, `last_name`, `first_name`, `ext`, `middle_name`, `gender`, `size`, `date_of_birth`, `date_applied`, `fb_name`, `age`, `location`, `contact_number`, `position_applied_for`, `experience`, `status`, `requirements_status`, `final_interview_status`, `medical_status`, `status_remarks`, `applicant_remarks`, `recent_picture`, `psa_birth_certificate`, `school_credentials`, `nbi_clearance`, `police_clearance`, `barangay_clearance`, `sss`, `pagibig`, `cedula`, `vaccination_status`, `resume`, `coe`, `philhealth`, `tin_number`, `created_at`, `updated_at`) VALUES
-(5, '1', 'facebook', 'Gloria', 'John Ray', 'M', 'Galenzoga', 'Male', '232', '2001-01-22', '2026-01-12', 'John Ray Gloria', '24', 'Olongapo CIty 42', '09391658479', '798', 'fsdfsd', 'Deployed', NULL, 'Passed', NULL, NULL, NULL, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, '2026-01-20 03:45:29', '2026-01-20 04:32:11');
+INSERT INTO `recruitment_applicants` (`id`, `applicant_no`, `referred_by`, `last_name`, `first_name`, `ext`, `middle_name`, `gender`, `size`, `date_of_birth`, `date_applied`, `fb_name`, `age`, `location`, `contact_number`, `email`, `position_applied_for`, `experience`, `status`, `requirements_status`, `final_interview_status`, `medical_status`, `status_remarks`, `applicant_remarks`, `recent_picture`, `psa_birth_certificate`, `school_credentials`, `nbi_clearance`, `police_clearance`, `barangay_clearance`, `sss`, `pagibig`, `cedula`, `vaccination_status`, `resume`, `coe`, `philhealth`, `tin_number`, `created_at`, `updated_at`) VALUES
+(5, '1', 'facebook', 'Gloria', 'John Ray', 'M', 'Galenzoga', 'Male', '232', '2001-01-22', '2026-01-12', 'John Ray Gloria', '24', 'Olongapo CIty 42', '09391658479', NULL, '798', 'fsdfsd', 'Deployed', NULL, 'Passed', NULL, NULL, NULL, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, '2026-01-20 03:45:29', '2026-01-20 04:32:11');
 
 -- --------------------------------------------------------
 

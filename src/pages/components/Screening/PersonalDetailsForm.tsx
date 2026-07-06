@@ -15,6 +15,7 @@ interface FormFields {
   age?: string;
   location?: string;
   contactNumber?: string;
+  email?: string;
   positionApplied?: string;
   experience?: string;
 }
@@ -197,6 +198,22 @@ const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({ form, handleC
                 onChange={handleChange}
                 className="glass-input w-full rounded-lg py-2.5 pl-8 pr-4 text-sm focus:ring-2 focus:ring-custom-teal/50 focus:border-custom-teal transition-all"
                 placeholder="Facebook Profile Name"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="email" className="text-xs font-semibold text-text-secondary uppercase">Email</label>
+            <div className="relative">
+              <i className="fas fa-envelope absolute left-3 top-3 text-text-secondary/50 text-xs"></i>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={form.email ?? ''}
+                onChange={handleChange}
+                className="glass-input w-full rounded-lg py-2.5 pl-8 pr-4 text-sm focus:ring-2 focus:ring-custom-teal/50 focus:border-custom-teal transition-all"
+                placeholder="applicant@email.com"
               />
             </div>
           </div>

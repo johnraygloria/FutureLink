@@ -93,6 +93,7 @@ CREATE TABLE `recruitment_applicants` (
   `age` varchar(10) DEFAULT NULL,
   `location` varchar(150) DEFAULT NULL,
   `contact_number` varchar(50) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
   `position_applied_for` varchar(150) DEFAULT NULL,
   `experience` varchar(255) DEFAULT NULL,
   `datian` varchar(50) DEFAULT NULL,
@@ -131,10 +132,10 @@ CREATE TABLE `recruitment_applicants` (
 -- Dumping data for table `recruitment_applicants`
 --
 
-INSERT INTO `recruitment_applicants` (`id`, `applicant_no`, `referred_by`, `last_name`, `first_name`, `ext`, `middle_name`, `gender`, `size`, `date_of_birth`, `date_applied`, `fb_name`, `age`, `location`, `contact_number`, `position_applied_for`, `experience`, `datian`, `hokei`, `pobc`, `jinboway`, `surprise`, `thaleste`, `aolly`, `enjoy`, `status`, `requirements_status`, `final_interview_status`, `medical_status`, `status_remarks`, `applicant_remarks`, `recent_picture`, `psa_birth_certificate`, `school_credentials`, `nbi_clearance`, `police_clearance`, `barangay_clearance`, `sss`, `pagibig`, `cedula`, `vaccination_status`, `resume`, `coe`, `philhealth`, `tin_number`, `created_at`, `updated_at`) VALUES
-(2, '12', 'John Ray Glori', 'Gloria', 'John Ray', NULL, 'Galenzoga', 'Male', 'xxl', '2003-01-08', '2025-11-04', NULL, '22', 'Olongapo CIty 42', '09391658479', 'RH 5', 'admin coder', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Initial Interview', NULL, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, '2025-11-03 06:51:21', '2025-11-07 03:54:17'),
-(3, '123', 'facebook', 'Gloria', 'John Ray', NULL, 'Galenzoga', 'Male', 'xxl', '2002-01-08', '2025-11-18', NULL, '23', 'Olongapo CIty', '09391658479', 'RH 5asdasdasd', 'sadasd', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Deployed', NULL, NULL, NULL, NULL, NULL, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '2025-11-03 06:55:45', '2025-11-08 03:21:25'),
-(4, '2323223', 'ROBLES', 'Gloria', 'John', 'Jr', 'Galenzoga', 'Male', 'xxl', '2003-01-08', '2025-11-04', 'dominique robles', '22', 'Olongapo', '09391658479', '798', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'On Boarding', NULL, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '2025-11-03 06:59:11', '2025-11-03 12:53:23');
+INSERT INTO `recruitment_applicants` (`id`, `applicant_no`, `referred_by`, `last_name`, `first_name`, `ext`, `middle_name`, `gender`, `size`, `date_of_birth`, `date_applied`, `fb_name`, `age`, `location`, `contact_number`, `email`, `position_applied_for`, `experience`, `datian`, `hokei`, `pobc`, `jinboway`, `surprise`, `thaleste`, `aolly`, `enjoy`, `status`, `requirements_status`, `final_interview_status`, `medical_status`, `status_remarks`, `applicant_remarks`, `recent_picture`, `psa_birth_certificate`, `school_credentials`, `nbi_clearance`, `police_clearance`, `barangay_clearance`, `sss`, `pagibig`, `cedula`, `vaccination_status`, `resume`, `coe`, `philhealth`, `tin_number`, `created_at`, `updated_at`) VALUES
+(2, '12', 'John Ray Glori', 'Gloria', 'John Ray', NULL, 'Galenzoga', 'Male', 'xxl', '2003-01-08', '2025-11-04', NULL, '22', 'Olongapo CIty 42', '09391658479', NULL, 'RH 5', 'admin coder', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Initial Interview', NULL, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, '2025-11-03 06:51:21', '2025-11-07 03:54:17'),
+(3, '123', 'facebook', 'Gloria', 'John Ray', NULL, 'Galenzoga', 'Male', 'xxl', '2002-01-08', '2025-11-18', NULL, '23', 'Olongapo CIty', '09391658479', NULL, 'RH 5asdasdasd', 'sadasd', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Deployed', NULL, NULL, NULL, NULL, NULL, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '2025-11-03 06:55:45', '2025-11-08 03:21:25'),
+(4, '2323223', 'ROBLES', 'Gloria', 'John', 'Jr', 'Galenzoga', 'Male', 'xxl', '2003-01-08', '2025-11-04', 'dominique robles', '22', 'Olongapo', '09391658479', NULL, '798', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'On Boarding', NULL, NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '2025-11-03 06:59:11', '2025-11-03 12:53:23');
 
 -- --------------------------------------------------------
 

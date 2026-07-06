@@ -36,6 +36,7 @@ async function ensureTables() {
     age VARCHAR(10),
     location VARCHAR(150),
     contact_number VARCHAR(50),
+    email VARCHAR(255),
     position_applied_for VARCHAR(150),
     experience VARCHAR(255),
     status VARCHAR(100),
@@ -63,6 +64,12 @@ async function ensureTables() {
     KEY idx_applicant_no (applicant_no),
     KEY idx_status (status)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+  try {
+    await pool.query(`ALTER TABLE recruitment_applicants ADD COLUMN email VARCHAR(255) AFTER contact_number`);
+  } catch (error) {
+    if (error && error.code !== 'ER_DUP_FIELDNAME') throw error;
+  }
   // Screening history table
   await pool.query(`CREATE TABLE IF NOT EXISTS screening_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -124,6 +131,7 @@ async function insertRecruitmentApplicant(data) {
     data.age || null,
     data.location || null,
     data.contact_number || null,
+    data.email || null,
     data.position_applied_for || null,
     data.experience || null,
     data.status || null,
@@ -153,7 +161,7 @@ async function insertRecruitmentApplicant(data) {
   const [result] = await pool.execute(
     `INSERT INTO recruitment_applicants (
       applicant_no, referred_by, last_name, first_name, ext, middle_name, gender, size, date_of_birth,
-      date_applied, fb_name, age, location, contact_number, position_applied_for, experience, status,
+      date_applied, fb_name, age, location, contact_number, email, position_applied_for, experience, status,
       requirements_status, final_interview_status, medical_status, status_remarks, applicant_remarks,
       recent_picture, psa_birth_certificate, school_credentials, nbi_clearance, police_clearance,
       barangay_clearance, sss, pagibig, cedula, vaccination_status, resume, coe, philhealth, tin_number
@@ -218,7 +226,7 @@ async function upsertRecruitmentApplicant(data) {
     await pool.execute(
       `UPDATE recruitment_applicants
        SET referred_by=IFNULL(?, referred_by), last_name=IFNULL(?, last_name), first_name=IFNULL(?, first_name), ext=IFNULL(?, ext), middle_name=IFNULL(?, middle_name), gender=IFNULL(?, gender), size=IFNULL(?, size), date_of_birth=IFNULL(?, date_of_birth),
-           date_applied=IFNULL(?, date_applied), fb_name=IFNULL(?, fb_name), age=IFNULL(?, age), location=IFNULL(?, location), contact_number=IFNULL(?, contact_number), position_applied_for=IFNULL(?, position_applied_for), experience=IFNULL(?, experience),
+           date_applied=IFNULL(?, date_applied), fb_name=IFNULL(?, fb_name), age=IFNULL(?, age), location=IFNULL(?, location), contact_number=IFNULL(?, contact_number), email=IFNULL(?, email), position_applied_for=IFNULL(?, position_applied_for), experience=IFNULL(?, experience),
            status=IFNULL(?, status),
            requirements_status=IFNULL(?, requirements_status), final_interview_status=IFNULL(?, final_interview_status), medical_status=IFNULL(?, medical_status), status_remarks=IFNULL(?, status_remarks), applicant_remarks=IFNULL(?, applicant_remarks),
            recent_picture=IFNULL(?, recent_picture), psa_birth_certificate=IFNULL(?, psa_birth_certificate), school_credentials=IFNULL(?, school_credentials), nbi_clearance=IFNULL(?, nbi_clearance), police_clearance=IFNULL(?, police_clearance),
@@ -238,6 +246,7 @@ async function upsertRecruitmentApplicant(data) {
         normalize(data.age),
         normalize(data.location),
         normalize(data.contact_number),
+        normalize(data.email),
         normalize(data.position_applied_for),
         normalize(data.experience),
         normalize(data.status),

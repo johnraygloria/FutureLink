@@ -44,7 +44,7 @@ const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, 
         )}
         {!isLoading && users.length === 0 && (
           <tr>
-            <td colSpan={22} className="px-4 sm:px-6 py-20 text-center text-text-secondary">
+            <td colSpan={4 + ADDITIONAL_SCREENING_COLUMNS.length} className="px-4 sm:px-6 py-20 text-center text-text-secondary">
               <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
                 <i className={`fas ${hasActiveFilters ? 'fa-filter' : 'fa-user-slash'} text-white/20 text-2xl`} />
               </div>
