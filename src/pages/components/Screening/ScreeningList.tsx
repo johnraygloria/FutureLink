@@ -3,15 +3,33 @@ import ApplicantSidebar from "../../../Global/ApplicantSidebar";
 import InputApplicantModal from './InputApplicantModal';
 import { useApplicants } from "./hooks/useApplicants";
 import ApplicantsTable from "./components/ApplicantsTable";
-import ApplicantsToolbar from "./components/ApplicantsToolbar";
+import ScreeningHistoryTable from "./components/ScreeningHistoryTable";
 import { isScreeningStatus, mapScreeningApplicantRow } from "./utils/screeningUtils";
 import FilterBar from "../../../components/Filters/FilterBar";
 import FilterSidebar from "../../../components/Filters/FilterSidebar";
 import ProcessTimer from "../../../components/ProcessTimer";
+import PipelinePageShell from "../../../components/Pipeline/PipelinePageShell";
+import PipelineModuleHeader from "../../../components/Pipeline/PipelineModuleHeader";
+import PipelineActionBar from "../../../components/Pipeline/PipelineActionBar";
+import PipelineControlStrip from "../../../components/Pipeline/PipelineControlStrip";
+import PipelineHistoryShell from "../../../components/Pipeline/PipelineHistoryShell";
+
+type ScreeningHistoryRow = {
+  id: number;
+  applicant_no: string;
+  action: string;
+  status: string;
+  notes: string;
+  created_at: string;
+  full_name?: string;
+  position_applied_for?: string;
+  date_applied?: string;
+};
 
 const ScreeningList: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [screeningHistory, setScreeningHistory] = useState<ScreeningHistoryRow[]>([]);
   const {
     selectedUser,
     search,
@@ -28,7 +46,6 @@ const ScreeningList: React.FC = () => {
     handleAddApplicant,
     removeApplicant,
     filteredUsers,
-    // Filter-related
     filters,
     activeFilters,
     hasFilters,
@@ -62,27 +79,31 @@ const ScreeningList: React.FC = () => {
   }, [setUsers]);
 
   useEffect(() => {
+    if (!showHistory) return;
+    fetch('/api/applicants/screening-history')
+      .then(res => (res.ok ? res.json() : []))
+      .then((rows: ScreeningHistoryRow[]) => setScreeningHistory(rows))
+      .catch(() => setScreeningHistory([]));
+  }, [showHistory]);
+
+  useEffect(() => {
     function onUpdated(e: any) {
       const detail = e?.detail || {};
       const { no, status } = detail;
       if (!no) return;
-      
+
       setUsers(prev => {
         const idx = prev.findIndex(u => u.no === no);
         if (idx === -1) return prev;
-
         const updated = [...prev];
-        // If status is provided, check if it's still allowed in this view
         if (status && !isScreeningStatus(status)) {
           updated.splice(idx, 1);
           return updated;
         }
-
         updated[idx] = { ...updated[idx], ...detail } as any;
         return updated;
       });
 
-      // Also update selectedUser if it's the one that was updated
       setSelectedUser(prev => {
         if (prev && prev.no === no) {
           return { ...prev, ...detail };
@@ -94,7 +115,6 @@ const ScreeningList: React.FC = () => {
     return () => window.removeEventListener('applicant-updated', onUpdated);
   }, [setUsers, setSelectedUser]);
 
-  // Keep selectedUser in sync when users list is refreshed in the background
   useEffect(() => {
     if (selectedUser) {
       const updated = users.find(u => u.no === selectedUser.no);
@@ -106,75 +126,65 @@ const ScreeningList: React.FC = () => {
 
   if (showHistory) {
     return (
-      <div>
-        <div style={{
-          position: 'fixed',
-          top: '10px',
-          right: '10px',
-          background: '#10b981',
-          color: 'white',
-          padding: '8px 12px',
-          borderRadius: '6px',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          zIndex: 1000,
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}>
-          📊 History View Active
-        </div>
-        <ApplicantsToolbar
-          search={search}
-          setSearch={setSearch}
-          usersCount={users.length}
-          onOpenModal={() => setIsModalOpen(true)}
-          showHistory={showHistory}
-          setShowHistory={setShowHistory}
-        />
-      </div>
+      <PipelineHistoryShell
+        title="Screening History"
+        backLabel="Back to Screening"
+        onBack={() => setShowHistory(false)}
+      >
+        <ScreeningHistoryTable rows={screeningHistory} />
+      </PipelineHistoryShell>
     );
   }
 
   return (
-    <div className="flex w-full relative overflow-hidden">
-      <div className="flex-1 max-w-full mx-auto py-6 px-4 md:px-8">
-        <div className="glass-card max-w-full rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 backdrop-blur-xl relative z-10 transition-all hover:border-white/20">
-          {/* Timer and Filter Bar */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-md">
+    <>
+      <PipelinePageShell>
+        <PipelineModuleHeader
+          title="Screening"
+          subtitle="Review new applicants, documents, and initial interview progress."
+          count={users.length}
+          filteredCount={hasFilters ? filteredUsers.length : undefined}
+          icon="fa-user-check"
+        />
+
+        <PipelineControlStrip
+          timer={
             <ProcessTimer
               processName="Screening"
               duration={5}
               onTimerComplete={() => refreshData(true)}
             />
+          }
+          filters={
             <FilterBar
+              embedded
               activeFilters={activeFilters}
               onOpenFilters={handleOpenFilterSidebar}
               onRemoveFilter={handleRemoveFilter}
               onClearAll={handleClearAllFilters}
             />
-          </div>
+          }
+        />
 
-          {/* Existing Toolbar */}
-          <ApplicantsToolbar
-            search={search}
-            setSearch={setSearch}
-            usersCount={users.length}
-            onOpenModal={() => setIsModalOpen(true)}
-            showHistory={showHistory}
-            setShowHistory={setShowHistory}
-          />
+        <PipelineActionBar
+          search={search}
+          setSearch={setSearch}
+          onViewHistory={() => setShowHistory(true)}
+          primaryAction={{
+            label: 'Input Data',
+            icon: 'fa-plus',
+            onClick: () => setIsModalOpen(true),
+          }}
+        />
 
-          {/* Existing Table */}
-          <div className="p-0">
-            <ApplicantsTable
-              users={filteredUsers}
-              selectedUser={selectedUser}
-              onUserClick={handleUserClick}
-              isLoading={isLoading}
-              hasActiveFilters={hasFilters}
-            />
-          </div>
-        </div>
-      </div>
+        <ApplicantsTable
+          users={filteredUsers}
+          selectedUser={selectedUser}
+          onUserClick={handleUserClick}
+          isLoading={isLoading}
+          hasActiveFilters={hasFilters}
+        />
+      </PipelinePageShell>
 
       <ApplicantSidebar
         selectedUser={selectedUser}
@@ -184,7 +194,6 @@ const ScreeningList: React.FC = () => {
         onRemoveApplicant={removeApplicant}
       />
 
-      {/* Filter Sidebar Modal - NEW */}
       <FilterSidebar
         isOpen={isFilterSidebarOpen}
         onClose={() => setIsFilterSidebarOpen(false)}
@@ -200,8 +209,8 @@ const ScreeningList: React.FC = () => {
         onSubmit={handleAddApplicant}
         onUpdateStatus={(_form, _newStatus) => { /* TODO: implement if needed */ }}
       />
-    </div>
+    </>
   );
 };
 
-export default ScreeningList; 
+export default ScreeningList;

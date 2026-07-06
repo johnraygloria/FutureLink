@@ -8,20 +8,22 @@ interface FilterBarProps {
   onOpenFilters: () => void;
   onRemoveFilter: (filter: ActiveFilter) => void;
   onClearAll: () => void;
+  embedded?: boolean;
 }
 
 const FilterBar: React.FC<FilterBarProps> = ({
   activeFilters,
   onOpenFilters,
   onRemoveFilter,
-  onClearAll
+  onClearAll,
+  embedded = false,
 }) => {
   return (
-    <div className="bg-white/5 backdrop-blur-md px-6 py-3 border-b border-white/10 flex items-center gap-3 flex-wrap">
+    <div className={`flex items-center gap-2.5 flex-wrap ${embedded ? '' : 'bg-white/5 backdrop-blur-md px-6 py-3 border-b border-white/10'}`}>
       {/* Filter Button */}
       <button
         onClick={onOpenFilters}
-        className="flex items-center gap-2 px-4 py-2 bg-primary/20 text-primary-light border border-primary/30 rounded-xl hover:bg-primary/30 transition-all active:scale-95 group"
+        className="flex items-center gap-2 px-3.5 py-2 bg-primary/15 text-primary-light border border-primary/25 rounded-xl hover:bg-primary/25 transition-all active:scale-95 group"
       >
         <IconFilter size={18} className="group-hover:rotate-180 transition-transform duration-500" />
         <span className="font-semibold text-sm">Filters</span>

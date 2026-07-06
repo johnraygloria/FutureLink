@@ -5,6 +5,7 @@ const logger = require('./middleware/logger');
 const applicantsRoutes = require('./routes/applicants');
 const authRoutes = require('./routes/auth');
 const clientsRoutes = require('./routes/clients');
+const masterlistRoutes = require('./routes/masterlist');
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(logger);
 app.use('/api/applicants', applicantsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientsRoutes);
+app.use('/api/masterlist', masterlistRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running');

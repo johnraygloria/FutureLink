@@ -7,9 +7,13 @@ import SelectionHistoryTable from "./components/SelectionHistoryTable";
 import { useSelectionApplicants } from "./hooks/useSelectionApplicants";
 import FilterBar from "../../../components/Filters/FilterBar";
 import FilterSidebar from "../../../components/Filters/FilterSidebar";
-import SelectionToolbar from "./components/SelectionToolbar";
 import SelectionTable from "./components/SelectionTable";
 import ProcessTimer from "../../../components/ProcessTimer";
+import PipelinePageShell from "../../../components/Pipeline/PipelinePageShell";
+import PipelineModuleHeader from "../../../components/Pipeline/PipelineModuleHeader";
+import PipelineActionBar from "../../../components/Pipeline/PipelineActionBar";
+import PipelineControlStrip from "../../../components/Pipeline/PipelineControlStrip";
+import PipelineHistoryShell from "../../../components/Pipeline/PipelineHistoryShell";
 
 interface SelectionHistory {
   id: number;
@@ -176,82 +180,70 @@ export default function SelectionEmployees() {
   // Selection History Page
   if (showHistory) {
     return (
-      <div className="flex w-full">
-        <div className="flex-1 max-w-full mx-auto py-10 px-4">
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b bg-white">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setShowHistory(false)}
-                  className="px-4 py-2 rounded-lg bg-gray-600 text-white font-semibold shadow-sm focus:outline-none border border-gray-700"
-                >
-                  <i className="fas fa-arrow-left mr-2"></i>
-                  Back to Selection
-                </button>
-                <h1 className="text-2xl font-bold text-custom-teal">Selection History</h1>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <SelectionHistoryTable
-                rows={selectionHistory as any}
-                getEmployeeInfo={(employeeId) => {
-                  const employee = employees.find(e => e.id === employeeId);
-                  return {
-                    name: employee ? (`${employee.firstName || ''} ${employee.lastName || ''}`.trim() || employee.facebook || 'Unknown') : 'Unknown',
-                    position: employee?.positionApplied || '-',
-                    dateApplied: employee?.dateApplied || '',
-                  };
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      <PipelineHistoryShell
+        title="Selection History"
+        backLabel="Back to Selection"
+        onBack={() => setShowHistory(false)}
+      >
+        <SelectionHistoryTable
+          rows={selectionHistory as any}
+          getEmployeeInfo={(employeeId) => {
+            const employee = employees.find(e => e.id === employeeId);
+            return {
+              name: employee ? (`${employee.firstName || ''} ${employee.lastName || ''}`.trim() || employee.facebook || 'Unknown') : 'Unknown',
+              position: employee?.positionApplied || '-',
+              dateApplied: employee?.dateApplied || '',
+            };
+          }}
+        />
+      </PipelineHistoryShell>
     );
   }
 
-  // Main Selection Page
   return (
-    <div className="flex w-full relative overflow-hidden">
-      <div className="flex-1 max-w-full mx-auto py-6 px-4 md:px-8">
-        <div className="glass-card max-w-full rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 backdrop-blur-xl relative z-10 transition-all hover:border-white/20">
-          {/* Timer and Filter Bar */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-md">
+    <>
+      <PipelinePageShell>
+        <PipelineModuleHeader
+          title="Selection"
+          subtitle="Manage medical clearance, biometrics, and deployment preparation."
+          count={employees.length}
+          filteredCount={hasFilters ? filteredUsers.length : undefined}
+          icon="fa-list-check"
+        />
+
+        <PipelineControlStrip
+          timer={
             <ProcessTimer
               processName="Selection"
               duration={5}
               onTimerComplete={() => refreshData(true)}
             />
+          }
+          filters={
             <FilterBar
+              embedded
               activeFilters={activeFilters}
               onOpenFilters={handleOpenFilterSidebar}
               onRemoveFilter={handleRemoveFilter}
               onClearAll={handleClearAllFilters}
             />
-          </div>
+          }
+        />
 
-          {/* Toolbar */}
-          <SelectionToolbar
-            search={search}
-            setSearch={setSearch}
-            usersCount={employees.length}
-            showHistory={showHistory}
-            setShowHistory={setShowHistory}
-          />
+        <PipelineActionBar
+          search={search}
+          setSearch={setSearch}
+          onViewHistory={() => setShowHistory(true)}
+        />
 
-          {/* Table */}
-          <div className="p-0">
-            <SelectionTable
-              users={filteredUsers}
-              selectedUser={selectedEmployee}
-              onUserClick={openSidebar}
-              isLoading={isLoading}
-              hasActiveFilters={hasFilters}
-            />
-          </div>
-        </div>
-      </div>
+        <SelectionTable
+          users={filteredUsers}
+          selectedUser={selectedEmployee}
+          onUserClick={openSidebar}
+          isLoading={isLoading}
+          hasActiveFilters={hasFilters}
+        />
+      </PipelinePageShell>
 
       <ApplicantSidebar
         selectedUser={selectedEmployee}
@@ -260,7 +252,6 @@ export default function SelectionEmployees() {
         onRemoveApplicant={handleRemoveEmployee}
       />
 
-      {/* Filter Sidebar Modal */}
       <FilterSidebar
         isOpen={isFilterSidebarOpen}
         onClose={() => setIsFilterSidebarOpen(false)}
@@ -269,6 +260,6 @@ export default function SelectionEmployees() {
         onApplyFilters={handleApplyFilters}
         onClearFilters={handleClearAllFilters}
       />
-    </div>
+    </>
   );
 }

@@ -15,6 +15,14 @@ import Assessment from "../pages/components/assessments/assessmentStatus";
 import { useNavigation } from "./NavigationContext";
 import { fetchClients } from "../api/client";
 
+const panelClass = 'rounded-2xl border border-white/10 bg-[#0d1219]/85 backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]';
+const panelTitleClass = 'text-[11px] font-bold text-white/50 uppercase tracking-[0.14em]';
+const fieldLabelClass = 'text-[11px] font-bold text-text-secondary/70 uppercase tracking-wider';
+const fieldValueClass = 'font-medium text-white/90 px-3 py-2 bg-black/20 rounded-xl border border-white/[0.06]';
+const inputClass = 'w-full bg-black/20 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all';
+const selectClass = `${inputClass} appearance-none hover:bg-black/30`;
+const checkboxClass = 'w-4 h-4 rounded border-white/20 bg-black/20 text-primary focus:ring-primary/40 focus:ring-offset-0 transition-all cursor-pointer';
+
 interface ApplicantSidebarProps {
   selectedUser: User | null;
   onClose: () => void;
@@ -425,11 +433,12 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
     }
   };
 
-  const getAvatar = (name?: string) => {
-    if (!name || typeof name !== 'string') {
+  const getAvatar = (user?: User | null) => {
+    const name = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.facebook : '';
+    if (!name) {
       return (
-        <div className="h-10 w-10 rounded-full bg-custom-teal/90 flex items-center justify-center shadow">
-          <span className="text-white font-semibold">?</span>
+        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/90 to-primary-dark flex items-center justify-center shadow-lg ring-1 ring-white/10">
+          <span className="text-white font-bold text-sm">?</span>
         </div>
       );
     }
@@ -438,100 +447,144 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
     const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
     const initials = `${first}${last}`.toUpperCase();
     return (
-      <div className="h-10 w-10 rounded-full bg-custom-teal/90 flex items-center justify-center shadow">
-        <span className="text-white font-semibold">{initials}</span>
+      <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/90 to-primary-dark flex items-center justify-center shadow-lg ring-1 ring-white/10">
+        <span className="text-white font-bold text-sm">{initials}</span>
       </div>
     );
   };
 
+  const getDisplayName = (user?: User | null) => {
+    if (!user) return 'Applicant';
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    return fullName || user.facebook || 'Applicant';
+  };
+
+  const getStatusBadgeClass = (status: string) => {
+    if (status.includes('Rejected') || status.includes('Failed')) return 'bg-danger/10 text-danger border-danger/20';
+    if (status.includes('Deployed') || status.includes('Hired') || status.includes('Complete')) return 'bg-success/10 text-success border-success/20';
+    if (status.includes('Pending') || status.includes('Incomplete')) return 'bg-warning/10 text-warning border-warning/20';
+    if (status.includes('Medical') || status.includes('Interview') || status.includes('Screening')) return 'bg-info/10 text-info border-info/20';
+    if (status.includes('Deployment') || status.includes('Biometrics') || status.includes('Gate Pass')) return 'bg-primary/10 text-primary-light border-primary/20';
+    return 'bg-white/5 text-text-secondary border-white/10';
+  };
+
   const getStatusBadge = (status: string) => (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-custom-teal bg-custom-teal/10">
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusBadgeClass(status)}`}>
       {getStatusIcon(status)}
       {status}
     </span>
   );
 
+  const documentFields = selectedUser ? [
+    { key: 'recentPicture', label: 'Recent 2x2 picture', checked: !!selectedUser.recentPicture },
+    { key: 'psaBirthCertificate', label: 'PSA Birth Certificate', checked: !!selectedUser.psaBirthCertificate },
+    { key: 'schoolCredentials', label: 'School Credentials', checked: !!selectedUser.schoolCredentials },
+    { key: 'nbiClearance', label: 'NBI Clearance', checked: !!selectedUser.nbiClearance },
+    { key: 'policeClearance', label: 'Police Clearance', checked: !!selectedUser.policeClearance },
+    { key: 'barangayClearance', label: 'Barangay Clearance', checked: !!selectedUser.barangayClearance },
+    { key: 'sss', label: 'SSS No. / Static Info', checked: !!selectedUser.sss },
+    { key: 'pagibig', label: 'Pag-IBIG #', checked: !!selectedUser.pagibig },
+    { key: 'cedula', label: 'Cedula', checked: !!selectedUser.cedula },
+    { key: 'vaccinationStatus', label: 'Vaccination Status', checked: !!selectedUser.vaccinationStatus },
+    { key: 'resume', label: 'Resume', checked: !!(selectedUser as any).resume },
+    { key: 'coe', label: 'COE', checked: !!(selectedUser as any).coe },
+    { key: 'philhealth', label: 'PhilHealth', checked: !!(selectedUser as any).philhealth },
+    { key: 'tinNumber', label: 'TIN Number', checked: !!(selectedUser as any).tinNumber },
+  ] : [];
+
+  const completedDocuments = documentFields.filter((doc) => doc.checked).length;
+  const documentProgress = documentFields.length > 0 ? Math.round((completedDocuments / documentFields.length) * 100) : 0;
+
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 z-30 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-black/50 backdrop-blur-[2px] transition-opacity duration-300 z-30 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
       <div
         className={`fixed right-0 top-0 h-full w-full z-50 flex flex-col transform transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{ maxWidth: '800px' }}
+        style={{ maxWidth: '820px' }}
       >
-        <div className="bg-gray-900/95 z-[9999] backdrop-blur-xl border-l border-white/10 shadow-2xl flex flex-col h-full relative">
+        <div className="bg-[#0b1018]/98 backdrop-blur-xl border-l border-white/10 shadow-[-20px_0_60px_rgba(0,0,0,0.45)] flex flex-col h-full relative overflow-hidden">
 
-          <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-custom-teal to-transparent opacity-50" />
+          <div className="h-[3px] bg-gradient-to-r from-primary via-primary-light to-info/80" />
+          <div className="absolute left-0 top-0 h-full w-px bg-gradient-to-b from-primary/40 via-white/5 to-transparent" />
 
-          <div className="bg-transparent border-b border-white/10 flex-shrink-0 relative z-10">
-            <div className="flex items-center justify-between px-6 py-5">
-              <div className="flex items-center gap-5">
+          <div className="border-b border-white/10 flex-shrink-0 relative z-10 bg-gradient-to-r from-white/[0.05] via-transparent to-transparent">
+            <div className="flex items-start justify-between gap-4 px-5 sm:px-6 py-5">
+              <div className="flex items-start gap-4 min-w-0">
                 <button
                   onClick={onClose}
-                  className="flex items-center gap-2 text-text-secondary hover:text-white hover:bg-white/10 rounded-lg p-2 transition-all active:scale-95"
+                  className="mt-1 flex items-center justify-center h-10 w-10 text-text-secondary hover:text-white hover:bg-white/10 rounded-xl transition-all active:scale-95 border border-white/10"
                   title="Close sidebar"
                 >
-                  <IconArrowLeft size={22} />
+                  <IconArrowLeft size={20} />
                 </button>
-                <div className="h-6 w-px bg-white/10" />
-                <div className="flex items-center gap-4">
-                  {selectedUser && getAvatar(selectedUser?.facebook)}
-                  <div>
-                    <h1 className="text-lg text-white font-bold leading-tight tracking-wide">{selectedUser?.facebook}</h1>
-                    <p className="text-sm text-text-secondary mt-0.5 font-medium">{selectedUser?.positionApplied}</p>
+                <div className="flex items-start gap-4 min-w-0">
+                  {selectedUser && getAvatar(selectedUser)}
+                  <div className="min-w-0">
+                    <h1 className="text-lg sm:text-xl text-white font-bold leading-tight tracking-tight truncate">
+                      {getDisplayName(selectedUser)}
+                    </h1>
+                    <p className="text-sm text-primary-light/90 mt-1 font-semibold truncate">{selectedUser?.positionApplied || 'No position listed'}</p>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-black/30 text-white/70 border border-white/10">
+                        ID {selectedUser?.no || '-'}
+                      </span>
+                      {selectedUser?.dateApplied && (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-black/30 text-white/70 border border-white/10">
+                          Applied {selectedUser.dateApplied}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="shrink-0 pt-1">
                 {getStatusBadge(selectedUser?.status || '')}
               </div>
             </div>
-            <div className="flex border-t border-white/10 bg-white/5 relative px-2 pt-2">
+
+            <div className="px-5 sm:px-6 pb-4">
+              <div className="inline-flex p-1 rounded-xl bg-black/30 border border-white/10">
               {(() => {
-                // Build tabs based on current section
                 const tabs = [
-                  { id: 'overview', label: 'Details', icon: <IconUser size={18} /> },
-                  { id: 'screening', label: 'Assessment', icon: <IconClipboardCheck size={18} /> },
+                  { id: 'overview', label: 'Details', icon: <IconUser size={16} /> },
+                  { id: 'screening', label: 'Assessment', icon: <IconClipboardCheck size={16} /> },
                 ];
-                // Filter: only the Assessment section should show the "Assessment" tab.
-                // Screening/Selection/Engagement should behave like "details-only".
                 const showBothTabs = activeSection === 'assessment';
                 const visibleTabs = showBothTabs
-                  ? tabs // Show both tabs in Assessment section
+                  ? tabs
                   : tabs.filter(t => t.id === 'overview');
                 return visibleTabs.map((tab) => (
                   <button
                     key={tab.id}
-                    className={`flex-1 px-4 py-3 text-sm font-semibold transition-all relative flex items-center justify-center gap-2 rounded-t-lg mx-1 ${activeTab === tab.id
-                      ? 'text-custom-teal bg-white/10 shadow-[0_-2px_10px_rgba(0,0,0,0.2)]'
-                      : 'text-text-secondary hover:text-white hover:bg-white/5'
+                    className={`px-4 py-2 text-sm font-semibold transition-all relative flex items-center justify-center gap-2 rounded-lg ${activeTab === tab.id
+                      ? 'text-white bg-primary/20 border border-primary/25 shadow-[0_0_20px_rgba(0,166,167,0.12)]'
+                      : 'text-text-secondary hover:text-white hover:bg-white/5 border border-transparent'
                       }`}
                     onClick={() => setActiveTab(tab.id as any)}
                   >
                     {tab.icon}
                     {tab.label}
-                    {activeTab === tab.id && (
-                      <span className="absolute left-0 top-0 w-full h-0.5 bg-custom-teal rounded-t-full shadow-[0_0_10px_rgba(20,184,166,0.5)]" />
-                    )}
                   </button>
                 ));
               })()}
+              </div>
             </div>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto bg-transparent custom-scrollbar">
-            <div className="p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto bg-[#0a0f16]/50 custom-scrollbar">
+            <div className="p-5 sm:p-6 space-y-5">
               {activeTab === 'overview' && selectedUser && (
-                <div className="space-y-6">
+                <div className="space-y-5">
                   {selectedUser && (
-                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10 shadow-lg backdrop-blur-sm">
-                      <h2 className="text-sm font-bold text-white mb-3 uppercase tracking-wider">Status</h2>
+                    <div className={`${panelClass} p-5 sm:p-6`}>
+                      <h2 className={`${panelTitleClass} mb-3`}>Pipeline Status</h2>
                       <div className="relative">
                         <select
-                          className="w-full border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal/50 focus:border-custom-teal bg-white/5 text-white appearance-none transition-all hover:bg-white/10"
+                          className={selectClass}
                           value={selectedUser.status || ''}
                           onChange={e => handleStatusChange(e.target.value as ApplicationStatus)}
                         >
@@ -587,15 +640,15 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                           <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
                         </div>
                       </div>
-                      <p className="text-xs text-text-secondary/70 mt-2 font-medium">
-                        Change the applicant's status to move them through the pipeline.
+                      <p className="text-xs text-text-secondary/70 mt-3">
+                        Update status to move this applicant through the hiring pipeline.
                       </p>
                     </div>
                   )}
 
-                  <div className="bg-white/5 rounded-2xl p-6 border border-white/10 shadow-lg backdrop-blur-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-sm font-bold text-white uppercase tracking-wider">Personal Details</h2>
+                  <div className={`${panelClass} p-5 sm:p-6`}>
+                    <div className="flex items-center justify-between mb-5">
+                      <h2 className={panelTitleClass}>Personal Details</h2>
                       {activeSection === 'screening' && (
                         <div className="flex items-center gap-2">
                           {isEditing && (
@@ -604,7 +657,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                                 setIsEditing(false);
                                 setEditedUser(selectedUser);
                               }}
-                              className="text-text-secondary hover:text-white px-2 py-1 text-xs rounded-lg transition-all flex items-center gap-1"
+                              className="text-text-secondary hover:text-white px-3 py-1.5 text-xs rounded-lg transition-all flex items-center gap-1 border border-white/10"
                               disabled={isSaving}
                             >
                               <IconX size={14} /> Cancel
@@ -618,9 +671,9 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                                 setIsEditing(true);
                               }
                             }}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isEditing
-                              ? 'bg-custom-teal text-white shadow-lg shadow-custom-teal/20 scale-105'
-                              : 'text-custom-teal bg-custom-teal/10 hover:bg-custom-teal/20'
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${isEditing
+                              ? 'bg-primary text-white border-primary/30 shadow-lg shadow-primary/20'
+                              : 'text-primary-light bg-primary/10 hover:bg-primary/20 border-primary/20'
                               }`}
                             disabled={isSaving}
                           >
@@ -638,330 +691,280 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                         </div>
                       )}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6 text-sm">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Applicant No.</span>
-                        <span className="font-semibold text-white bg-white/5 py-1.5 px-3 rounded-lg border border-white/5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-5 text-sm">
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Applicant No.</span>
+                        <span className={`${fieldValueClass} font-bold text-primary-light`}>
                           {selectedUser.no}
                         </span>
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Referred By</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Referred By</span>
                         {isEditing ? (
                           <input
                             type="text"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.referredBy || ''}
                             onChange={(e) => handleInputChange('referredBy', e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-1">{selectedUser.referredBy}</span>
+                          <span className={fieldValueClass}>{selectedUser.referredBy || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Last Name</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Last Name</span>
                         {isEditing ? (
                           <input
                             type="text"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.lastName || ''}
                             onChange={(e) => handleInputChange('lastName', e.target.value)}
                           />
                         ) : (
-                          <span className="font-semibold text-white px-1 tracking-wide">{selectedUser.lastName}</span>
+                          <span className={`${fieldValueClass} font-semibold`}>{selectedUser.lastName || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">First Name</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>First Name</span>
                         {isEditing ? (
                           <input
                             type="text"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.firstName || ''}
                             onChange={(e) => handleInputChange('firstName', e.target.value)}
                           />
                         ) : (
-                          <span className="font-semibold text-white px-1 tracking-wide">{selectedUser.firstName}</span>
+                          <span className={`${fieldValueClass} font-semibold`}>{selectedUser.firstName || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Extension</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Extension</span>
                         {isEditing ? (
                           <input
                             type="text"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.ext || ''}
                             onChange={(e) => handleInputChange('ext', e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-1">{selectedUser.ext}</span>
+                          <span className={fieldValueClass}>{selectedUser.ext || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Middle Name</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Middle Name</span>
                         {isEditing ? (
                           <input
                             type="text"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.middle || ''}
                             onChange={(e) => handleInputChange('middle', e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-1">{selectedUser.middle}</span>
+                          <span className={fieldValueClass}>{selectedUser.middle || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Gender</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Gender</span>
                         {isEditing ? (
                           <select
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={selectClass}
                             value={editedUser?.gender || ''}
                             onChange={(e) => handleInputChange('gender', e.target.value)}
                           >
-                            <option value="" className="bg-gray-800">Select Gender</option>
-                            <option value="Male" className="bg-gray-800">Male</option>
-                            <option value="Female" className="bg-gray-800">Female</option>
+                            <option value="" className="bg-gray-900">Select Gender</option>
+                            <option value="Male" className="bg-gray-900">Male</option>
+                            <option value="Female" className="bg-gray-900">Female</option>
                           </select>
                         ) : (
-                          <span className="font-medium text-white/90 px-1">{selectedUser.gender}</span>
+                          <span className={fieldValueClass}>{selectedUser.gender || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Size</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Size</span>
                         {isEditing ? (
                           <input
                             type="text"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.size || ''}
                             onChange={(e) => handleInputChange('size', e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-1">{selectedUser.size}</span>
+                          <span className={fieldValueClass}>{selectedUser.size || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Date of Birth</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Date of Birth</span>
                         {isEditing ? (
                           <input
                             type="date"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.dateOfBirth || ''}
                             onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-1">{selectedUser.dateOfBirth}</span>
+                          <span className={fieldValueClass}>{selectedUser.dateOfBirth || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Date Applied</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Date Applied</span>
                         {isEditing ? (
                           <input
                             type="date"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.dateApplied || ''}
                             onChange={(e) => handleInputChange('dateApplied', e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-1">{selectedUser.dateApplied}</span>
+                          <span className={fieldValueClass}>{selectedUser.dateApplied || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Facebook Name</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Facebook Name</span>
                         {isEditing ? (
                           <input
                             type="text"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.facebook || ''}
                             onChange={(e) => handleInputChange('facebook', e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-1 text-custom-teal underline decoration-custom-teal/30 underline-offset-4">{selectedUser.facebook}</span>
+                          <span className={`${fieldValueClass} text-primary-light`}>{selectedUser.facebook || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Age</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Age</span>
                         {isEditing ? (
                           <input
                             type="text"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.age || ''}
                             onChange={(e) => handleInputChange('age', e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-1">{selectedUser.age}</span>
+                          <span className={fieldValueClass}>{selectedUser.age || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Location</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Location</span>
                         {isEditing ? (
                           <input
                             type="text"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.location || ''}
                             onChange={(e) => handleInputChange('location', e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-1">{selectedUser.location}</span>
+                          <span className={fieldValueClass}>{selectedUser.location || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Contact Number</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Contact Number</span>
                         {isEditing ? (
                           <input
                             type="text"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.contactNumber || ''}
                             onChange={(e) => handleInputChange('contactNumber', e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-1">{selectedUser.contactNumber}</span>
+                          <span className={`${fieldValueClass} font-mono`}>{selectedUser.contactNumber || '-'}</span>
                         )}
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Email</span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Email</span>
                         {isEditing ? (
                           <input
                             type="email"
-                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white focus:ring-1 focus:ring-custom-teal outline-none"
+                            className={inputClass}
                             value={editedUser?.email || ''}
                             onChange={(e) => handleInputChange('email', e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-1">{selectedUser.email}</span>
+                          <span className={fieldValueClass}>{selectedUser.email || '-'}</span>
                         )}
                       </div>
-                      <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Position Applied For</span>
+                      <div className="col-span-1 md:col-span-2 flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Position Applied For</span>
                         {isEditing ? (
                           <input
                             type="text"
-                            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-custom-teal font-semibold outline-none focus:ring-1 focus:ring-custom-teal"
+                            className={`${inputClass} text-primary-light font-semibold`}
                             value={editedUser?.positionApplied || ''}
                             onChange={(e) => handleInputChange('positionApplied', e.target.value)}
                           />
                         ) : (
-                          <span className="font-semibold text-custom-teal bg-custom-teal/10 py-2 px-3 rounded-lg border border-custom-teal/20 w-full">{selectedUser.positionApplied}</span>
+                          <span className="font-semibold text-primary-light bg-primary/10 py-2.5 px-3 rounded-xl border border-primary/20 w-full">{selectedUser.positionApplied || '-'}</span>
                         )}
                       </div>
-                      <div className="col-span-1 md:col-span-2 flex flex-col gap-1">
-                        <span className="text-text-secondary text-xs uppercase font-medium">Experience</span>
+                      <div className="col-span-1 md:col-span-2 flex flex-col gap-1.5">
+                        <span className={fieldLabelClass}>Experience</span>
                         {isEditing ? (
                           <textarea
-                            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:ring-1 focus:ring-custom-teal min-h-[80px]"
+                            className={`${inputClass} min-h-[90px] resize-y`}
                             value={editedUser?.experience || ''}
                             onChange={(e) => handleInputChange('experience' as any, e.target.value)}
                           />
                         ) : (
-                          <span className="font-medium text-white/90 px-3 py-2 bg-white/5 rounded-lg border border-white/5 leading-relaxed italic text-sm">{selectedUser.experience || 'No experience listed'}</span>
+                          <span className={`${fieldValueClass} leading-relaxed italic text-sm`}>{selectedUser.experience || 'No experience listed'}</span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white/5 rounded-2xl p-6 border border-white/10 shadow-lg backdrop-blur-sm">
-                    <h2 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2">
-                      <IconClipboardCheck size={18} className="text-custom-teal" />
-                      Document Checklist
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input
-                          type="checkbox"
-                          className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-                          checked={!!selectedUser.recentPicture}
-                          onChange={(e) => {
-                            onScreeningUpdate?.(selectedUser.id, 'recentPicture' as any, e.target.checked as any);
-                            updateDocumentFlag(selectedUser, 'recentPicture', e.target.checked);
-                          }}
+                  <div className={`${panelClass} p-5 sm:p-6`}>
+                    <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                      <h2 className={`${panelTitleClass} flex items-center gap-2`}>
+                        <IconClipboardCheck size={16} className="text-primary-light" />
+                        Document Checklist
+                      </h2>
+                      <span className="text-xs font-bold text-primary-light bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+                        {completedDocuments}/{documentFields.length} complete
+                      </span>
+                    </div>
+                    <div className="mb-5">
+                      <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-text-secondary/70 mb-2">
+                        <span>Completion</span>
+                        <span>{documentProgress}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-black/30 border border-white/10 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-primary to-primary-light transition-all duration-500"
+                          style={{ width: `${documentProgress}%` }}
                         />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">Recent 2x2 picture</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.psaBirthCertificate}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'psaBirthCertificate' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'psaBirthCertificate', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">PSA Birth Certificate</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.schoolCredentials}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'schoolCredentials' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'schoolCredentials', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">School Credentials</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.nbiClearance}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'nbiClearance' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'nbiClearance', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">NBI Clearance</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.policeClearance}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'policeClearance' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'policeClearance', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">Police Clearance</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.barangayClearance}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'barangayClearance' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'barangayClearance', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">Barangay Clearance</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.sss}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'sss' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'sss', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">SSS No. / Static Info</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.pagibig}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'pagibig' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'pagibig', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">Pag-IBIG #</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.cedula}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'cedula' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'cedula', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">Cedula</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!selectedUser.vaccinationStatus}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'vaccinationStatus' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'vaccinationStatus', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">Vaccination Status</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!(selectedUser as any).resume}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'resume' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'resume', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">Resume</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!(selectedUser as any).coe}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'coe' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'coe', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">COE</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!(selectedUser as any).philhealth}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'philhealth' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'philhealth', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">PhilHealth</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-                        <input type="checkbox" className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer" checked={!!(selectedUser as any).tinNumber}
-                          onChange={(e) => { onScreeningUpdate?.(selectedUser.id, 'tinNumber' as any, e.target.checked as any); updateDocumentFlag(selectedUser, 'tinNumber', e.target.checked); }}
-                        />
-                        <span className="text-text-secondary group-hover:text-white transition-colors">TIN Number</span>
-                      </label>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      {documentFields.map((doc) => (
+                        <label
+                          key={doc.key}
+                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group ${doc.checked
+                            ? 'bg-success/5 border-success/20 hover:bg-success/10'
+                            : 'bg-black/10 border-white/[0.06] hover:bg-white/[0.04] hover:border-white/10'
+                            }`}
+                        >
+                          <input
+                            type="checkbox"
+                            className={checkboxClass}
+                            checked={doc.checked}
+                            onChange={(e) => {
+                              onScreeningUpdate?.(selectedUser.id, doc.key as any, e.target.checked as any);
+                              updateDocumentFlag(selectedUser, doc.key, e.target.checked);
+                            }}
+                          />
+                          <span className={`transition-colors ${doc.checked ? 'text-white font-medium' : 'text-text-secondary group-hover:text-white'}`}>
+                            {doc.label}
+                          </span>
+                        </label>
+                      ))}
                     </div>
                   </div>
                 </div>
               )}
 
               {activeTab === 'screening' && selectedUser && (
-                <Assessment applicantNo={selectedUser.no} showApplicantHeader={false} 
-                />
+                <div className={`${panelClass} p-5 sm:p-6`}>
+                  <Assessment applicantNo={selectedUser.no} showApplicantHeader={false} />
+                </div>
               )}
             </div>
           </div>

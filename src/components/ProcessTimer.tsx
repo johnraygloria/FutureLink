@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 interface ProcessTimerProps {
   processName: string;
   onTimerComplete?: () => void;
-  duration?: number; // in seconds
+  duration?: number;
 }
 
 type PersistedTimer = {
@@ -44,7 +44,6 @@ const ProcessTimer: React.FC<ProcessTimerProps> = ({
 
     let persisted = readPersisted();
     if (!persisted || persisted.durationSec !== duration) {
-      // Reset schedule when duration changes or nothing is stored yet.
       persisted = { nextAtMs: now + durationMs, durationSec: duration };
       writePersisted(persisted);
     }
@@ -54,7 +53,6 @@ const ProcessTimer: React.FC<ProcessTimerProps> = ({
       const p = readPersisted() || persisted!;
 
       if (current >= p.nextAtMs) {
-        // Timer elapsed while on another page: trigger once and schedule the next run.
         setIsDue(true);
         try {
           onTimerComplete?.();
@@ -72,11 +70,9 @@ const ProcessTimer: React.FC<ProcessTimerProps> = ({
       setIsDue(false);
     };
 
-    // Initial sync (and catch-up if it already elapsed).
     tick();
-
     const interval = window.setInterval(tick, 1000);
-    const onVisibility = () => tick(); // resync on tab focus
+    const onVisibility = () => tick();
     document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
@@ -85,25 +81,37 @@ const ProcessTimer: React.FC<ProcessTimerProps> = ({
     };
   }, [duration, onTimerComplete, storageKey]);
 
-  const formatTime = (secs: number) => {
-    return secs.toString().padStart(2, '0');
-  };
+  const progress = Math.max(0, Math.min(100, ((duration - seconds) / duration) * 100));
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/20 shadow-md backdrop-blur-sm">
-      <div className="flex items-center gap-1.5">
-        <i className="fas fa-clock text-primary-light text-sm drop-shadow"></i>
-        <span className="text-xs font-semibold text-white/90">{processName}:</span>
+    <div className="inline-flex items-center gap-3 px-4 py-2 rounded-xl bg-black/25 border border-white/10 shadow-inner min-w-[220px]">
+      <div className="relative h-9 w-9 shrink-0">
+        <svg className="h-9 w-9 -rotate-90" viewBox="0 0 36 36">
+          <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+          <circle
+            cx="18"
+            cy="18"
+            r="15"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            className="text-primary"
+            strokeDasharray={`${progress * 0.94} 100`}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <i className="fas fa-sync-alt text-[10px] text-primary-light" />
+        </div>
       </div>
-      <div className="flex items-center gap-1">
-        <span className="text-sm font-bold text-white tabular-nums tracking-wide drop-shadow-sm">
-          {formatTime(seconds)}
-        </span>
-        <span className="text-xs text-white/70">s</span>
+      <div className="min-w-0">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-text-secondary/80">{processName} Sync</div>
+        <div className="flex items-baseline gap-1">
+          <span className="text-lg font-black text-white tabular-nums">{seconds.toString().padStart(2, '0')}</span>
+          <span className="text-xs text-text-secondary">sec</span>
+          {isDue && <span className="ml-2 w-2 h-2 bg-success rounded-full animate-pulse" />}
+        </div>
       </div>
-      {isDue && (
-        <div className="ml-1 w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]"></div>
-      )}
     </div>
   );
 };

@@ -8,8 +8,12 @@ import { useAssessmentHistory } from "./hooks/useAssessments";
 import AssessmentHistoryTable from "./components/AssessmentHistoryTable";
 import FilterBar from "../../../components/Filters/FilterBar";
 import FilterSidebar from "../../../components/Filters/FilterSidebar";
-import AssessmentToolbar from "./components/AssessmentToolbar";
 import ProcessTimer from "../../../components/ProcessTimer";
+import PipelinePageShell from "../../../components/Pipeline/PipelinePageShell";
+import PipelineModuleHeader from "../../../components/Pipeline/PipelineModuleHeader";
+import PipelineActionBar from "../../../components/Pipeline/PipelineActionBar";
+import PipelineControlStrip from "../../../components/Pipeline/PipelineControlStrip";
+import PipelineHistoryShell from "../../../components/Pipeline/PipelineHistoryShell";
 
 const Assessments: React.FC = () => {
   const {
@@ -62,29 +66,24 @@ const Assessments: React.FC = () => {
     refreshData();
   }, [setUsers, currentApplicantNo]);
 
-  // Listen for applicant status updates and update list without reload
   useEffect(() => {
     function onUpdated(e: any) {
       const detail = e?.detail || {};
       const { no, status } = detail;
       if (!no) return;
-      
+
       setUsers(prev => {
         const idx = prev.findIndex(u => u.no === no);
         if (idx === -1) return prev;
-
         const updated = [...prev];
-        // If status is provided, check if it's still allowed in this view
         if (status && !isAssessmentStatus(status)) {
           updated.splice(idx, 1);
           return updated;
         }
-
         updated[idx] = { ...updated[idx], ...detail } as any;
         return updated;
       });
 
-      // Also update selectedUser if it's the one that was updated
       setSelectedUser(prev => {
         if (prev && prev.no === no) {
           return { ...prev, ...detail };
@@ -96,7 +95,6 @@ const Assessments: React.FC = () => {
     return () => window.removeEventListener('applicant-updated', onUpdated);
   }, [setUsers, setSelectedUser]);
 
-  // Keep selectedUser in sync when users list is refreshed in the background
   useEffect(() => {
     if (selectedUser) {
       const updated = users.find(u => u.no === selectedUser.no);
@@ -106,77 +104,62 @@ const Assessments: React.FC = () => {
     }
   }, [users, selectedUser?.no]);
 
-  // History handled by useAssessmentHistory
-
-  // Assessment History Page
   if (showHistory) {
     return (
-      <div className="flex w-full">
-        <div className="flex-1 max-w-full mx-auto py-10 px-4">
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b bg-white">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setShowHistory(false)}
-                  className="px-4 py-2 rounded-lg bg-gray-600 text-white font-semibold shadow-sm focus:outline-none border border-gray-700"
-                >
-                  <i className="fas fa-arrow-left mr-2"></i>
-                  Back to Assessment
-                </button>
-                <h1 className="text-2xl font-bold text-custom-teal">Assessment History</h1>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <AssessmentHistoryTable rows={assessmentHistory as any} />
-            </div>
-          </div>
-        </div>
-      </div>
+      <PipelineHistoryShell
+        title="Assessment History"
+        backLabel="Back to Assessment"
+        onBack={() => setShowHistory(false)}
+      >
+        <AssessmentHistoryTable rows={assessmentHistory as any} />
+      </PipelineHistoryShell>
     );
   }
 
   return (
-    <div className="flex w-full relative overflow-hidden">
-      {/* Dynamic background elements could be added here if not global */}
-      <div className="flex-1 max-w-full mx-auto py-6 px-4 md:px-8">
-        <div className="glass-card max-w-full rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 backdrop-blur-xl relative z-10 transition-all hover:border-white/20">
-          {/* Timer and Filter Bar */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-md">
+    <>
+      <PipelinePageShell>
+        <PipelineModuleHeader
+          title="Assessment"
+          subtitle="Track final interviews, requirements, and evaluation outcomes."
+          count={users.length}
+          filteredCount={hasFilters ? filteredUsers.length : undefined}
+          icon="fa-clipboard-check"
+        />
+
+        <PipelineControlStrip
+          timer={
             <ProcessTimer
               processName="Assessment"
               duration={5}
               onTimerComplete={() => refreshData(true)}
             />
+          }
+          filters={
             <FilterBar
+              embedded
               activeFilters={activeFilters}
               onOpenFilters={handleOpenFilterSidebar}
               onRemoveFilter={handleRemoveFilter}
               onClearAll={handleClearAllFilters}
             />
-          </div>
+          }
+        />
 
-          {/* Toolbar */}
-          <AssessmentToolbar
-            search={search}
-            setSearch={setSearch}
-            usersCount={users.length}
-            showHistory={showHistory}
-            setShowHistory={setShowHistory}
-          />
+        <PipelineActionBar
+          search={search}
+          setSearch={setSearch}
+          onViewHistory={() => setShowHistory(true)}
+        />
 
-          {/* Table */}
-          <div className="p-0">
-            <AssessmentTable
-              users={filteredUsers}
-              selectedUser={selectedUser}
-              onUserClick={handleUserClick}
-              isLoading={isLoading}
-              hasActiveFilters={hasFilters}
-            />
-          </div>
-        </div>
-      </div>
+        <AssessmentTable
+          users={filteredUsers}
+          selectedUser={selectedUser}
+          onUserClick={handleUserClick}
+          isLoading={isLoading}
+          hasActiveFilters={hasFilters}
+        />
+      </PipelinePageShell>
 
       <ApplicantSidebar
         selectedUser={selectedUser}
@@ -186,7 +169,6 @@ const Assessments: React.FC = () => {
         onRemoveApplicant={removeApplicant}
       />
 
-      {/* Filter Sidebar Modal */}
       <FilterSidebar
         isOpen={isFilterSidebarOpen}
         onClose={() => setIsFilterSidebarOpen(false)}
@@ -195,7 +177,7 @@ const Assessments: React.FC = () => {
         onApplyFilters={handleApplyFilters}
         onClearFilters={handleClearAllFilters}
       />
-    </div>
+    </>
   );
 };
 

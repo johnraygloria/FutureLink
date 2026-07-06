@@ -7,9 +7,13 @@ import EngagementHistoryTable from "./components/EngagementHistoryTable";
 import { useEngagementApplicants } from "./hooks/useEngagementApplicants";
 import FilterBar from "../../../components/Filters/FilterBar";
 import FilterSidebar from "../../../components/Filters/FilterSidebar";
-import EngagementToolbar from "./components/EngagementToolbar";
 import EngagementTable from "./components/EngagementTable";
 import ProcessTimer from "../../../components/ProcessTimer";
+import PipelinePageShell from "../../../components/Pipeline/PipelinePageShell";
+import PipelineModuleHeader from "../../../components/Pipeline/PipelineModuleHeader";
+import PipelineActionBar from "../../../components/Pipeline/PipelineActionBar";
+import PipelineControlStrip from "../../../components/Pipeline/PipelineControlStrip";
+import PipelineHistoryShell from "../../../components/Pipeline/PipelineHistoryShell";
 
 interface AssessmentHistory {
   id: number;
@@ -79,7 +83,6 @@ const EngagementHR: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { currentApplicantNo } = useNavigation();
 
-  // Fetch engagement-stage applicants from API
   const refreshData = (silent = false) => {
     if (!silent) setIsLoading(true);
     fetch('/api/applicants')
@@ -112,7 +115,6 @@ const EngagementHR: React.FC = () => {
         const allowed = isEngagementStatus(status);
 
         if (idx === -1) {
-          // If applicant is new to this section and status matches, refetch data to get full details including clients
           if (allowed) {
             fetch('/api/applicants')
               .then(res => res.json())
@@ -135,7 +137,6 @@ const EngagementHR: React.FC = () => {
           return prev;
         }
 
-        // Preserve all existing fields including clients when updating status
         if (!allowed) {
           return prev.filter(u => u.no !== no);
         }
@@ -144,7 +145,6 @@ const EngagementHR: React.FC = () => {
         return updated;
       });
 
-      // Also update selectedUser if it's the one that was updated
       setSelectedUser(prev => {
         if (prev && prev.no === no) {
           return { ...prev, ...detail };
@@ -154,13 +154,9 @@ const EngagementHR: React.FC = () => {
     };
 
     window.addEventListener('applicant-updated', onUpdated);
-
-    return () => {
-      window.removeEventListener('applicant-updated', onUpdated);
-    };
+    return () => window.removeEventListener('applicant-updated', onUpdated);
   }, []);
 
-  // Auto-open the proceeded applicant if coming from Selection
   useEffect(() => {
     if (!currentApplicantNo || users.length === 0) return;
     const proceededUser = users.find(user => user.no === currentApplicantNo);
@@ -169,7 +165,6 @@ const EngagementHR: React.FC = () => {
     }
   }, [currentApplicantNo, users, setSelectedUser]);
 
-  // Keep selectedUser in sync when users list is refreshed in the background
   useEffect(() => {
     if (selectedUser) {
       const updated = users.find(u => u.no === selectedUser.no);
@@ -179,75 +174,62 @@ const EngagementHR: React.FC = () => {
     }
   }, [users, selectedUser?.no]);
 
-  // Assessment History Page
   if (showHistory) {
     return (
-      <div className="flex w-full">
-        <div className="flex-1 max-w-full mx-auto py-10 px-4">
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b bg-white">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setShowHistory(false)}
-                  className="px-4 py-2 rounded-lg bg-gray-600 text-white font-semibold shadow-sm focus:outline-none border border-gray-700"
-                >
-                  <i className="fas fa-arrow-left mr-2"></i>
-                  Back to Deployed Applicants
-                </button>
-                <h1 className="text-2xl font-bold text-custom-teal">Engagement History</h1>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <EngagementHistoryTable rows={assessmentHistory as any} />
-            </div>
-          </div>
-        </div>
-      </div>
+      <PipelineHistoryShell
+        title="Engagement History"
+        backLabel="Back to Engagement"
+        onBack={() => setShowHistory(false)}
+      >
+        <EngagementHistoryTable rows={assessmentHistory as any} />
+      </PipelineHistoryShell>
     );
   }
 
-  // Main Deployed Applicants Page
   return (
-    <div className="flex w-full relative overflow-hidden">
-      <div className="flex-1 max-w-full mx-auto py-6 px-4 md:px-8">
-        <div className="glass-card max-w-full rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 backdrop-blur-xl relative z-10 transition-all hover:border-white/20">
-          {/* Timer and Filter Bar */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-md">
+    <>
+      <PipelinePageShell>
+        <PipelineModuleHeader
+          title="Engagement"
+          subtitle="Monitor deployment readiness and onboarded applicants."
+          count={users.length}
+          filteredCount={hasFilters ? filteredUsers.length : undefined}
+          icon="fa-handshake"
+        />
+
+        <PipelineControlStrip
+          timer={
             <ProcessTimer
               processName="Engagement"
               duration={5}
               onTimerComplete={() => refreshData(true)}
             />
+          }
+          filters={
             <FilterBar
+              embedded
               activeFilters={activeFilters}
               onOpenFilters={handleOpenFilterSidebar}
               onRemoveFilter={handleRemoveFilter}
               onClearAll={handleClearAllFilters}
             />
-          </div>
+          }
+        />
 
-          {/* Toolbar */}
-          <EngagementToolbar
-            search={search}
-            setSearch={setSearch}
-            usersCount={users.length}
-            showHistory={showHistory}
-            setShowHistory={setShowHistory}
-          />
+        <PipelineActionBar
+          search={search}
+          setSearch={setSearch}
+          onViewHistory={() => setShowHistory(true)}
+        />
 
-          {/* Table */}
-          <div className="p-0">
-            <EngagementTable
-              users={filteredUsers}
-              selectedUser={selectedUser}
-              onUserClick={handleUserClick}
-              isLoading={isLoading}
-              hasActiveFilters={hasFilters}
-            />
-          </div>
-        </div>
-      </div>
+        <EngagementTable
+          users={filteredUsers}
+          selectedUser={selectedUser}
+          onUserClick={handleUserClick}
+          isLoading={isLoading}
+          hasActiveFilters={hasFilters}
+        />
+      </PipelinePageShell>
 
       <ApplicantSidebar
         selectedUser={selectedUser}
@@ -256,7 +238,6 @@ const EngagementHR: React.FC = () => {
         onRemoveApplicant={removeUser}
       />
 
-      {/* Filter Sidebar Modal */}
       <FilterSidebar
         isOpen={isFilterSidebarOpen}
         onClose={() => setIsFilterSidebarOpen(false)}
@@ -265,7 +246,7 @@ const EngagementHR: React.FC = () => {
         onApplyFilters={handleApplyFilters}
         onClearFilters={handleClearAllFilters}
       />
-    </div>
+    </>
   );
 };
 

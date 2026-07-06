@@ -7,18 +7,18 @@ interface ActionsBarProps {
 
 const ActionsBar: React.FC<ActionsBarProps> = ({ selectedCount, onAction }) => {
   const actions = [
-    { label: 'Screening', color: 'bg-blue-600 hover:bg-blue-700' },
-    { label: 'Assessment', color: 'bg-green-600 hover:bg-green-700' },
-    { label: 'Selection', color: 'bg-orange-600 hover:bg-orange-700' },
-    { label: 'Engagement', color: 'bg-purple-600 hover:bg-purple-700' },
+    { label: 'Screening', accent: 'bg-info/20 hover:bg-info/30 text-info border-info/30' },
+    { label: 'Assessment', accent: 'bg-success/20 hover:bg-success/30 text-success border-success/30' },
+    { label: 'Selection', accent: 'bg-warning/20 hover:bg-warning/30 text-warning border-warning/30' },
+    { label: 'Engagement', accent: 'bg-primary/20 hover:bg-primary/30 text-primary-light border-primary/30' },
   ];
 
   return (
-    <div className="mb-4 p-3 bg-slate-700/50 backdrop-blur-sm rounded-xl border border-white/5 flex items-center justify-between gap-4 shadow-lg">
-      <div className="flex items-center gap-4 flex-wrap flex-1">
+    <div className="p-4 rounded-2xl border border-white/10 bg-[#0d1219]/70 backdrop-blur-sm flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex items-center gap-3 flex-wrap flex-1">
         {selectedCount > 0 ? (
           <>
-            <span className="text-sm font-bold text-white bg-primary/20 px-3 py-1 rounded-full border border-primary/30">
+            <span className="text-sm font-bold text-white bg-primary/15 px-3 py-1.5 rounded-full border border-primary/25">
               {selectedCount} Selected
             </span>
             <div className="flex gap-2 flex-wrap">
@@ -26,7 +26,7 @@ const ActionsBar: React.FC<ActionsBarProps> = ({ selectedCount, onAction }) => {
                 <button
                   key={action.label}
                   onClick={() => onAction(action.label)}
-                  className={`px-3 py-1.5 ${action.color} text-white rounded-lg transition-all text-xs font-semibold shadow-md active:scale-95`}
+                  className={`px-3.5 py-2 rounded-xl border transition-all text-xs font-bold uppercase tracking-wide active:scale-95 ${action.accent}`}
                 >
                   To {action.label}
                 </button>
@@ -34,16 +34,15 @@ const ActionsBar: React.FC<ActionsBarProps> = ({ selectedCount, onAction }) => {
             </div>
           </>
         ) : (
-          <span className="text-sm text-text-secondary italic pl-2">Select applicants to perform actions</span>
+          <span className="text-sm text-text-secondary/80 pl-1">Select applicants from the table to move them across pipeline stages.</span>
         )}
       </div>
 
-      {/* Export to Excel button */}
       <button
         onClick={() => onAction('Export to Excel')}
-        className="px-4 py-2 bg-[#10b981] hover:bg-[#059669] text-white rounded-lg transition-all text-sm font-bold shadow-lg flex items-center gap-2 border border-white/10 active:scale-95"
+        className="inline-flex items-center gap-2 px-4 py-2.5 bg-success/15 hover:bg-success/25 text-success border border-success/25 rounded-xl transition-all text-sm font-bold active:scale-95"
       >
-        <i className="fas fa-file-excel"></i>
+        <i className="fas fa-file-excel" />
         Export to Excel
       </button>
     </div>

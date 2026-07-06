@@ -1,6 +1,13 @@
 import React from 'react';
 import ApplicantRow from './googlerow';
 import type { GoogleSheetApplicant } from '../hook/googlesheettab';
+import {
+  recruitmentTable,
+  recruitmentTableContainer,
+  recruitmentThead,
+  recruitmentTh,
+  recruitmentThCheckbox,
+} from '../../../../components/Tables/pipelineTableStyles';
 
 interface ApplicantTableProps {
   applicants: GoogleSheetApplicant[];
@@ -16,48 +23,50 @@ const ApplicantTable: React.FC<ApplicantTableProps> = ({
   onSelectApplicant,
 }) => {
   if (applicants.length === 0) {
-    return <div className="text-center py-20 text-text-secondary">No applicants found</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-text-secondary">
+        <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+          <i className="fas fa-user-slash text-white/20 text-2xl" />
+        </div>
+        <p className="text-base font-medium text-white mb-1">No applicants found</p>
+      </div>
+    );
   }
 
   const allSelected = applicants.length > 0 && selectedApplicants.size === applicants.length;
+  const columns = Object.keys(applicants[0]);
 
   return (
-    <div className="w-full h-full overflow-hidden flex flex-col">
-      <div className="flex-1 overflow-auto custom-scrollbar">
-        <div className="inline-block min-w-full align-middle">
-          <table className="min-w-full divide-y divide-gray-200 border-separate border-spacing-0">
-            <thead className="bg-[#CDE8E6] sticky top-0 z-10">
-              <tr>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-teal-900 uppercase tracking-wider border-b border-teal-200">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={(e) => onSelectAll(e.target.checked)}
-                      className="rounded border-teal-300 text-teal-600 focus:ring-teal-500 h-4 w-4 bg-white"
-                    />
-                  </div>
-                </th>
-                {Object.keys(applicants[0]).map((key) => (
-                  <th key={key} scope="col" className="px-4 py-3 text-left text-xs font-bold text-teal-900 uppercase tracking-wider whitespace-nowrap border-b border-teal-200">
-                    {key}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {applicants.map((applicant, index) => (
-                <ApplicantRow
-                  key={applicant["NO"] || index}
-                  applicant={applicant}
-                  isSelected={selectedApplicants.has(applicant["NO"])}
-                  onSelect={onSelectApplicant}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div className={recruitmentTableContainer}>
+      <table className={recruitmentTable}>
+        <thead className={recruitmentThead}>
+          <tr>
+            <th scope="col" className={recruitmentThCheckbox}>
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={(e) => onSelectAll(e.target.checked)}
+                className="rounded border-white/20 bg-white/5 text-primary focus:ring-primary/50 h-4 w-4"
+              />
+            </th>
+            {columns.map((key) => (
+              <th key={key} scope="col" className={recruitmentTh}>
+                {key}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {applicants.map((applicant, index) => (
+            <ApplicantRow
+              key={applicant["NO"] || index}
+              applicant={applicant}
+              isSelected={selectedApplicants.has(applicant["NO"])}
+              onSelect={onSelectApplicant}
+            />
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };

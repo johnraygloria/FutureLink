@@ -1,4 +1,5 @@
 import React from "react";
+import PipelineHistoryTable, { historyCellClass, historyRowClass } from "../../../../components/Pipeline/PipelineHistoryTable";
 
 type ScreeningHistoryRow = {
   id: number;
@@ -17,34 +18,20 @@ type ScreeningHistoryTableProps = {
 };
 
 const ScreeningHistoryTable: React.FC<ScreeningHistoryTableProps> = ({ rows }) => (
-  <div className="overflow-hidden rounded-xl border border-white/10 bg-black/20">
-    <table className="min-w-full">
-      <thead>
-        <tr className="border-b border-white/10 bg-white/5">
-          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Name</th>
-          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Position</th>
-          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Applied Date</th>
-          <th className="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Status</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-white/5">
-        {rows.map((row) => (
-          <tr key={row.id} className="group hover:bg-white/5 transition-colors">
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{row.full_name || '-'}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary group-hover:text-white transition-colors">{row.position_applied_for || '-'}</td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary group-hover:text-white transition-colors">{row.date_applied || ''}</td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-custom-teal/10 text-custom-teal border border-custom-teal/20">
-                {row.status}
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
+  <PipelineHistoryTable columns={['Name', 'Position', 'Applied Date', 'Status']}>
+    {rows.map((row) => (
+      <tr key={row.id} className={historyRowClass}>
+        <td className={`${historyCellClass} text-sm font-medium text-white`}>{row.full_name || '-'}</td>
+        <td className={`${historyCellClass} text-sm text-text-secondary group-hover:text-white transition-colors`}>{row.position_applied_for || '-'}</td>
+        <td className={`${historyCellClass} text-sm text-text-secondary group-hover:text-white transition-colors`}>{row.date_applied || '-'}</td>
+        <td className={historyCellClass}>
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary-light border border-primary/20">
+            {row.status}
+          </span>
+        </td>
+      </tr>
+    ))}
+  </PipelineHistoryTable>
 );
 
 export default ScreeningHistoryTable;
-
-

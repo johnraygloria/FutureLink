@@ -7,6 +7,9 @@ import ApplicantTable from './components/applicanttab';
 import type { GoogleSheetApplicant } from './hook/googlesheettab';
 import FilterSidebar from '../../../components/Filters/FilterSidebar';
 import FilterBar from '../../../components/Filters/FilterBar';
+import PipelinePageShell from '../../../components/Pipeline/PipelinePageShell';
+import PipelineModuleHeader from '../../../components/Pipeline/PipelineModuleHeader';
+import PipelineStatCard from '../../../components/Pipeline/PipelineStatCard';
 import {
   initialFilters,
   applyFilters,
@@ -324,97 +327,82 @@ function RecruitmentDatabase() {
   const allStatusOptions = useMemo(() => Array.from(new Set(applicants.map(a => a.STATUS))).filter(Boolean).sort(), [applicants]);
 
   return (
-    <div className="flex w-full relative overflow-hidden h-[calc(100vh-2rem)]">
-      <div className="flex-1 max-w-full mx-auto py-6 px-4 md:px-8 h-full">
-        <div className="glass-card max-w-full h-full rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 backdrop-blur-xl relative z-10 transition-all hover:border-white/20 flex flex-col">
+    <PipelinePageShell fullHeight className="flex flex-col">
+      <PipelineModuleHeader
+        title="Recruitment Database"
+        subtitle="Central repository of all applicants across every pipeline stage."
+        count={applicants.length}
+        filteredCount={filteredApplicants.length !== applicants.length ? filteredApplicants.length : undefined}
+        icon="fa-database"
+      />
 
-          {/* Header Section */}
-          <div className="px-8 py-6 border-b border-white/10 bg-white/5 backdrop-blur-md">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold text-white tracking-wide">Recruitment Database</h1>
-              <button
-                onClick={() => setIsFilterSidebarOpen(true)}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all text-sm font-semibold shadow-sm border border-white/10 flex items-center gap-2 backdrop-blur-sm active:scale-95"
-              >
-                <i className="fas fa-filter"></i>
-                Advanced Filters
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <Filters
-                searchTerm={searchTerm}
-                statusFilter={statusFilter}
-                onSearchChange={setSearchTerm}
-                onStatusFilterChange={setStatusFilter}
-              />
-
-              {/* Advanced Active Filters */}
-              {checkHasActiveFilters(filters) && (
-                <FilterBar
-                  activeFilters={activeFilters}
-                  onOpenFilters={() => setIsFilterSidebarOpen(true)}
-                  onRemoveFilter={handleRemoveFilter}
-                  onClearAll={handleClearFilters}
-                />
-              )}
-            </div>
-
-            {(searchTerm || statusFilter || checkHasActiveFilters(filters)) && (
-              <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl backdrop-blur-sm flex justify-between items-center flex-wrap gap-2">
-                <p className="text-sm text-text-secondary">
-                  Showing <span className="text-white font-bold">{filteredApplicants.length}</span> of <span className="text-white font-bold">{applicants.length}</span> applicants
-                </p>
-                {(searchTerm || statusFilter) && (
-                  <span className="text-xs text-text-secondary/70 italic hidden sm:inline">
-                    (Including quick filters)
-                  </span>
-                )}
-              </div>
-            )}
-
-            <div className="mt-6">
-              <ActionsBar
-                selectedCount={selectedApplicants.size}
-                onAction={handleAction}
-              />
-            </div>
+      <div className="px-5 sm:px-6 py-4 border-b border-white/10 bg-[#0a0f16]/80 space-y-4">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 flex-1">
+            <PipelineStatCard label="Total Records" value={applicants.length} icon="fa-users" accent="primary" />
+            <PipelineStatCard label="Filtered View" value={filteredApplicants.length} icon="fa-filter" accent="info" />
+            <PipelineStatCard label="Selected" value={selectedApplicants.size} icon="fa-check-square" accent="success" />
           </div>
-
-          {/* Content Section */}
-          <div className="flex-1 overflow-hidden relative">
-            {error && (
-              <div className="m-6 bg-danger/10 text-danger border border-danger/20 p-4 rounded-xl flex items-center gap-3">
-                <i className="fas fa-exclamation-circle text-xl"></i>
-                {error}
-              </div>
-            )}
-
-            {loading ? (
-              <div className="flex flex-col items-center justify-center h-full gap-4">
-                <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin"></div>
-                <p className="text-text-secondary font-medium animate-pulse">Loading database records...</p>
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-center justify-center h-full gap-4 text-danger/80">
-                <i className="fas fa-server text-4xl mb-2"></i>
-                <p className="font-medium">Failed to load data</p>
-              </div>
-            ) : (
-              <div className="h-full overflow-hidden">
-                <ApplicantTable
-                  applicants={filteredApplicants}
-                  selectedApplicants={selectedApplicants}
-                  onSelectAll={handleSelectAll}
-                  onSelectApplicant={handleSelectApplicant}
-                />
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => setIsFilterSidebarOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary/15 hover:bg-primary/25 text-primary-light rounded-xl transition-all text-sm font-semibold border border-primary/25 active:scale-95 shrink-0"
+          >
+            <i className="fas fa-sliders" />
+            Advanced Filters
+          </button>
         </div>
+
+        <Filters
+          searchTerm={searchTerm}
+          statusFilter={statusFilter}
+          onSearchChange={setSearchTerm}
+          onStatusFilterChange={setStatusFilter}
+        />
+
+        {checkHasActiveFilters(filters) && (
+          <FilterBar
+            embedded
+            activeFilters={activeFilters}
+            onOpenFilters={() => setIsFilterSidebarOpen(true)}
+            onRemoveFilter={handleRemoveFilter}
+            onClearAll={handleClearFilters}
+          />
+        )}
+
+        <ActionsBar
+          selectedCount={selectedApplicants.size}
+          onAction={handleAction}
+        />
       </div>
 
-      {/* Filter Sidebar */}
+      <div className="flex-1 overflow-hidden relative">
+        {error && (
+          <div className="m-5 bg-danger/10 text-danger border border-danger/20 p-4 rounded-xl flex items-center gap-3">
+            <i className="fas fa-exclamation-circle text-xl"></i>
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4">
+            <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin"></div>
+            <p className="text-text-secondary font-medium animate-pulse">Loading database records...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-danger/80">
+            <i className="fas fa-server text-4xl mb-2"></i>
+            <p className="font-medium">Failed to load data</p>
+          </div>
+        ) : (
+          <ApplicantTable
+            applicants={filteredApplicants}
+            selectedApplicants={selectedApplicants}
+            onSelectAll={handleSelectAll}
+            onSelectApplicant={handleSelectApplicant}
+          />
+        )}
+      </div>
+
       <FilterSidebar
         isOpen={isFilterSidebarOpen}
         onClose={() => setIsFilterSidebarOpen(false)}
@@ -424,7 +412,7 @@ function RecruitmentDatabase() {
         onClearFilters={handleClearFilters}
         statusOptions={allStatusOptions}
       />
-    </div>
+    </PipelinePageShell>
   );
 }
 

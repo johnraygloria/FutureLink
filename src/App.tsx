@@ -113,7 +113,7 @@ const App: React.FC = () => {
         />
         
         <div className="flex-1 flex flex-col overflow-hidden">
-          <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto transition-opacity duration-300">
+          <main className="flex-1 p-2 sm:p-3 md:p-4 overflow-auto transition-opacity duration-300">
             {renderContent()}
           </main>
         </div>
