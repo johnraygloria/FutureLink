@@ -5,6 +5,7 @@ const logger = require('./middleware/logger');
 const applicantsRoutes = require('./routes/applicants');
 const authRoutes = require('./routes/auth');
 const clientsRoutes = require('./routes/clients');
+const principalsRoutes = require('./routes/principals');
 const masterlistRoutes = require('./routes/masterlist');
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(logger);
 app.use('/api/applicants', applicantsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientsRoutes);
+app.use('/api/principals', principalsRoutes);
 app.use('/api/masterlist', masterlistRoutes);
 
 app.get('/', (req, res) => {

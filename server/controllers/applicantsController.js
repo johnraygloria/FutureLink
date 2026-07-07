@@ -1,6 +1,6 @@
 const { insertRecruitmentApplicant, fetchRecruitmentApplicants, upsertRecruitmentApplicant, updateApplicantFields, addScreeningHistory, fetchScreeningHistory, fetchScreeningHistoryEnriched, addAssessmentHistory, fetchAssessmentHistoryEnriched, addSelectionHistory, fetchSelectionHistoryEnriched, addEngagementHistory, fetchEngagementHistoryEnriched, getNextApplicantNumber } = require('../models/applicant');
-const { setApplicantClients, getApplicantClients } = require('../models/applicantClient');
-const { getAllClients } = require('../models/client');
+const { setApplicantPrincipals } = require('../models/applicantPrincipal');
+const { getAllPrincipals } = require('../models/principal');
 
 exports.createApplicant = (req, res) => {
   res.status(201).json({ message: 'Applicant created', data: req.body });
@@ -71,37 +71,33 @@ exports.addOrUpdateApplicant = async (req, res) => {
       tin_number: toBitOrUndefined(body.TIN_NUMBER ?? body.tinNumber ?? body.tin_number),
     });
 
-    // Handle clients: Save to junction table
-    // Only update clients if CLIENT_IDS is explicitly provided OR old client fields are provided
-    // Otherwise, preserve existing clients
-    if (Array.isArray(body.CLIENT_IDS)) {
-      // New way: use CLIENT_IDS array
-      const clientIds = body.CLIENT_IDS
+    const principalIds = Array.isArray(body.PRINCIPAL_IDS)
+      ? body.PRINCIPAL_IDS
+      : body.CLIENT_IDS;
+
+    if (Array.isArray(principalIds)) {
+      const ids = principalIds
         .map((id) => Number(id))
         .filter((id) => !Number.isNaN(id));
-      await setApplicantClients(result.id, clientIds);
+      await setApplicantPrincipals(result.id, ids);
     } else {
-      // Old way: check for individual client fields
-      const allClients = await getAllClients();
-      const selectedClientIds = [];
-      const clientFields = ['DATIAN', 'HOKEI', 'POBC', 'JINBOWAY', 'SURPRISE', 'THALESTE', 'AOLLY', 'ENJOY'];
-      let hasClientFields = false;
+      const allPrincipals = await getAllPrincipals();
+      const selectedPrincipalIds = [];
+      const principalFields = ['DATIAN', 'HOKEI', 'POBC', 'JINBOWAY', 'SURPRISE', 'THALESTE', 'AOLLY', 'ENJOY'];
+      let hasPrincipalFields = false;
 
-      for (const clientName of clientFields) {
-        const clientValue = body[clientName];
-        if (clientValue === 'Ok') {
-          hasClientFields = true;
-          const client = allClients.find(c => c.name === clientName);
-          if (client) selectedClientIds.push(client.id);
+      for (const principalName of principalFields) {
+        const principalValue = body[principalName];
+        if (principalValue === 'Ok') {
+          hasPrincipalFields = true;
+          const principal = allPrincipals.find((p) => p.name === principalName);
+          if (principal) selectedPrincipalIds.push(principal.id);
         }
       }
 
-      // Only update clients if old client fields were actually provided
-      // If neither CLIENT_IDS nor old fields are provided, preserve existing clients
-      if (hasClientFields) {
-        await setApplicantClients(result.id, selectedClientIds);
+      if (hasPrincipalFields) {
+        await setApplicantPrincipals(result.id, selectedPrincipalIds);
       }
-      // Otherwise, don't call setApplicantClients - existing clients are preserved
     }
 
     // If assessment-related fields are provided, log to assessment history as a safety net

@@ -28,7 +28,7 @@ export const mapScreeningApplicantRow = (r: any): User => ({
   positionApplied: r.position_applied_for || '',
   experience: r.experience || '',
   // Clients from backend (array of names)
-  ...(r.clients ? { clients: r.clients } : {}),
+  ...(r.principals || r.clients ? { principals: r.principals || r.clients } : {}),
   status: r.status || '',
   requirementsStatus: r.requirements_status || '',
   finalInterviewStatus: r.final_interview_status || '',
@@ -78,7 +78,7 @@ export const ADDITIONAL_SCREENING_COLUMNS = [
   "CONTACT NUMBER",
   "EMAIL",
   "EXPERIENCE",
-  "CLIENTS",
+  "PRINCIPAL",
   "REQUIREMENTS STATUS",
   "FINAL INTERVIEW STATUS",
   "MEDICAL STATUS",
@@ -87,9 +87,8 @@ export const ADDITIONAL_SCREENING_COLUMNS = [
 ] as const;
 
 export const mapUserToDisplayFormat = (user: User): Record<string, any> => {
-  // Get clients from the user object (from backend row.clients array)
-  const clients = (user as any).clients || [];
-  const clientsDisplay = Array.isArray(clients) ? clients.join(', ') : '';
+  const principals = (user as any).principals || (user as any).clients || [];
+  const principalsDisplay = Array.isArray(principals) ? principals.join(', ') : '';
   
   return {
     "NO": user.no || '',
@@ -109,7 +108,7 @@ export const mapUserToDisplayFormat = (user: User): Record<string, any> => {
     "EMAIL": user.email || '',
     "POSITION APPLIED FOR": user.positionApplied || '',
     "EXPERIENCE": user.experience || '',
-    "CLIENTS": clientsDisplay,
+    "PRINCIPAL": principalsDisplay,
     "STATUS": user.status || '',
     "REQUIREMENTS STATUS": user.requirementsStatus || '',
     "FINAL INTERVIEW STATUS": user.finalInterviewStatus || '',

@@ -7,7 +7,7 @@ import {
   hasActiveFilters as checkHasActiveFilters,
 } from "../../../../components/Filters/filterUtils";
 import type { FilterCriteria, ActiveFilter } from "../../../../components/Filters/filterUtils";
-import { fetchClients } from "../../../../api/client";
+import { fetchPrincipals } from "../../../../api/principal";
 import { isSelectionStatus } from "../utils/selectionUtils";
 
 export function useSelectionApplicants() {
@@ -42,32 +42,30 @@ export function useSelectionApplicants() {
     const user = users.find(u => u.id === userId);
     if (!user) return;
 
-    // Always fetch current clients from database to preserve them
-    let clientIds: number[] = [];
+    let principalIds: number[] = [];
     try {
-      // First, try to get clients from user object
-      const userClients = (user as any).clients || [];
-      if (Array.isArray(userClients) && userClients.length > 0) {
-        const allClients = await fetchClients();
-        clientIds = allClients
-          .filter(client => userClients.includes(client.name))
-          .map(client => client.id);
+      const userPrincipals = (user as any).principals || (user as any).clients || [];
+      if (Array.isArray(userPrincipals) && userPrincipals.length > 0) {
+        const allPrincipals = await fetchPrincipals();
+        principalIds = allPrincipals
+          .filter(principal => userPrincipals.includes(principal.name))
+          .map(principal => principal.id);
       } else {
-        // If user object doesn't have clients, fetch from database
         const response = await fetch(`/api/applicants?NO=${encodeURIComponent(user.no || '')}`);
         if (response.ok) {
           const applicants = await response.json();
           const applicant = applicants.find((a: any) => a.applicant_no === user.no);
-          if (applicant && Array.isArray(applicant.clients) && applicant.clients.length > 0) {
-            const allClients = await fetchClients();
-            clientIds = allClients
-              .filter(client => applicant.clients.includes(client.name))
-              .map(client => client.id);
+          const applicantPrincipals = applicant?.principals || applicant?.clients || [];
+          if (Array.isArray(applicantPrincipals) && applicantPrincipals.length > 0) {
+            const allPrincipals = await fetchPrincipals();
+            principalIds = allPrincipals
+              .filter(principal => applicantPrincipals.includes(principal.name))
+              .map(principal => principal.id);
           }
         }
       }
     } catch (error) {
-      console.error('Failed to fetch clients for status update:', error);
+      console.error('Failed to fetch principals for status update:', error);
     }
 
     const payload: Record<string, any> = {
@@ -96,9 +94,7 @@ export function useSelectionApplicants() {
       APPLICANT_REMARKS: user.applicantRemarks || '',
     };
 
-    // Always send CLIENT_IDS (even if empty) so backend knows to preserve clients
-    // Backend will only update if CLIENT_IDS is explicitly provided
-    payload.CLIENT_IDS = clientIds;
+    payload.PRINCIPAL_IDS = principalIds;
     setUsers(prevUsers => {
       if (!isSelectionStatus(newStatus)) {
         return prevUsers.filter(u => u.id !== userId);

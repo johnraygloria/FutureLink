@@ -79,7 +79,7 @@ function RecruitmentDatabase() {
           EMAIL: r.email || '',
           "POSITION APPLIED FOR": r.position_applied_for || '',
           EXPERIENCE: r.experience || '',
-          CLIENTS: Array.isArray(r.clients) ? r.clients.join(', ') : (r.clients || ''),
+          PRINCIPAL: Array.isArray(r.principals) ? r.principals.join(', ') : (Array.isArray(r.clients) ? r.clients.join(', ') : (r.principals || r.clients || '')),
           STATUS: r.status || '',
           "REQUIREMENTS STATUS": r.requirements_status || '',
           "FINAL INTERVIEW STATUS": r.final_interview_status || '',
@@ -244,7 +244,7 @@ function RecruitmentDatabase() {
           EMAIL: r.email || '',
           "POSITION APPLIED FOR": r.position_applied_for || '',
           EXPERIENCE: r.experience || '',
-          CLIENTS: Array.isArray(r.clients) ? r.clients.join(', ') : (r.clients || ''),
+          PRINCIPAL: Array.isArray(r.principals) ? r.principals.join(', ') : (Array.isArray(r.clients) ? r.clients.join(', ') : (r.principals || r.clients || '')),
           STATUS: r.status || '',
           "REQUIREMENTS STATUS": r.requirements_status || '',
           "FINAL INTERVIEW STATUS": r.final_interview_status || '',
@@ -266,7 +266,7 @@ function RecruitmentDatabase() {
     const columns = [
       'NO', 'REFFERED BY', 'LAST NAME', 'FIRST NAME', 'EXT', 'MIDDLE', 'GENDER', 'SIZE',
       'DATE OF BIRTH', 'DATE APPLIED', 'FB NAME', 'AGE', 'LOCATION', 'CONTACT NUMBER', 'EMAIL',
-      'POSITION APPLIED FOR', 'EXPERIENCE', 'CLIENTS', 'STATUS', 'REQUIREMENTS STATUS',
+      'POSITION APPLIED FOR', 'EXPERIENCE', 'PRINCIPAL', 'STATUS', 'REQUIREMENTS STATUS',
       'FINAL INTERVIEW STATUS', 'MEDICAL STATUS', 'STATUS REMARKS', 'APPLICANT REMARKS'
     ];
 

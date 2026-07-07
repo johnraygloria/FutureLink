@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApplicantByNo, saveApplicantAssessment } from '../../../api/assessmentStatus';
-import { fetchClients, createClient, deleteClient, type Client } from '../../../api/client';
+import { fetchPrincipals, createPrincipal, deletePrincipal, type Principal } from '../../../api/principal';
 
 const emptyApplicant: { [key: string]: any } = {
   NO: "",
@@ -51,7 +51,7 @@ interface AssessmentProps {
 }
 
 const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeader = true }) => {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [principals, setPrincipals] = useState<Principal[]>([]);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [status, setStatus] = useState<string>('');
   const [no, setNo] = useState<string>(applicantNo || '');
@@ -65,51 +65,50 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
   const [loading, setLoading] = useState(false);
   const [applicantData, setApplicantData] = useState<{ [key: string]: any }>(emptyApplicant);
 
-  const [newClientName, setNewClientName] = useState<string>('');
-  const [isAddingClient, setIsAddingClient] = useState(false);
-  const [deletingClientId, setDeletingClientId] = useState<number | null>(null);
+  const [newPrincipalName, setNewPrincipalName] = useState<string>('');
+  const [isAddingPrincipal, setIsAddingPrincipal] = useState(false);
+  const [deletingPrincipalId, setDeletingPrincipalId] = useState<number | null>(null);
 
 
-  const loadClients = async () => {
+  const loadPrincipals = async () => {
     try {
-      const fetchedClients = await fetchClients();
-      setClients(fetchedClients);
-      return fetchedClients;
+      const fetchedPrincipals = await fetchPrincipals();
+      setPrincipals(fetchedPrincipals);
+      return fetchedPrincipals;
     } catch (error) {
-      console.error('Error fetching clients:', error);
-      setStatus('Error loading clients');
+      console.error('Error fetching principals:', error);
+      setStatus('Error loading principals');
       return [];
     }
   };
 
   useEffect(() => {
-    const initializeClients = async () => {
+    const initializePrincipals = async () => {
       try {
-        const currentClients = await loadClients();
-        if (currentClients.length === 0) {
+        const currentPrincipals = await loadPrincipals();
+        if (currentPrincipals.length === 0) {
           try {
-            const response = await fetch('/api/clients/init-defaults', { method: 'POST' });
+            const response = await fetch('/api/principals/init-defaults', { method: 'POST' });
             if (response.ok) {
-              await loadClients();
+              await loadPrincipals();
             }
           } catch (error) {
-            console.error('Error initializing default clients:', error);
+            console.error('Error initializing default principals:', error);
           }
         }
       } catch (error) {
-        console.error('Error loading clients:', error);
-        // Try to initialize defaults if fetch fails (might be first run)
+        console.error('Error loading principals:', error);
         try {
-          const response = await fetch('/api/clients/init-defaults', { method: 'POST' });
+          const response = await fetch('/api/principals/init-defaults', { method: 'POST' });
           if (response.ok) {
-            await loadClients();
+            await loadPrincipals();
           }
         } catch (initError) {
-          console.error('Error initializing default clients:', initError);
+          console.error('Error initializing default principals:', initError);
         }
       }
     };
-    initializeClients();
+    initializePrincipals();
   }, []);
 
   const fetchApplicantData = async (applicantNumber: string) => {
@@ -135,10 +134,9 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
         setStatusRemarks(applicant.STATUS_REMARKS || applicant.Status_REMARKS || "");
         setApplicantRemarks(applicant.APPLICANT_REMARKS || "");
 
-        // Check selected companies based on current clients from API
-        const clientNames = clients.map(c => c.name);
-        const existingCompanies = clientNames.filter(clientName => {
-          const colName = clientName as keyof typeof applicant;
+        const principalNames = principals.map(c => c.name);
+        const existingCompanies = principalNames.filter(principalName => {
+          const colName = principalName as keyof typeof applicant;
           return applicant[colName] === "Ok";
         });
         setSelectedCompanies(existingCompanies);
@@ -176,20 +174,17 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
     setLoading(true);
     setStatus('');
 
-    // Get client IDs for selected companies
-    const selectedClientIds = clients
-      .filter(client => selectedCompanies.includes(client.name))
-      .map(client => client.id);
+    const selectedPrincipalIds = principals
+      .filter(principal => selectedCompanies.includes(principal.name))
+      .map(principal => principal.id);
 
     let updatedApplicantData: { [key: string]: any } = { ...applicantData, NO: no };
 
-    // Update client fields for backward compatibility (if needed)
-    clients.forEach(client => {
-      updatedApplicantData[client.name] = selectedCompanies.includes(client.name) ? "Ok" : "";
+    principals.forEach(principal => {
+      updatedApplicantData[principal.name] = selectedCompanies.includes(principal.name) ? "Ok" : "";
     });
 
-    // Add CLIENT_IDS array for new junction table approach
-    updatedApplicantData["CLIENT_IDS"] = selectedClientIds;
+    updatedApplicantData["PRINCIPAL_IDS"] = selectedPrincipalIds;
 
     updatedApplicantData["REQUIREMENTS_STATUS"] = requirementsStatus;
     updatedApplicantData["FINAL_INTERVIEW_STATUS"] = finalInterviewStatus;
@@ -253,7 +248,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
     if (no) {
       fetchApplicantData(no);
     }
-  }, [no, clients]);
+  }, [no, principals]);
 
   // Listen for external updates to keep local state in sync (e.g. from Sidebar Overview tab or data refresh)
   useEffect(() => {
@@ -278,44 +273,43 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
     return () => window.removeEventListener('applicant-updated', handleUpdate);
   }, [no]);
 
-  // Handle adding a new client
-  const handleAddClient = async (e: React.SyntheticEvent) => {
+  const handleAddPrincipal = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    if (!newClientName.trim()) {
-      setStatus('Please enter a client name');
+    if (!newPrincipalName.trim()) {
+      setStatus('Please enter a principal name');
       return;
     }
 
     try {
-      await createClient(newClientName.trim());
-      setNewClientName('');
-      setIsAddingClient(false);
-      await loadClients(); // Refresh the client list
-      setStatus('Client added successfully');
+      await createPrincipal(newPrincipalName.trim());
+      setNewPrincipalName('');
+      setIsAddingPrincipal(false);
+      await loadPrincipals();
+      setStatus('Principal added successfully');
       setTimeout(() => setStatus(''), 3000);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Failed to add client');
+      setStatus(error instanceof Error ? error.message : 'Failed to add principal');
     }
   };
 
 
 
-  const handleDeleteClient = async (clientId: number, clientName: string) => {
-    if (!confirm(`Are you sure you want to delete "${clientName}"? This will also remove it from all applicant records.`)) {
+  const handleDeletePrincipal = async (principalId: number, principalName: string) => {
+    if (!confirm(`Are you sure you want to delete "${principalName}"? This will also remove it from all applicant records.`)) {
       return;
     }
 
     try {
-      setDeletingClientId(clientId);
-      await deleteClient(clientId);
-      await loadClients();
-      setSelectedCompanies(prev => prev.filter(c => c !== clientName));
-      setStatus('Client deleted successfully');
+      setDeletingPrincipalId(principalId);
+      await deletePrincipal(principalId);
+      await loadPrincipals();
+      setSelectedCompanies(prev => prev.filter(c => c !== principalName));
+      setStatus('Principal deleted successfully');
       setTimeout(() => setStatus(''), 3000);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Failed to delete client');
+      setStatus(error instanceof Error ? error.message : 'Failed to delete principal');
     } finally {
-      setDeletingClientId(null);
+      setDeletingPrincipalId(null);
     }
   };
 
@@ -387,38 +381,38 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wide">
                       <i className="fas fa-building text-custom-teal"></i>
-                      Clients
+                      Principals
                     </label>
                     <button
                       type="button"
-                      onClick={() => setIsAddingClient(!isAddingClient)}
+                      onClick={() => setIsAddingPrincipal(!isAddingPrincipal)}
                       className="px-3 py-1.5 text-xs bg-custom-teal/20 text-custom-teal hover:bg-custom-teal/30 font-medium rounded-lg transition-colors flex items-center gap-1.5 border border-custom-teal/30"
                     >
-                      <i className={`fas ${isAddingClient ? 'fa-times' : 'fa-plus'}`}></i>
-                      {isAddingClient ? 'Cancel' : 'Add Client'}
+                      <i className={`fas ${isAddingPrincipal ? 'fa-times' : 'fa-plus'}`}></i>
+                      {isAddingPrincipal ? 'Cancel' : 'Add Principal'}
                     </button>
                   </div>
 
-                  {isAddingClient && (
+                  {isAddingPrincipal && (
                     <div className="mb-2 p-3 bg-white/5 rounded-lg border border-white/10 shadow-sm">
                       <div className="flex gap-2">
                         <input
                           type="text"
-                          value={newClientName}
-                          onChange={(e) => setNewClientName(e.target.value)}
+                          value={newPrincipalName}
+                          onChange={(e) => setNewPrincipalName(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
-                              handleAddClient(e);
+                              handleAddPrincipal(e);
                             }
                           }}
-                          placeholder="Enter client name"
+                          placeholder="Enter principal name"
                           className="flex-1 text-sm border border-white/10 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white/5 text-white placeholder-text-secondary/30"
                           autoFocus
                         />
                         <button
                           type="button"
-                          onClick={handleAddClient}
+                          onClick={handleAddPrincipal}
                           className="px-4 py-2 bg-custom-teal text-white text-sm rounded-lg hover:bg-custom-teal/90 transition-colors font-medium shadow-sm"
                         >
                           <i className="fas fa-check mr-1"></i>Add
@@ -428,16 +422,16 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                   )}
 
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                    {clients.length === 0 ? (
+                    {principals.length === 0 ? (
                       <div className="col-span-2 text-center py-4 text-sm text-text-secondary/60">
                         <i className="fas fa-info-circle mb-2 text-text-secondary/40"></i>
-                        <p>No clients available. Click "Add Client" to create one.</p>
+                        <p>No principals available. Click "Add Principal" to create one.</p>
                       </div>
                     ) : (
-                      clients.map(client => (
+                      principals.map(principal => (
                         <label
-                          key={client.id}
-                          className={`inline-flex items-center gap-2.5 text-sm p-2.5 rounded-lg border transition-all cursor-pointer group ${selectedCompanies.includes(client.name)
+                          key={principal.id}
+                          className={`inline-flex items-center gap-2.5 text-sm p-2.5 rounded-lg border transition-all cursor-pointer group ${selectedCompanies.includes(principal.name)
                             ? 'bg-custom-teal/20 border-custom-teal/40 text-custom-teal'
                             : 'bg-white/5 border-white/10 text-white hover:border-white/20 hover:bg-white/10'
                             }`}
@@ -445,22 +439,22 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                           <input
                             type="checkbox"
                             className="h-4 w-4 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal cursor-pointer"
-                            checked={selectedCompanies.includes(client.name)}
-                            onChange={() => toggleCompany(client.name)}
+                            checked={selectedCompanies.includes(principal.name)}
+                            onChange={() => toggleCompany(principal.name)}
                           />
-                          <span className="flex-1 font-medium truncate">{client.name}</span>
+                          <span className="flex-1 font-medium truncate">{principal.name}</span>
                           <button
                             type="button"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              handleDeleteClient(client.id, client.name);
+                              handleDeletePrincipal(principal.id, principal.name);
                             }}
-                            disabled={deletingClientId === client.id}
+                            disabled={deletingPrincipalId === principal.id}
                             className="opacity-50 hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity p-1.5 disabled:opacity-30 hover:bg-red-500/10 rounded ml-2"
-                            title="Delete client"
+                            title="Delete principal"
                           >
-                            {deletingClientId === client.id ? (
+                            {deletingPrincipalId === principal.id ? (
                               <i className="fas fa-spinner fa-spin text-xs"></i>
                             ) : (
                               <i className="fas fa-trash text-xs"></i>

@@ -178,25 +178,23 @@ async function fetchRecruitmentApplicants() {
     `SELECT * FROM recruitment_applicants ORDER BY created_at DESC`
   );
   
-  // Fetch clients for each applicant
-  const { getApplicantClientsByName } = require('./applicantClient');
+  const { getApplicantPrincipalsByName } = require('./applicantPrincipal');
   for (const row of rows) {
     if (row.applicant_no) {
       try {
-        const clientNames = await getApplicantClientsByName(row.applicant_no);
-        // Add clients array to row for backward compatibility
-        row.clients = clientNames;
-        // Also add individual fields for backward compatibility (empty if not selected)
-        row.datian = clientNames.includes('DATIAN') ? 'Ok' : '';
-        row.hokei = clientNames.includes('HOKEI') ? 'Ok' : '';
-        row.pobc = clientNames.includes('POBC') ? 'Ok' : '';
-        row.jinboway = clientNames.includes('JINBOWAY') ? 'Ok' : '';
-        row.surprise = clientNames.includes('SURPRISE') ? 'Ok' : '';
-        row.thaleste = clientNames.includes('THALESTE') ? 'Ok' : '';
-        row.aolly = clientNames.includes('AOLLY') ? 'Ok' : '';
-        row.enjoy = clientNames.includes('ENJOY') ? 'Ok' : '';
+        const principalNames = await getApplicantPrincipalsByName(row.applicant_no);
+        row.principals = principalNames;
+        row.clients = principalNames;
+        row.datian = principalNames.includes('DATIAN') ? 'Ok' : '';
+        row.hokei = principalNames.includes('HOKEI') ? 'Ok' : '';
+        row.pobc = principalNames.includes('POBC') ? 'Ok' : '';
+        row.jinboway = principalNames.includes('JINBOWAY') ? 'Ok' : '';
+        row.surprise = principalNames.includes('SURPRISE') ? 'Ok' : '';
+        row.thaleste = principalNames.includes('THALESTE') ? 'Ok' : '';
+        row.aolly = principalNames.includes('AOLLY') ? 'Ok' : '';
+        row.enjoy = principalNames.includes('ENJOY') ? 'Ok' : '';
       } catch (error) {
-        console.error('Error fetching clients for applicant:', error);
+        console.error('Error fetching principals for applicant:', error);
       }
     }
   }

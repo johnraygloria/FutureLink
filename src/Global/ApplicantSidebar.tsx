@@ -13,15 +13,16 @@ import {
 } from "@tabler/icons-react";
 import Assessment from "../pages/components/assessments/assessmentStatus";
 import { useNavigation } from "./NavigationContext";
-import { fetchClients } from "../api/client";
-
-const panelClass = 'rounded-2xl border border-white/10 bg-[#0d1219]/85 backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]';
-const panelTitleClass = 'text-[11px] font-bold text-white/50 uppercase tracking-[0.14em]';
-const fieldLabelClass = 'text-[11px] font-bold text-text-secondary/70 uppercase tracking-wider';
-const fieldValueClass = 'font-medium text-white/90 px-3 py-2 bg-black/20 rounded-xl border border-white/[0.06]';
-const inputClass = 'w-full bg-black/20 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all';
-const selectClass = `${inputClass} appearance-none hover:bg-black/30`;
-const checkboxClass = 'w-4 h-4 rounded border-white/20 bg-black/20 text-primary focus:ring-primary/40 focus:ring-offset-0 transition-all cursor-pointer';
+import { fetchPrincipals } from "../api/principal";
+import {
+  panelClass,
+  panelTitleClass,
+  fieldLabelClass,
+  fieldValueClass,
+  inputClass,
+  selectClass,
+  checkboxClass,
+} from "../constants/applicantFormStyles";
 
 interface ApplicantSidebarProps {
   selectedUser: User | null;
@@ -69,32 +70,30 @@ const getStatusIcon = (status: string) => {
 
 const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatus) => {
   try {
-    // Always fetch current clients from database to preserve them
-    let clientIds: number[] = [];
+    let principalIds: number[] = [];
     try {
-      // First, try to get clients from user object
-      const userClients = (user as any).clients || [];
-      if (Array.isArray(userClients) && userClients.length > 0) {
-        const allClients = await fetchClients();
-        clientIds = allClients
-          .filter(client => userClients.includes(client.name))
-          .map(client => client.id);
+      const userPrincipals = (user as any).principals || (user as any).clients || [];
+      if (Array.isArray(userPrincipals) && userPrincipals.length > 0) {
+        const allPrincipals = await fetchPrincipals();
+        principalIds = allPrincipals
+          .filter(principal => userPrincipals.includes(principal.name))
+          .map(principal => principal.id);
       } else {
-        // If user object doesn't have clients, fetch from database
         const response = await fetch(`/api/applicants?NO=${encodeURIComponent(user.no || '')}`);
         if (response.ok) {
           const applicants = await response.json();
           const applicant = applicants.find((a: any) => a.applicant_no === user.no);
-          if (applicant && Array.isArray(applicant.clients) && applicant.clients.length > 0) {
-            const allClients = await fetchClients();
-            clientIds = allClients
-              .filter(client => applicant.clients.includes(client.name))
-              .map(client => client.id);
+          const applicantPrincipals = applicant?.principals || applicant?.clients || [];
+          if (Array.isArray(applicantPrincipals) && applicantPrincipals.length > 0) {
+            const allPrincipals = await fetchPrincipals();
+            principalIds = allPrincipals
+              .filter(principal => applicantPrincipals.includes(principal.name))
+              .map(principal => principal.id);
           }
         }
       }
     } catch (error) {
-      console.error('Failed to fetch clients for status update:', error);
+      console.error('Failed to fetch principals for status update:', error);
     }
 
     const payloadBody: Record<string, any> = {
@@ -137,9 +136,7 @@ const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatu
       TIN_NUMBER: (user as any).tinNumber ? '1' : '0',
     };
 
-    // Always send CLIENT_IDS (even if empty) so backend knows to preserve clients
-    // Backend will only update if CLIENT_IDS is explicitly provided
-    payloadBody.CLIENT_IDS = clientIds;
+    payloadBody.PRINCIPAL_IDS = principalIds;
 
     await fetch('/api/applicants', {
       method: 'POST',
@@ -184,30 +181,30 @@ const updateStatusInGoogleSheet = async (user: User, newStatus: ApplicationStatu
 
 const updateUserDetails = async (user: User) => {
   try {
-    // Always fetch current clients from database to preserve them
-    let clientIds: number[] = [];
+    let principalIds: number[] = [];
     try {
-      const userClients = (user as any).clients || [];
-      if (Array.isArray(userClients) && userClients.length > 0) {
-        const allClients = await fetchClients();
-        clientIds = allClients
-          .filter(client => userClients.includes(client.name))
-          .map(client => client.id);
+      const userPrincipals = (user as any).principals || (user as any).clients || [];
+      if (Array.isArray(userPrincipals) && userPrincipals.length > 0) {
+        const allPrincipals = await fetchPrincipals();
+        principalIds = allPrincipals
+          .filter(principal => userPrincipals.includes(principal.name))
+          .map(principal => principal.id);
       } else {
         const response = await fetch(`/api/applicants?NO=${encodeURIComponent(user.no || '')}`);
         if (response.ok) {
           const applicants = await response.json();
           const applicant = applicants.find((a: any) => a.applicant_no === user.no);
-          if (applicant && Array.isArray(applicant.clients) && applicant.clients.length > 0) {
-            const allClients = await fetchClients();
-            clientIds = allClients
-              .filter(client => applicant.clients.includes(client.name))
-              .map(client => client.id);
+          const applicantPrincipals = applicant?.principals || applicant?.clients || [];
+          if (Array.isArray(applicantPrincipals) && applicantPrincipals.length > 0) {
+            const allPrincipals = await fetchPrincipals();
+            principalIds = allPrincipals
+              .filter(principal => applicantPrincipals.includes(principal.name))
+              .map(principal => principal.id);
           }
         }
       }
     } catch (error) {
-      console.error('Failed to fetch clients for update:', error);
+      console.error('Failed to fetch principals for update:', error);
     }
 
     const payloadBody: Record<string, any> = {
@@ -248,7 +245,7 @@ const updateUserDetails = async (user: User) => {
       COE: (user as any).coe ? '1' : '0',
       PHILHEALTH: (user as any).philhealth ? '1' : '0',
       TIN_NUMBER: (user as any).tinNumber ? '1' : '0',
-      CLIENT_IDS: clientIds
+      PRINCIPAL_IDS: principalIds
     };
 
     const res = await fetch('/api/applicants', {

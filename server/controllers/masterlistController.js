@@ -1,12 +1,13 @@
 const {
   getAllEmployees,
+  getNextFliNumber,
   insertEmployee,
   updateEmployeeFields,
+  deleteEmployee,
   initializeMasterlist,
 } = require('../models/masterlist');
 
 const VALID_STATUSES = new Set(['ACTIVE', 'RESIGNED', 'TERMINATED']);
-const VALID_EMPLOYMENT_STATUSES = new Set(['REGULAR', 'PROBATIONARY']);
 
 async function getEmployees(req, res) {
   try {
@@ -18,13 +19,24 @@ async function getEmployees(req, res) {
   }
 }
 
+async function getNextFli(req, res) {
+  try {
+    const fliNumber = await getNextFliNumber();
+    res.json({ fliNumber });
+  } catch (error) {
+    console.error('Error fetching next FLI number:', error);
+    res.status(500).json({ error: 'Failed to fetch next FLI number' });
+  }
+}
+
 async function createEmployee(req, res) {
   try {
     const body = req.body || {};
-    const empId = String(body.emp_id || body.empId || '').trim();
+    const lastName = String(body.last_name || body.lastName || '').trim();
+    const firstName = String(body.first_name || body.firstName || '').trim();
 
-    if (!empId) {
-      return res.status(400).json({ error: 'Employee ID is required' });
+    if (!lastName || !firstName) {
+      return res.status(400).json({ error: 'Last name and first name are required' });
     }
 
     const status = body.status || 'ACTIVE';
@@ -32,36 +44,17 @@ async function createEmployee(req, res) {
       return res.status(400).json({ error: 'Invalid status' });
     }
 
-    const employmentStatus = body.employment_status || body.employmentStatus || 'PROBATIONARY';
-    if (!VALID_EMPLOYMENT_STATUSES.has(employmentStatus)) {
-      return res.status(400).json({ error: 'Invalid employment status' });
-    }
-
     const employee = await insertEmployee({
-      emp_id: empId,
-      last_name: body.last_name || body.lastName,
-      first_name: body.first_name || body.firstName,
-      ext_name: body.ext_name || body.extName,
-      middle_name: body.middle_name || body.middleName,
-      mobile_number: body.mobile_number || body.mobileNumber,
-      address: body.address,
-      gender: body.gender,
-      date_hired: body.date_hired || body.dateHired,
+      ...body,
+      last_name: lastName,
+      first_name: firstName,
       status,
-      employment_status: employmentStatus,
-      remarks: body.remarks,
-      position: body.position,
-      dept_line: body.dept_line || body.deptLine,
-      section: body.section,
-      building: body.building,
-      shift: body.shift || 'DAY',
-      applicant_no: body.applicant_no || body.applicantNo,
     });
 
     res.status(201).json(employee);
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ error: 'Employee ID already exists' });
+      return res.status(409).json({ error: 'Employee record already exists' });
     }
     console.error('Error creating masterlist employee:', error);
     res.status(500).json({ error: 'Failed to create employee' });
@@ -76,28 +69,12 @@ async function patchEmployee(req, res) {
     }
 
     const body = req.body || {};
-    const fields = {};
 
-    if (body.status !== undefined) {
-      if (!VALID_STATUSES.has(body.status)) {
-        return res.status(400).json({ error: 'Invalid status' });
-      }
-      fields.status = body.status;
+    if (body.status !== undefined && !VALID_STATUSES.has(body.status)) {
+      return res.status(400).json({ error: 'Invalid status' });
     }
 
-    const employmentStatus = body.employment_status ?? body.employmentStatus;
-    if (employmentStatus !== undefined) {
-      if (!VALID_EMPLOYMENT_STATUSES.has(employmentStatus)) {
-        return res.status(400).json({ error: 'Invalid employment status' });
-      }
-      fields.employment_status = employmentStatus;
-    }
-
-    if (body.remarks !== undefined) {
-      fields.remarks = body.remarks;
-    }
-
-    const employee = await updateEmployeeFields(parseInt(id, 10), fields);
+    const employee = await updateEmployeeFields(parseInt(id, 10), body);
 
     if (!employee) {
       return res.status(404).json({ error: 'Employee not found or no changes provided' });
@@ -107,6 +84,25 @@ async function patchEmployee(req, res) {
   } catch (error) {
     console.error('Error updating masterlist employee:', error);
     res.status(500).json({ error: 'Failed to update employee' });
+  }
+}
+
+async function removeEmployee(req, res) {
+  try {
+    const { id } = req.params;
+    if (!id || Number.isNaN(parseInt(id, 10))) {
+      return res.status(400).json({ error: 'Valid employee ID is required' });
+    }
+
+    const deleted = await deleteEmployee(parseInt(id, 10));
+    if (!deleted) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting masterlist employee:', error);
+    res.status(500).json({ error: 'Failed to delete employee' });
   }
 }
 
@@ -123,7 +119,9 @@ async function syncEmployees(req, res) {
 
 module.exports = {
   getEmployees,
+  getNextFli,
   createEmployee,
   patchEmployee,
+  removeEmployee,
   syncEmployees,
 };

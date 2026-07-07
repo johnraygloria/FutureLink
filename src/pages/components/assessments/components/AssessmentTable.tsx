@@ -114,7 +114,7 @@ const AssessmentTable: React.FC<AssessmentTableProps> = ({ users, selectedUser, 
               </td>
               {ADDITIONAL_ASSESSMENT_COLUMNS.map((columnKey) => (
                 <td key={columnKey} className={pipelineTd}>
-                  {columnKey === "CLIENTS" ? (
+                  {columnKey === "PRINCIPAL" ? (
                     <div className="flex flex-wrap gap-1.5">
                       {displayData[columnKey] ? (
                         displayData[columnKey].split(', ').map((client: string, idx: number) => (

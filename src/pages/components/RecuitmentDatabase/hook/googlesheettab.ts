@@ -16,7 +16,7 @@ export interface GoogleSheetApplicant {
   "EMAIL": string;
   "POSITION APPLIED FOR": string;
   "EXPERIENCE": string;
-  "CLIENTS": string;
+  "PRINCIPAL": string;
   "STATUS": string;
   "REQUIREMENTS STATUS": string;
   "FINAL INTERVIEW STATUS": string;
