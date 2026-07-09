@@ -18,7 +18,20 @@ async function getPool() {
   return pool;
 }
 
-async function ensureUserTable() {
+// Run schema provisioning once per process (memoized promise; reset on failure).
+let ensureUserTablePromise = null;
+
+function ensureUserTable() {
+  if (!ensureUserTablePromise) {
+    ensureUserTablePromise = provisionUserTable().catch((err) => {
+      ensureUserTablePromise = null;
+      throw err;
+    });
+  }
+  return ensureUserTablePromise;
+}
+
+async function provisionUserTable() {
   const pool = await getPool();
   await pool.query(`CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,

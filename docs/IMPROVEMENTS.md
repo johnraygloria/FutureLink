@@ -9,6 +9,19 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · 🟢 low / polish
 
 ---
 
+## ⚡ Performance follow-ups (from the 2026-07-09 data-loading overhaul)
+
+The big wins shipped: `GET /api/applicants` went 52.5 s → ~0.1 s (killed the principal N+1 + memoized the per-query `ensure*` schema checks), a `POST /api/applicants/bulk` endpoint made the Excel import ~500× faster, and `GET /api/applicants/numbers` + a SQL-level `?NO=` filter removed two more full-table pulls. Remaining items:
+
+1. **All six list tables are virtualized** via the shared `src/components/Tables/useVirtualRows.ts` hook: Recruitment Database, Screening, Assessment, Selection, Engagement, and the ER Masterlist. High-volume ones (Recruitment 6.8k, Screening ~1.6k) get the real benefit; the rest are future-proofed with the same pattern.
+2. **Browser QA still pending on the virtualized tables.** They compile and Vite serves them, but sticky-header alignment, scroll smoothness, and row-height measurement were not visually verified (no browser access during implementation). Load each module and confirm the header stays put and scrolling is smooth before relying on them. Note the four module tables (Screening/Assessment/Selection/Engagement) cap their own scroll at `max-h-[78vh]`; Recruitment Database and Masterlist use their existing bounded containers.
+3. **True server-side pagination + server-side search** — deferred by choice. Client still fetches the full list and filters/searches in memory. Fine to ~50k rows; revisit beyond that. Would add `?limit&offset&search` to `GET /api/applicants` returning `{rows,total}` + a shared paginator.
+4. **`UNIQUE(applicant_no)` is still blocked** — the source Excel has real duplicates (`6040`/`6041` are different people). The bulk endpoint avoids the insert race by processing rows sequentially, but the underlying data needs business renumbering before a unique constraint is safe.
+5. **History endpoints are unbounded** (`SELECT * ORDER BY created_at`). `assessment_history` is ~3.6k rows; the dashboard/assessment refetch is now debounced (`src/lib/useDebouncedCallback.ts`) but the query itself should get `LIMIT` + pagination eventually.
+6. **`status_remarks` / `applicant_remarks` widened to VARCHAR(500)** in the live DB and in the `ensureTables` DDL (one import row was 267 chars). If other free-text columns receive long Excel values, widen similarly.
+
+---
+
 ## 🔴 Security (do these before any real/PII data)
 
 The auth layer is **built but not wired in**. Right now the API is effectively public.

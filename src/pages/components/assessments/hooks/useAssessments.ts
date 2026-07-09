@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AssessmentHistoryItem } from "../utils/assessmentUtils";
+import { useDebouncedCallback } from "../../../../lib/useDebouncedCallback";
 
 export function useAssessmentHistory() {
   const [history, setHistory] = useState<AssessmentHistoryItem[]>([]);
@@ -29,12 +30,15 @@ export function useAssessmentHistory() {
     }
   }, []);
 
+  // Coalesce bursts of history-updated events (e.g. a bulk import fires one per
+  // row) into a single refetch instead of re-pulling the whole table each time.
+  const debouncedRefresh = useDebouncedCallback(refresh, 300);
+
   useEffect(() => {
     refresh();
-    const onUpdated = () => refresh();
-    window.addEventListener('assessment-history-updated', onUpdated);
-    return () => window.removeEventListener('assessment-history-updated', onUpdated);
-  }, [refresh]);
+    window.addEventListener('assessment-history-updated', debouncedRefresh);
+    return () => window.removeEventListener('assessment-history-updated', debouncedRefresh);
+  }, [refresh, debouncedRefresh]);
 
   return { history, refresh };
 }

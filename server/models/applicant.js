@@ -18,7 +18,22 @@ async function getPool() {
   return pool;
 }
 
-async function ensureTables() {
+// Schema provisioning is idempotent DDL — run it once per process, not per query.
+// Memoized as a promise so concurrent callers share the same in-flight run;
+// reset on failure so a broken first attempt can be retried.
+let ensureTablesPromise = null;
+
+function ensureTables() {
+  if (!ensureTablesPromise) {
+    ensureTablesPromise = provisionTables().catch((err) => {
+      ensureTablesPromise = null;
+      throw err;
+    });
+  }
+  return ensureTablesPromise;
+}
+
+async function provisionTables() {
   const pool = await getPool();
   await pool.query(`CREATE TABLE IF NOT EXISTS recruitment_applicants (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -43,8 +58,8 @@ async function ensureTables() {
     requirements_status VARCHAR(150),
     final_interview_status VARCHAR(150),
     medical_status VARCHAR(150),
-    status_remarks VARCHAR(255),
-    applicant_remarks VARCHAR(255),
+    status_remarks VARCHAR(500),
+    applicant_remarks VARCHAR(500),
     recent_picture TINYINT(1) DEFAULT 0,
     psa_birth_certificate TINYINT(1) DEFAULT 0,
     school_credentials TINYINT(1) DEFAULT 0,
@@ -171,35 +186,53 @@ async function insertRecruitmentApplicant(data) {
   return result;
 }
 
-async function fetchRecruitmentApplicants() {
+async function fetchRecruitmentApplicants(filters = {}) {
+  await ensureTables();
+  const { ensureTable: ensurePrincipalJunction } = require('./applicantPrincipal');
+  await ensurePrincipalJunction();
+  const pool = await getPool();
+
+  // Principals come back in the same query via GROUP_CONCAT — one round-trip
+  // for the whole list instead of one subquery per applicant.
+  const whereClause = filters.applicantNo ? 'WHERE ra.applicant_no = ?' : '';
+  const params = filters.applicantNo ? [filters.applicantNo] : [];
+  const [rows] = await pool.query(
+    `SELECT ra.*, GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR '||') AS principals_concat
+     FROM recruitment_applicants ra
+     LEFT JOIN applicant_principals ap ON ap.applicant_id = ra.id
+     LEFT JOIN principals p ON p.id = ap.principal_id
+     ${whereClause}
+     GROUP BY ra.id
+     ORDER BY ra.created_at DESC`,
+    params
+  );
+
+  for (const row of rows) {
+    const principalNames = row.principals_concat ? row.principals_concat.split('||') : [];
+    delete row.principals_concat;
+    row.principals = principalNames;
+    row.clients = principalNames;
+    row.datian = principalNames.includes('DATIAN') ? 'Ok' : '';
+    row.hokei = principalNames.includes('HOKEI') ? 'Ok' : '';
+    row.pobc = principalNames.includes('POBC') ? 'Ok' : '';
+    row.jinboway = principalNames.includes('JINBOWAY') ? 'Ok' : '';
+    row.surprise = principalNames.includes('SURPRISE') ? 'Ok' : '';
+    row.thaleste = principalNames.includes('THALESTE') ? 'Ok' : '';
+    row.aolly = principalNames.includes('AOLLY') ? 'Ok' : '';
+    row.enjoy = principalNames.includes('ENJOY') ? 'Ok' : '';
+  }
+
+  return rows;
+}
+
+// Lightweight list of applicant numbers only (import preview, existence checks).
+async function fetchApplicantNumbers() {
   await ensureTables();
   const pool = await getPool();
   const [rows] = await pool.query(
-    `SELECT * FROM recruitment_applicants ORDER BY created_at DESC`
+    `SELECT applicant_no FROM recruitment_applicants WHERE applicant_no IS NOT NULL AND applicant_no != ''`
   );
-  
-  const { getApplicantPrincipalsByName } = require('./applicantPrincipal');
-  for (const row of rows) {
-    if (row.applicant_no) {
-      try {
-        const principalNames = await getApplicantPrincipalsByName(row.applicant_no);
-        row.principals = principalNames;
-        row.clients = principalNames;
-        row.datian = principalNames.includes('DATIAN') ? 'Ok' : '';
-        row.hokei = principalNames.includes('HOKEI') ? 'Ok' : '';
-        row.pobc = principalNames.includes('POBC') ? 'Ok' : '';
-        row.jinboway = principalNames.includes('JINBOWAY') ? 'Ok' : '';
-        row.surprise = principalNames.includes('SURPRISE') ? 'Ok' : '';
-        row.thaleste = principalNames.includes('THALESTE') ? 'Ok' : '';
-        row.aolly = principalNames.includes('AOLLY') ? 'Ok' : '';
-        row.enjoy = principalNames.includes('ENJOY') ? 'Ok' : '';
-      } catch (error) {
-        console.error('Error fetching principals for applicant:', error);
-      }
-    }
-  }
-  
-  return rows;
+  return rows.map((r) => String(r.applicant_no));
 }
 
 async function upsertRecruitmentApplicant(data) {
@@ -282,6 +315,7 @@ module.exports = {
   ensureTables,
   insertRecruitmentApplicant,
   fetchRecruitmentApplicants,
+  fetchApplicantNumbers,
   upsertRecruitmentApplicant,
 };
 
@@ -390,7 +424,26 @@ async function fetchAssessmentHistoryEnriched() {
   return rows;
 }
 
+// Multi-row insert for bulk import — one statement for the whole batch.
+async function addAssessmentHistoryBulk(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) return { affectedRows: 0 };
+  await ensureTables();
+  const pool = await getPool();
+  const values = entries.map((e) => [
+    String(e.applicant_no || '').trim() || null,
+    e.action || null,
+    e.status || null,
+    e.notes || null,
+  ]);
+  const [res] = await pool.query(
+    `INSERT INTO assessment_history (applicant_no, action, status, notes) VALUES ?`,
+    [values]
+  );
+  return res;
+}
+
 module.exports.addAssessmentHistory = addAssessmentHistory;
+module.exports.addAssessmentHistoryBulk = addAssessmentHistoryBulk;
 module.exports.fetchAssessmentHistoryEnriched = fetchAssessmentHistoryEnriched;
 
 // Selection history helpers

@@ -1,6 +1,7 @@
 import React from "react";
 import type { User } from "../../../../api/applicant";
 import { formatAppliedDate, getUserInitials, ADDITIONAL_SCREENING_COLUMNS, mapUserToDisplayFormat } from "../utils/screeningUtils";
+import { useVirtualRows, spacerRowStyle } from "../../../../components/Tables/useVirtualRows";
 import {
   pipelineColDate,
   pipelineColExtra,
@@ -27,8 +28,17 @@ type ApplicantsTableProps = {
   hasActiveFilters?: boolean;
 };
 
-const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, onUserClick, isLoading, hasActiveFilters = false }) => (
-  <div className={pipelineTableContainer}>
+// Cap the table's own scroll height so it becomes the virtualizer's scroll root
+// (this module doesn't use the fullHeight page shell). 78vh keeps the toolbar
+// and page chrome visible while giving the list a tall viewport.
+const virtualScrollContainer = `${pipelineTableContainer} max-h-[78vh] overflow-y-auto`;
+
+const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, onUserClick, isLoading, hasActiveFilters = false }) => {
+  const { containerRef, items, topSpacer, bottomSpacer, measureRow } = useVirtualRows(users, 73);
+  const colCount = 4 + ADDITIONAL_SCREENING_COLUMNS.length;
+
+  return (
+  <div ref={containerRef} className={virtualScrollContainer}>
     <table className={pipelineTable}>
       <thead className={pipelineThead}>
         <tr>
@@ -59,7 +69,7 @@ const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, 
         )}
         {!isLoading && users.length === 0 && (
           <tr>
-            <td colSpan={4 + ADDITIONAL_SCREENING_COLUMNS.length} className="px-6 py-20 text-center text-text-secondary">
+            <td colSpan={colCount} className="px-6 py-20 text-center text-text-secondary">
               <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
                 <i className={`fas ${hasActiveFilters ? 'fa-filter' : 'fa-user-slash'} text-white/20 text-2xl`} />
               </div>
@@ -72,12 +82,18 @@ const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, 
             </td>
           </tr>
         )}
-        {!isLoading && users.map((user) => {
+        {!isLoading && topSpacer > 0 && (
+          <tr aria-hidden><td colSpan={colCount} style={spacerRowStyle(topSpacer)} /></tr>
+        )}
+        {!isLoading && items.map((virtualItem) => {
+          const user = users[virtualItem.index];
           const displayData = mapUserToDisplayFormat(user);
           const isSelected = selectedUser?.id === user.id;
           return (
             <tr
               key={user.id}
+              ref={measureRow}
+              data-index={virtualItem.index}
               className={isSelected ? pipelineRowSelected : pipelineRowDefault}
               onClick={() => onUserClick(user)}
             >
@@ -136,9 +152,13 @@ const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, 
             </tr>
           );
         })}
+        {!isLoading && bottomSpacer > 0 && (
+          <tr aria-hidden><td colSpan={colCount} style={spacerRowStyle(bottomSpacer)} /></tr>
+        )}
       </tbody>
     </table>
   </div>
-);
+  );
+};
 
 export default ApplicantsTable;

@@ -2,9 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { fetchPrincipals, createPrincipal, type Principal } from '../../../../api/principal';
 import {
   parseRecruitmentWorkbook,
-  runPool,
   type ParsedImport,
-  type ParsedRow,
   type ImportSummary,
 } from '../utils/excelImport';
 
@@ -16,48 +14,58 @@ interface ImportExcelModalProps {
 
 type Phase = 'idle' | 'parsing' | 'preview' | 'importing' | 'done' | 'error';
 
-const IMPORT_CONCURRENCY = 3;
+const BULK_CHUNK_SIZE = 250;
 const MAX_RETRIES = 3;
 
-const isDeadlockMessage = (msg: string) =>
-  /deadlock|Lock wait timeout|try restarting transaction/i.test(msg);
+const isTransientMessage = (msg: string) =>
+  /deadlock|Lock wait timeout|try restarting transaction|Failed to fetch|NetworkError/i.test(msg);
 
-async function postApplicant(body: Record<string, unknown>): Promise<void> {
+interface BulkResult {
+  inserted: number;
+  updated: number;
+  failed: Array<{ no: string; error: string }>;
+}
+
+// One POST per chunk of rows. The server processes rows sequentially and
+// reports per-row failures in the response, so a non-OK status here means the
+// whole chunk failed (e.g. transient DB error) — retried with backoff since
+// the upsert is idempotent.
+async function postBulk(rows: Array<Record<string, unknown>>): Promise<BulkResult> {
   let attempt = 0;
   let lastErr: Error | null = null;
   while (attempt < MAX_RETRIES) {
     attempt++;
     try {
-      const res = await fetch('/api/applicants', {
+      const res = await fetch('/api/applicants/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ rows }),
       });
-      if (res.ok) return;
+      if (res.ok) return (await res.json()) as BulkResult;
       let detail = `HTTP ${res.status}`;
       try {
         const j = await res.json();
         if (j?.error) detail = String(j.error);
         if (j?.detail) detail += ` — ${j.detail}`;
-      } catch {}
-      const err = new Error(detail);
-      if (res.status === 500 && isDeadlockMessage(detail) && attempt < MAX_RETRIES) {
-        // Deadlocks are transient — back off with jitter and try again.
-        await new Promise(r => setTimeout(r, 120 * attempt + Math.random() * 200));
-        lastErr = err;
+      } catch {
+        /* non-JSON error body — keep the HTTP status detail */
+      }
+      lastErr = new Error(detail);
+      if (attempt < MAX_RETRIES && isTransientMessage(detail)) {
+        await new Promise(r => setTimeout(r, 300 * attempt + Math.random() * 300));
         continue;
       }
-      throw err;
+      throw lastErr;
     } catch (e: any) {
       lastErr = e instanceof Error ? e : new Error(String(e));
-      if (attempt < MAX_RETRIES && isDeadlockMessage(lastErr.message)) {
-        await new Promise(r => setTimeout(r, 120 * attempt + Math.random() * 200));
+      if (attempt < MAX_RETRIES && isTransientMessage(lastErr.message)) {
+        await new Promise(r => setTimeout(r, 300 * attempt + Math.random() * 300));
         continue;
       }
       throw lastErr;
     }
   }
-  throw lastErr ?? new Error('Failed to POST /api/applicants');
+  throw lastErr ?? new Error('Failed to POST /api/applicants/bulk');
 }
 
 const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ open, onClose, onImported }) => {
@@ -109,16 +117,14 @@ const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ open, onClose, onIm
     try {
       const parsedFile = await parseRecruitmentWorkbook(file);
 
-      const [principals, applicantsRes] = await Promise.all([
+      const [principals, numbersRes] = await Promise.all([
         fetchPrincipals(),
-        fetch('/api/applicants').then(r => (r.ok ? r.json() : [])),
+        fetch('/api/applicants/numbers').then(r => (r.ok ? r.json() : [])),
       ]);
 
       const principalSet = new Set<string>(principals.map((p: Principal) => p.name.toUpperCase()));
       const applicantSet = new Set<string>(
-        Array.isArray(applicantsRes)
-          ? applicantsRes.map((a: any) => String(a.applicant_no || '')).filter(Boolean)
-          : []
+        Array.isArray(numbersRes) ? numbersRes.map((n: unknown) => String(n)).filter(Boolean) : []
       );
 
       setParsed(parsedFile);
@@ -165,37 +171,40 @@ const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ open, onClose, onIm
     let inserted = 0;
     let updated = 0;
     let failed = 0;
-    let doneCount = 0;
+    let done = 0;
 
-    const wasExisting = existingApplicantNos;
-
-    await runPool(parsed.rows, IMPORT_CONCURRENCY, async (row: ParsedRow) => {
-      const principalIds = row.principalNames
-        .map(n => nameToId.get(n.toUpperCase()))
-        .filter((id): id is number => typeof id === 'number');
-
-      // Only include PRINCIPAL_IDS when non-empty: the controller runs a
-      // DELETE+INSERT transaction on setApplicantPrincipals whenever the key
-      // is present (even as []), and concurrent transactions on the shared
-      // junction indexes deadlock. Omitting the key skips that path entirely
-      // for rows with no principals (the majority).
-      const body: Record<string, unknown> = { ...row.payload };
-      if (principalIds.length > 0) body.PRINCIPAL_IDS = principalIds;
+    for (let i = 0; i < parsed.rows.length; i += BULK_CHUNK_SIZE) {
+      const chunk = parsed.rows.slice(i, i + BULK_CHUNK_SIZE);
+      const bodies = chunk.map(row => {
+        const principalIds = row.principalNames
+          .map(n => nameToId.get(n.toUpperCase()))
+          .filter((id): id is number => typeof id === 'number');
+        const body: Record<string, unknown> = { ...row.payload };
+        if (principalIds.length > 0) body.PRINCIPAL_IDS = principalIds;
+        return body;
+      });
 
       try {
-        await postApplicant(body);
-        if (wasExisting.has(row.applicantNo)) updated++;
-        else inserted++;
-      } catch (err: any) {
-        failed++;
-        if (errors.length < 20) {
-          errors.push({ applicantNo: row.applicantNo, message: err?.message || 'Unknown error' });
+        const result = await postBulk(bodies);
+        inserted += result.inserted;
+        updated += result.updated;
+        failed += result.failed.length;
+        for (const f of result.failed) {
+          if (errors.length < 20) errors.push({ applicantNo: f.no, message: f.error });
         }
-      } finally {
-        doneCount++;
-        setProgress({ done: doneCount, total: parsed.rows.length });
+      } catch (err: any) {
+        failed += chunk.length;
+        if (errors.length < 20) {
+          errors.push({
+            applicantNo: `rows ${i + 1}–${i + chunk.length}`,
+            message: err?.message || 'Chunk failed',
+          });
+        }
       }
-    });
+
+      done += chunk.length;
+      setProgress({ done, total: parsed.rows.length });
+    }
 
     setSummary({ attempted: parsed.rows.length, inserted, updated, failed, errors });
     setPhase('done');
@@ -334,7 +343,10 @@ const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ open, onClose, onIm
                     <div className="flex items-start gap-2">
                       <i className="fas fa-triangle-exclamation text-warning/80 mt-0.5" />
                       <span>
-                        {parsed.duplicateNumbersInFile.length} duplicate NO. within the file (last write wins):{' '}
+                        {parsed.duplicateNumbersInFile.length} duplicate NO. in the file — these numbers are
+                        assigned to <span className="text-warning font-semibold">different people</span> in the
+                        sheet; the later row will overwrite the earlier one. Fix the numbering in the source
+                        sheet:{' '}
                         <span className="text-white/80">
                           {parsed.duplicateNumbersInFile.slice(0, 8).join(', ')}
                           {parsed.duplicateNumbersInFile.length > 8 ? '…' : ''}
