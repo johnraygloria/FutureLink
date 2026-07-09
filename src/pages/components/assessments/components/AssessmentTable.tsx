@@ -28,9 +28,9 @@ type AssessmentTableProps = {
   hasActiveFilters?: boolean;
 };
 
-// Cap the table's own scroll height so it becomes the virtualizer's scroll root
-// (this module doesn't use the fullHeight page shell).
-const virtualScrollContainer = `${pipelineTableContainer} max-h-[78vh] overflow-y-auto`;
+// Fill the remaining height of the fullHeight page shell and scroll internally
+// (virtualizer's scroll root). min-h-0 lets it shrink inside the flex column.
+const virtualScrollContainer = `${pipelineTableContainer} flex-1 min-h-0 overflow-y-auto`;
 
 const AssessmentTable: React.FC<AssessmentTableProps> = ({ users, selectedUser, onUserClick, isLoading, hasActiveFilters = false }) => {
   const { containerRef, items, topSpacer, bottomSpacer, measureRow } = useVirtualRows(users, 73);

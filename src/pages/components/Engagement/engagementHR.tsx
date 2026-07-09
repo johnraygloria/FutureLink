@@ -188,7 +188,7 @@ const EngagementHR: React.FC = () => {
 
   return (
     <>
-      <PipelinePageShell>
+      <PipelinePageShell fullHeight>
         <PipelineModuleHeader
           title="Engagement"
           subtitle="Monitor deployment readiness and onboarded applicants."

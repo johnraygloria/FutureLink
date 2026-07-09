@@ -28,10 +28,10 @@ type ApplicantsTableProps = {
   hasActiveFilters?: boolean;
 };
 
-// Cap the table's own scroll height so it becomes the virtualizer's scroll root
-// (this module doesn't use the fullHeight page shell). 78vh keeps the toolbar
-// and page chrome visible while giving the list a tall viewport.
-const virtualScrollContainer = `${pipelineTableContainer} max-h-[78vh] overflow-y-auto`;
+// Fill the remaining height of the fullHeight page shell and scroll internally
+// (this element is the virtualizer's scroll root). min-h-0 lets it shrink inside
+// the card's flex column so the internal scroll engages instead of overflowing.
+const virtualScrollContainer = `${pipelineTableContainer} flex-1 min-h-0 overflow-y-auto`;
 
 const ApplicantsTable: React.FC<ApplicantsTableProps> = ({ users, selectedUser, onUserClick, isLoading, hasActiveFilters = false }) => {
   const { containerRef, items, topSpacer, bottomSpacer, measureRow } = useVirtualRows(users, 73);

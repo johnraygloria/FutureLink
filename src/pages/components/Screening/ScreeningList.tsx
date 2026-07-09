@@ -138,7 +138,7 @@ const ScreeningList: React.FC = () => {
 
   return (
     <>
-      <PipelinePageShell>
+      <PipelinePageShell fullHeight>
         <PipelineModuleHeader
           title="Screening"
           subtitle="Review new applicants, documents, and initial interview progress."

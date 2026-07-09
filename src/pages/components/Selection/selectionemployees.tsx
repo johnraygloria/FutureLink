@@ -203,7 +203,7 @@ export default function SelectionEmployees() {
 
   return (
     <>
-      <PipelinePageShell>
+      <PipelinePageShell fullHeight>
         <PipelineModuleHeader
           title="Selection"
           subtitle="Manage medical clearance, biometrics, and deployment preparation."
