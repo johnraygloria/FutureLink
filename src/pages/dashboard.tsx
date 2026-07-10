@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import PipelinePageShell from '../components/Pipeline/PipelinePageShell';
 import PipelineModuleHeader from '../components/Pipeline/PipelineModuleHeader';
+import { useDebouncedCallback } from '../lib/useDebouncedCallback';
 
 type ActivityType = 'application' | 'screening' | 'document' | 'interview' | 'success' | 'update';
 
@@ -163,18 +164,21 @@ export default function Dashboard() {
     }
   };
 
+  // Each event triggers a full /api/applicants pull; during bulk operations
+  // that fires hundreds of times, so coalesce into one refetch per burst.
+  const debouncedFetchMetrics = useDebouncedCallback(fetchMetrics, 400);
+
   useEffect(() => {
     fetchMetrics();
 
-    const handleUpdate = () => fetchMetrics();
-    window.addEventListener('applicant-updated', handleUpdate);
-    window.addEventListener('assessment-history-updated', handleUpdate);
+    window.addEventListener('applicant-updated', debouncedFetchMetrics);
+    window.addEventListener('assessment-history-updated', debouncedFetchMetrics);
 
     return () => {
-      window.removeEventListener('applicant-updated', handleUpdate);
-      window.removeEventListener('assessment-history-updated', handleUpdate);
+      window.removeEventListener('applicant-updated', debouncedFetchMetrics);
+      window.removeEventListener('assessment-history-updated', debouncedFetchMetrics);
     };
-  }, []);
+  }, [debouncedFetchMetrics]);
 
   const stats = [
     { id: 1, name: 'Screening', stat: metrics.screening, icon: UserGroupIcon, hint: 'Active pool', color: 'info' as const },

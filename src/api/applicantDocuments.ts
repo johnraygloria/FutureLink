@@ -22,6 +22,11 @@ export interface ApplicantDocuments {
   coe?: boolean;
   philhealth?: boolean;
   tinNumber?: boolean;
+  nbiClearanceNo?: string;
+  sssNo?: string;
+  pagibigNo?: string;
+  philhealthNo?: string;
+  tinNo?: string;
   initialInterview?: boolean;
   completion?: boolean;
   finalInterview?: boolean;

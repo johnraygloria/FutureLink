@@ -64,9 +64,21 @@ async function migrateToPrincipals(pool) {
   }
 }
 
-async function ensureTable() {
-  const pool = await getPool();
-  await migrateToPrincipals(pool);
+// The clients→principals migration probes information_schema several times —
+// run once per process (memoized promise; reset on failure to allow retry).
+let ensureTablePromise = null;
+
+function ensureTable() {
+  if (!ensureTablePromise) {
+    ensureTablePromise = (async () => {
+      const pool = await getPool();
+      await migrateToPrincipals(pool);
+    })().catch((err) => {
+      ensureTablePromise = null;
+      throw err;
+    });
+  }
+  return ensureTablePromise;
 }
 
 async function getAllPrincipals() {

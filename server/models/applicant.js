@@ -18,7 +18,22 @@ async function getPool() {
   return pool;
 }
 
-async function ensureTables() {
+// Schema provisioning is idempotent DDL — run it once per process, not per query.
+// Memoized as a promise so concurrent callers share the same in-flight run;
+// reset on failure so a broken first attempt can be retried.
+let ensureTablesPromise = null;
+
+function ensureTables() {
+  if (!ensureTablesPromise) {
+    ensureTablesPromise = provisionTables().catch((err) => {
+      ensureTablesPromise = null;
+      throw err;
+    });
+  }
+  return ensureTablesPromise;
+}
+
+async function provisionTables() {
   const pool = await getPool();
   await pool.query(`CREATE TABLE IF NOT EXISTS recruitment_applicants (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -43,8 +58,8 @@ async function ensureTables() {
     requirements_status VARCHAR(150),
     final_interview_status VARCHAR(150),
     medical_status VARCHAR(150),
-    status_remarks VARCHAR(255),
-    applicant_remarks VARCHAR(255),
+    status_remarks VARCHAR(500),
+    applicant_remarks VARCHAR(500),
     recent_picture TINYINT(1) DEFAULT 0,
     psa_birth_certificate TINYINT(1) DEFAULT 0,
     school_credentials TINYINT(1) DEFAULT 0,
@@ -69,6 +84,21 @@ async function ensureTables() {
     await pool.query(`ALTER TABLE recruitment_applicants ADD COLUMN email VARCHAR(255) AFTER contact_number`);
   } catch (error) {
     if (error && error.code !== 'ER_DUP_FIELDNAME') throw error;
+  }
+
+  const numberColumns = [
+    ['nbi_clearance_no', 'VARCHAR(50) DEFAULT NULL'],
+    ['sss_no', 'VARCHAR(50) DEFAULT NULL'],
+    ['pagibig_no', 'VARCHAR(50) DEFAULT NULL'],
+    ['philhealth_no', 'VARCHAR(50) DEFAULT NULL'],
+    ['tin_no', 'VARCHAR(50) DEFAULT NULL'],
+  ];
+  for (const [col, def] of numberColumns) {
+    try {
+      await pool.query(`ALTER TABLE recruitment_applicants ADD COLUMN ${col} ${def}`);
+    } catch (error) {
+      if (error && error.code !== 'ER_DUP_FIELDNAME') throw error;
+    }
   }
   // Screening history table
   await pool.query(`CREATE TABLE IF NOT EXISTS screening_history (
@@ -154,6 +184,11 @@ async function insertRecruitmentApplicant(data) {
     data.coe ? 1 : 0,
     data.philhealth ? 1 : 0,
     data.tin_number ? 1 : 0,
+    data.nbi_clearance_no || null,
+    data.sss_no || null,
+    data.pagibig_no || null,
+    data.philhealth_no || null,
+    data.tin_no || null,
   ];
 
   const placeholders = values.map(() => '?').join(',');
@@ -164,42 +199,61 @@ async function insertRecruitmentApplicant(data) {
       date_applied, fb_name, age, location, contact_number, email, position_applied_for, experience, status,
       requirements_status, final_interview_status, medical_status, status_remarks, applicant_remarks,
       recent_picture, psa_birth_certificate, school_credentials, nbi_clearance, police_clearance,
-      barangay_clearance, sss, pagibig, cedula, vaccination_status, resume, coe, philhealth, tin_number
+      barangay_clearance, sss, pagibig, cedula, vaccination_status, resume, coe, philhealth, tin_number,
+      nbi_clearance_no, sss_no, pagibig_no, philhealth_no, tin_no
      ) VALUES (${placeholders})`,
     values
   );
   return result;
 }
 
-async function fetchRecruitmentApplicants() {
+async function fetchRecruitmentApplicants(filters = {}) {
+  await ensureTables();
+  const { ensureTable: ensurePrincipalJunction } = require('./applicantPrincipal');
+  await ensurePrincipalJunction();
+  const pool = await getPool();
+
+  // Principals come back in the same query via GROUP_CONCAT — one round-trip
+  // for the whole list instead of one subquery per applicant.
+  const whereClause = filters.applicantNo ? 'WHERE ra.applicant_no = ?' : '';
+  const params = filters.applicantNo ? [filters.applicantNo] : [];
+  const [rows] = await pool.query(
+    `SELECT ra.*, GROUP_CONCAT(p.name ORDER BY p.name SEPARATOR '||') AS principals_concat
+     FROM recruitment_applicants ra
+     LEFT JOIN applicant_principals ap ON ap.applicant_id = ra.id
+     LEFT JOIN principals p ON p.id = ap.principal_id
+     ${whereClause}
+     GROUP BY ra.id
+     ORDER BY ra.created_at DESC`,
+    params
+  );
+
+  for (const row of rows) {
+    const principalNames = row.principals_concat ? row.principals_concat.split('||') : [];
+    delete row.principals_concat;
+    row.principals = principalNames;
+    row.clients = principalNames;
+    row.datian = principalNames.includes('DATIAN') ? 'Ok' : '';
+    row.hokei = principalNames.includes('HOKEI') ? 'Ok' : '';
+    row.pobc = principalNames.includes('POBC') ? 'Ok' : '';
+    row.jinboway = principalNames.includes('JINBOWAY') ? 'Ok' : '';
+    row.surprise = principalNames.includes('SURPRISE') ? 'Ok' : '';
+    row.thaleste = principalNames.includes('THALESTE') ? 'Ok' : '';
+    row.aolly = principalNames.includes('AOLLY') ? 'Ok' : '';
+    row.enjoy = principalNames.includes('ENJOY') ? 'Ok' : '';
+  }
+
+  return rows;
+}
+
+// Lightweight list of applicant numbers only (import preview, existence checks).
+async function fetchApplicantNumbers() {
   await ensureTables();
   const pool = await getPool();
   const [rows] = await pool.query(
-    `SELECT * FROM recruitment_applicants ORDER BY created_at DESC`
+    `SELECT applicant_no FROM recruitment_applicants WHERE applicant_no IS NOT NULL AND applicant_no != ''`
   );
-  
-  const { getApplicantPrincipalsByName } = require('./applicantPrincipal');
-  for (const row of rows) {
-    if (row.applicant_no) {
-      try {
-        const principalNames = await getApplicantPrincipalsByName(row.applicant_no);
-        row.principals = principalNames;
-        row.clients = principalNames;
-        row.datian = principalNames.includes('DATIAN') ? 'Ok' : '';
-        row.hokei = principalNames.includes('HOKEI') ? 'Ok' : '';
-        row.pobc = principalNames.includes('POBC') ? 'Ok' : '';
-        row.jinboway = principalNames.includes('JINBOWAY') ? 'Ok' : '';
-        row.surprise = principalNames.includes('SURPRISE') ? 'Ok' : '';
-        row.thaleste = principalNames.includes('THALESTE') ? 'Ok' : '';
-        row.aolly = principalNames.includes('AOLLY') ? 'Ok' : '';
-        row.enjoy = principalNames.includes('ENJOY') ? 'Ok' : '';
-      } catch (error) {
-        console.error('Error fetching principals for applicant:', error);
-      }
-    }
-  }
-  
-  return rows;
+  return rows.map((r) => String(r.applicant_no));
 }
 
 async function upsertRecruitmentApplicant(data) {
@@ -217,6 +271,10 @@ async function upsertRecruitmentApplicant(data) {
       if (v === undefined || v === null || v === '') return null;
       return v;
     };
+    const normalizeText = (v) => {
+      if (v === undefined || v === null) return null;
+      return v;
+    };
     const normalizeBit = (v) => {
       if (v === undefined || v === null || v === '') return null;
       return v ? 1 : 0;
@@ -228,7 +286,8 @@ async function upsertRecruitmentApplicant(data) {
            status=IFNULL(?, status),
            requirements_status=IFNULL(?, requirements_status), final_interview_status=IFNULL(?, final_interview_status), medical_status=IFNULL(?, medical_status), status_remarks=IFNULL(?, status_remarks), applicant_remarks=IFNULL(?, applicant_remarks),
            recent_picture=IFNULL(?, recent_picture), psa_birth_certificate=IFNULL(?, psa_birth_certificate), school_credentials=IFNULL(?, school_credentials), nbi_clearance=IFNULL(?, nbi_clearance), police_clearance=IFNULL(?, police_clearance),
-           barangay_clearance=IFNULL(?, barangay_clearance), sss=IFNULL(?, sss), pagibig=IFNULL(?, pagibig), cedula=IFNULL(?, cedula), vaccination_status=IFNULL(?, vaccination_status), resume=IFNULL(?, resume), coe=IFNULL(?, coe), philhealth=IFNULL(?, philhealth), tin_number=IFNULL(?, tin_number)
+           barangay_clearance=IFNULL(?, barangay_clearance), sss=IFNULL(?, sss), pagibig=IFNULL(?, pagibig), cedula=IFNULL(?, cedula), vaccination_status=IFNULL(?, vaccination_status), resume=IFNULL(?, resume), coe=IFNULL(?, coe), philhealth=IFNULL(?, philhealth), tin_number=IFNULL(?, tin_number),
+           nbi_clearance_no=IFNULL(?, nbi_clearance_no), sss_no=IFNULL(?, sss_no), pagibig_no=IFNULL(?, pagibig_no), philhealth_no=IFNULL(?, philhealth_no), tin_no=IFNULL(?, tin_no)
        WHERE id = ?`,
       [
         normalize(data.referred_by),
@@ -267,6 +326,11 @@ async function upsertRecruitmentApplicant(data) {
         normalizeBit(data.coe),
         normalizeBit(data.philhealth),
         normalizeBit(data.tin_number),
+        normalizeText(data.nbi_clearance_no),
+        normalizeText(data.sss_no),
+        normalizeText(data.pagibig_no),
+        normalizeText(data.philhealth_no),
+        normalizeText(data.tin_no),
         id,
       ]
     );
@@ -282,6 +346,7 @@ module.exports = {
   ensureTables,
   insertRecruitmentApplicant,
   fetchRecruitmentApplicants,
+  fetchApplicantNumbers,
   upsertRecruitmentApplicant,
 };
 
@@ -390,7 +455,26 @@ async function fetchAssessmentHistoryEnriched() {
   return rows;
 }
 
+// Multi-row insert for bulk import — one statement for the whole batch.
+async function addAssessmentHistoryBulk(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) return { affectedRows: 0 };
+  await ensureTables();
+  const pool = await getPool();
+  const values = entries.map((e) => [
+    String(e.applicant_no || '').trim() || null,
+    e.action || null,
+    e.status || null,
+    e.notes || null,
+  ]);
+  const [res] = await pool.query(
+    `INSERT INTO assessment_history (applicant_no, action, status, notes) VALUES ?`,
+    [values]
+  );
+  return res;
+}
+
 module.exports.addAssessmentHistory = addAssessmentHistory;
+module.exports.addAssessmentHistoryBulk = addAssessmentHistoryBulk;
 module.exports.fetchAssessmentHistoryEnriched = fetchAssessmentHistoryEnriched;
 
 // Selection history helpers

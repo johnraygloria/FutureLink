@@ -55,6 +55,11 @@ export async function fetchApplicantByNo(no: string) {
     coe: r.coe === '1' || r.coe === 1,
     philhealth: r.philhealth === '1' || r.philhealth === 1,
     tinNumber: r.tin_number === '1' || r.tin_number === 1,
+    nbiClearanceNo: r.nbi_clearance_no || '',
+    sssNo: r.sss_no || '',
+    pagibigNo: r.pagibig_no || '',
+    philhealthNo: r.philhealth_no || '',
+    tinNo: r.tin_no || '',
     id: r.id, // Ensure ID is included for identification
   }));
 }

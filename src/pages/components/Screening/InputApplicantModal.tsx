@@ -13,6 +13,7 @@ export const initialFormState = {
   no: '', referredBy: '', lastName: '', firstName: '', ext: '', middle: '', gender: '', size: '', dateOfBirth: '', dateApplied: '', name: '', facebook: '', age: '', location: '', contactNumber: '', email: '', positionApplied: '', experience: '',
   recentPicture: false, psaBirthCertificate: false, schoolCredentials: false, nbiClearance: false, policeClearance: false, barangayClearance: false, sss: false, pagibig: false, cedula: false, vaccinationStatus: false,
   resume: false, coe: false, philhealth: false, tinNumber: false,
+  nbiClearanceNo: '', sssNo: '', pagibigNo: '', philhealthNo: '', tinNo: '',
   datian: '', hokei: '', pobc: '', jinboway: '', surprise: '', thaleste: '', aolly: '', enjoy: '', status: '', requirementsStatus: '', finalInterviewStatus: '', medicalStatus: '', statusRemarks: '', applicantRemarks: '',
 };
 
@@ -42,24 +43,27 @@ const InputApplicantModal: React.FC<InputApplicantModalProps> = ({ isOpen, onClo
     }
   }, [isOpen]);
 
+  const updateFormField = (name: string, value: boolean | string) => {
+    setForm((prev) => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'dateOfBirth' && typeof value === 'string') {
+        const today = new Date();
+        const dob = new Date(value);
+        let age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+          age--;
+        }
+        updated.age = isNaN(age) ? '' : age.toString();
+      }
+      return updated;
+    });
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    // Check if property 'checked' exists (it's on HTMLInputElement)
     const checked = (type === 'checkbox' && 'checked' in e.target) ? (e.target as HTMLInputElement).checked : undefined;
-
-    let updatedForm = { ...form, [name]: type === 'checkbox' ? checked : value };
-    if (name === 'dateOfBirth') {
-      // Calculate age
-      const today = new Date();
-      const dob = new Date(value);
-      let age = today.getFullYear() - dob.getFullYear();
-      const m = today.getMonth() - dob.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-        age--;
-      }
-      updatedForm.age = isNaN(age) ? '' : age.toString();
-    }
-    setForm(updatedForm);
+    updateFormField(name, type === 'checkbox' ? !!checked : value);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -92,7 +96,7 @@ const InputApplicantModal: React.FC<InputApplicantModalProps> = ({ isOpen, onClo
           {step === 1 ? (
             <PersonalDetailsForm form={form} handleChange={handleChange} onNext={(e: React.FormEvent) => { e.preventDefault(); setStep(2); }} />
           ) : (
-            <DocumentChecklistForm form={form} handleChange={handleChange} onBack={() => setStep(1)} onSubmit={handleSubmit} />
+            <DocumentChecklistForm form={form} onFieldChange={updateFormField} onBack={() => setStep(1)} onSubmit={handleSubmit} />
           )}
         </div>
       </div>

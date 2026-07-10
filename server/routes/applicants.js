@@ -6,8 +6,12 @@ const applicantsController = require('../controllers/applicantsController');
 router.get('/', applicantsController.getApplicants);
 // POST applicant (upsert into MySQL recruitment table)
 router.post('/', applicantsController.addOrUpdateApplicant);
+// Bulk upsert (Excel import)
+router.post('/bulk', applicantsController.bulkUpsertApplicants);
 // GET applicant names (from MySQL)
 router.get('/names', applicantsController.getApplicantNames);
+// GET applicant numbers only (lightweight, for import preview)
+router.get('/numbers', applicantsController.getApplicantNumbers);
 // Save to recruitment DB (MySQL)
 router.post('/recruitment', applicantsController.saveToRecruitment);
 // Get recruitment list

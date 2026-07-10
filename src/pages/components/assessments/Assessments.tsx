@@ -118,7 +118,7 @@ const Assessments: React.FC = () => {
 
   return (
     <>
-      <PipelinePageShell>
+      <PipelinePageShell fullHeight>
         <PipelineModuleHeader
           title="Assessment"
           subtitle="Track final interviews, requirements, and evaluation outcomes."

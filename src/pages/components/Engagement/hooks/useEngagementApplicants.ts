@@ -124,8 +124,11 @@ export function useEngagementApplicants() {
     } catch { }
   };
 
-  const handleScreeningUpdate = () => {
-    // Not used in engagement
+  const handleScreeningUpdate = (userId: number, key: keyof User, value: boolean | string) => {
+    setUsers(prevUsers => prevUsers.map(user => user.id === userId ? { ...user, [key]: value } : user));
+    if (selectedUser && selectedUser.id === userId) {
+      setSelectedUser(prev => prev ? { ...prev, [key]: value } : null);
+    }
   };
 
   const removeApplicant = (userId: number) => {

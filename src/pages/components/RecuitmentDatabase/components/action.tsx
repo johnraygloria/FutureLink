@@ -38,13 +38,23 @@ const ActionsBar: React.FC<ActionsBarProps> = ({ selectedCount, onAction }) => {
         )}
       </div>
 
-      <button
-        onClick={() => onAction('Export to Excel')}
-        className="inline-flex items-center gap-2 px-4 py-2.5 bg-success/15 hover:bg-success/25 text-success border border-success/25 rounded-xl transition-all text-sm font-bold active:scale-95"
-      >
-        <i className="fas fa-file-excel" />
-        Export to Excel
-      </button>
+      <div className="flex items-center gap-2 flex-wrap justify-end">
+        <button
+          onClick={() => onAction('Import Excel')}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-info/15 hover:bg-info/25 text-info border border-info/25 rounded-xl transition-all text-sm font-bold active:scale-95"
+        >
+          <i className="fas fa-file-import" />
+          Import Excel
+        </button>
+
+        <button
+          onClick={() => onAction('Export to Excel')}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-success/15 hover:bg-success/25 text-success border border-success/25 rounded-xl transition-all text-sm font-bold active:scale-95"
+        >
+          <i className="fas fa-file-excel" />
+          Export to Excel
+        </button>
+      </div>
     </div>
   );
 };

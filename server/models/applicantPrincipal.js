@@ -22,7 +22,21 @@ async function columnExists(pool, tableName, columnName) {
   return rows[0].count > 0;
 }
 
-async function ensureTable() {
+// Provisioning + legacy-column migration runs once per process (memoized
+// promise; reset on failure so a broken attempt can retry).
+let ensureTablePromise = null;
+
+function ensureTable() {
+  if (!ensureTablePromise) {
+    ensureTablePromise = provisionTable().catch((err) => {
+      ensureTablePromise = null;
+      throw err;
+    });
+  }
+  return ensureTablePromise;
+}
+
+async function provisionTable() {
   const pool = await getPool();
   const { ensureTable: ensurePrincipals } = require('./principal');
   await ensurePrincipals();
@@ -89,6 +103,46 @@ async function setApplicantPrincipals(applicantId, principalIds) {
   }
 }
 
+// Batched variant for bulk import: one DELETE + one multi-row INSERT for the
+// whole set, inside a single transaction, instead of a transaction per applicant.
+async function setApplicantPrincipalsBulk(pairs) {
+  if (!Array.isArray(pairs) || pairs.length === 0) return true;
+  await ensureTable();
+  const pool = await getPool();
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const applicantIds = pairs.map((p) => p.applicantId);
+    await connection.query(
+      `DELETE FROM applicant_principals WHERE applicant_id IN (?)`,
+      [applicantIds]
+    );
+
+    const values = [];
+    for (const { applicantId, principalIds } of pairs) {
+      for (const principalId of principalIds) {
+        values.push([applicantId, principalId]);
+      }
+    }
+    if (values.length > 0) {
+      await connection.query(
+        `INSERT IGNORE INTO applicant_principals (applicant_id, principal_id) VALUES ?`,
+        [values]
+      );
+    }
+
+    await connection.commit();
+    return true;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 async function getApplicantPrincipalsByName(applicantNo) {
   await ensureTable();
   const pool = await getPool();
@@ -108,6 +162,7 @@ module.exports = {
   ensureTable,
   getApplicantPrincipals,
   setApplicantPrincipals,
+  setApplicantPrincipalsBulk,
   getApplicantPrincipalsByName,
   // Backward-compatible aliases
   getApplicantClients: getApplicantPrincipals,
