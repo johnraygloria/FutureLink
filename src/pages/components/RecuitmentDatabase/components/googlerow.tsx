@@ -10,11 +10,18 @@ interface ApplicantRowProps {
   applicant: GoogleSheetApplicant;
   isSelected: boolean;
   onSelect: (id: string, checked: boolean) => void;
+  // Virtualization: measured by the parent virtualizer.
+  measureRef?: (el: HTMLTableRowElement | null) => void;
+  dataIndex?: number;
 }
 
-const GoogleRow: React.FC<ApplicantRowProps> = ({ applicant, isSelected, onSelect }) => {
+const GoogleRow: React.FC<ApplicantRowProps> = ({ applicant, isSelected, onSelect, measureRef, dataIndex }) => {
   return (
-    <tr className={`${recruitmentRow} ${isSelected ? 'bg-primary/10 hover:bg-primary/14' : ''}`}>
+    <tr
+      ref={measureRef}
+      data-index={dataIndex}
+      className={`${recruitmentRow} ${isSelected ? 'bg-primary/10 hover:bg-primary/14' : ''}`}
+    >
       <td className={recruitmentTdCheckbox}>
         <input
           type="checkbox"

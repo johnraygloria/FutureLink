@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import Filters from './components/filter';
 import ActionsBar from './components/action';
+import ImportExcelModal from './components/ImportExcelModal';
 import { useNavigation } from '../../../Global/NavigationContext';
 import ApplicantTable from './components/applicanttab';
 import type { GoogleSheetApplicant } from './hook/googlesheettab';
@@ -20,6 +21,35 @@ import {
 } from '../../../components/Filters/filterUtils';
 import type { User } from '../../../api/applicant';
 
+const mapApplicantRow = (r: any): GoogleSheetApplicant => ({
+  NO: r.applicant_no || '',
+  "REFFERED BY": r.referred_by || '',
+  "LAST NAME": r.last_name || '',
+  "FIRST NAME": r.first_name || '',
+  EXT: r.ext || '',
+  MIDDLE: r.middle_name || '',
+  GENDER: r.gender || '',
+  SIZE: r.size || '',
+  "DATE OF BIRTH": r.date_of_birth || '',
+  "DATE APPLIED": r.date_applied || '',
+  "FB NAME": r.fb_name || '',
+  AGE: r.age || '',
+  LOCATION: r.location || '',
+  "CONTACT NUMBER": r.contact_number || '',
+  EMAIL: r.email || '',
+  "POSITION APPLIED FOR": r.position_applied_for || '',
+  EXPERIENCE: r.experience || '',
+  PRINCIPAL: Array.isArray(r.principals) ? r.principals.join(', ') : (Array.isArray(r.clients) ? r.clients.join(', ') : (r.principals || r.clients || '')),
+  STATUS: r.status || '',
+  "REQUIREMENTS STATUS": r.requirements_status || '',
+  "FINAL INTERVIEW STATUS": r.final_interview_status || '',
+  "MEDICAL STATUS": r.medical_status || '',
+  "STATUS REMARKS": r.status_remarks || '',
+  "APPLICANT REMARKS": r.applicant_remarks || '',
+  // Keep the original fields for table display
+  POSITION: r.position_applied_for || '',
+} as GoogleSheetApplicant);
+
 function RecruitmentDatabase() {
   const [applicants, setApplicants] = useState<GoogleSheetApplicant[]>([]);
   const [filteredApplicants, setFilteredApplicants] = useState<GoogleSheetApplicant[]>([]);
@@ -33,6 +63,26 @@ function RecruitmentDatabase() {
   // Advanced Filtering State
   const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
   const [filters, setFilters] = useState<FilterCriteria>(initialFilters);
+
+  // Bulk Excel import
+  const [isImportOpen, setIsImportOpen] = useState(false);
+
+  const loadApplicants = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
+    try {
+      const res = await fetch('/api/applicants');
+      if (!res.ok) throw new Error('Failed to fetch applicants');
+      const rows = await res.json();
+      const mapped: GoogleSheetApplicant[] = rows.map(mapApplicantRow);
+      setApplicants(mapped);
+      setFilteredApplicants(mapped);
+      setError(null);
+    } catch {
+      setError('Server is not available. Please make sure the backend server is running.');
+    } finally {
+      if (!opts?.silent) setLoading(false);
+    }
+  }, []);
 
   // Transform GoogleSheetApplicant to User type for filtering
   const mappedUsersForFiltering = useMemo(() => {
@@ -53,51 +103,8 @@ function RecruitmentDatabase() {
   }, [applicants]);
 
   useEffect(() => {
-    setLoading(true);
-    fetch('/api/applicants')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch applicants');
-        return res.json();
-      })
-      .then((rows) => {
-        // Map MySQL rows to include all required fields for Excel export
-        const mapped: GoogleSheetApplicant[] = rows.map((r: any) => ({
-          NO: r.applicant_no || '',
-          "REFFERED BY": r.referred_by || '',
-          "LAST NAME": r.last_name || '',
-          "FIRST NAME": r.first_name || '',
-          EXT: r.ext || '',
-          MIDDLE: r.middle_name || '',
-          GENDER: r.gender || '',
-          SIZE: r.size || '',
-          "DATE OF BIRTH": r.date_of_birth || '',
-          "DATE APPLIED": r.date_applied || '',
-          "FB NAME": r.fb_name || '',
-          AGE: r.age || '',
-          LOCATION: r.location || '',
-          "CONTACT NUMBER": r.contact_number || '',
-          EMAIL: r.email || '',
-          "POSITION APPLIED FOR": r.position_applied_for || '',
-          EXPERIENCE: r.experience || '',
-          PRINCIPAL: Array.isArray(r.principals) ? r.principals.join(', ') : (Array.isArray(r.clients) ? r.clients.join(', ') : (r.principals || r.clients || '')),
-          STATUS: r.status || '',
-          "REQUIREMENTS STATUS": r.requirements_status || '',
-          "FINAL INTERVIEW STATUS": r.final_interview_status || '',
-          "MEDICAL STATUS": r.medical_status || '',
-          "STATUS REMARKS": r.status_remarks || '',
-          "APPLICANT REMARKS": r.applicant_remarks || '',
-          // Keep the original fields for table display
-          POSITION: r.position_applied_for || '',
-        }));
-        setApplicants(mapped);
-        setFilteredApplicants(mapped);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('Server is not available. Please make sure the backend server is running.');
-        setLoading(false);
-      });
-  }, []);
+    loadApplicants();
+  }, [loadApplicants]);
 
   useEffect(() => {
     let filtered = applicants;
@@ -157,6 +164,11 @@ function RecruitmentDatabase() {
   const handleAction = async (action: string) => {
     if (action === 'Export to Excel') {
       exportToExcel();
+      return;
+    }
+
+    if (action === 'Import Excel') {
+      setIsImportOpen(true);
       return;
     }
 
@@ -222,40 +234,7 @@ function RecruitmentDatabase() {
       setSelectedApplicants(new Set());
       setStatusFilter('');
       setSearchTerm('');
-      // refetch to reflect changes
-      const res = await fetch('/api/applicants');
-      if (res.ok) {
-        const rows = await res.json();
-        const mapped: GoogleSheetApplicant[] = rows.map((r: any) => ({
-          NO: r.applicant_no || '',
-          "REFFERED BY": r.referred_by || '',
-          "LAST NAME": r.last_name || '',
-          "FIRST NAME": r.first_name || '',
-          EXT: r.ext || '',
-          MIDDLE: r.middle_name || '',
-          GENDER: r.gender || '',
-          SIZE: r.size || '',
-          "DATE OF BIRTH": r.date_of_birth || '',
-          "DATE APPLIED": r.date_applied || '',
-          "FB NAME": r.fb_name || '',
-          AGE: r.age || '',
-          LOCATION: r.location || '',
-          "CONTACT NUMBER": r.contact_number || '',
-          EMAIL: r.email || '',
-          "POSITION APPLIED FOR": r.position_applied_for || '',
-          EXPERIENCE: r.experience || '',
-          PRINCIPAL: Array.isArray(r.principals) ? r.principals.join(', ') : (Array.isArray(r.clients) ? r.clients.join(', ') : (r.principals || r.clients || '')),
-          STATUS: r.status || '',
-          "REQUIREMENTS STATUS": r.requirements_status || '',
-          "FINAL INTERVIEW STATUS": r.final_interview_status || '',
-          "MEDICAL STATUS": r.medical_status || '',
-          "STATUS REMARKS": r.status_remarks || '',
-          "APPLICANT REMARKS": r.applicant_remarks || '',
-          POSITION: r.position_applied_for || '',
-        }));
-        setApplicants(mapped);
-        setFilteredApplicants(mapped);
-      }
+      await loadApplicants({ silent: true });
     } catch (e) {
       alert('Failed to update applicants. Please try again.');
     }
@@ -411,6 +390,12 @@ function RecruitmentDatabase() {
         onApplyFilters={handleApplyFilters}
         onClearFilters={handleClearFilters}
         statusOptions={allStatusOptions}
+      />
+
+      <ImportExcelModal
+        open={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImported={() => loadApplicants({ silent: true })}
       />
     </PipelinePageShell>
   );

@@ -109,9 +109,10 @@ export default function SelectionEmployees() {
         const allowed = isSelectionStatus(status);
 
         if (idx === -1) {
-          // If applicant is new to this section and status matches, refetch data to get full details including clients
+          // If applicant is new to this section and status matches, fetch just
+          // that one applicant (server-side ?NO= filter) to get full details.
           if (allowed) {
-            fetch('/api/applicants')
+            fetch(`/api/applicants?NO=${encodeURIComponent(no)}`)
               .then(res => res.json())
               .then((rows: any[]) => {
                 const mapped: User[] = rows
@@ -202,7 +203,7 @@ export default function SelectionEmployees() {
 
   return (
     <>
-      <PipelinePageShell>
+      <PipelinePageShell fullHeight>
         <PipelineModuleHeader
           title="Selection"
           subtitle="Manage medical clearance, biometrics, and deployment preparation."

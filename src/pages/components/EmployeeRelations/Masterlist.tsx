@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useVirtualRows, spacerRowStyle } from '../../../components/Tables/useVirtualRows';
 import * as XLSX from 'xlsx';
 import {
     IconArrowLeft,
@@ -354,6 +355,16 @@ const Masterlist: React.FC<MasterlistProps> = ({ onBack }) => {
         return true;
     });
 
+    // Windowed rendering — the masterlist row is very short, so a small estimate.
+    const {
+        containerRef: masterlistScrollRef,
+        items: virtualRows,
+        topSpacer: masterlistTopSpacer,
+        bottomSpacer: masterlistBottomSpacer,
+        measureRow: measureMasterlistRow,
+    } = useVirtualRows(filteredData, 24);
+    const masterlistColCount = TABLE_COLUMNS.length + 1;
+
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
@@ -569,7 +580,7 @@ const Masterlist: React.FC<MasterlistProps> = ({ onBack }) => {
                 </div>
             )}
 
-            <div className="flex-1 overflow-auto custom-scrollbar relative">
+            <div ref={masterlistScrollRef} className="flex-1 overflow-auto custom-scrollbar relative">
                 {loading ? (
                     <div className="flex items-center justify-center h-32 text-[10px] text-text-secondary uppercase tracking-widest font-black">
                         Loading employees...
@@ -587,9 +598,17 @@ const Masterlist: React.FC<MasterlistProps> = ({ onBack }) => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                            {filteredData.map((row, index) => (
+                            {masterlistTopSpacer > 0 && (
+                                <tr aria-hidden><td colSpan={masterlistColCount} style={spacerRowStyle(masterlistTopSpacer)} /></tr>
+                            )}
+                            {virtualRows.map((virtualItem) => {
+                                const row = filteredData[virtualItem.index];
+                                const index = virtualItem.index;
+                                return (
                                 <tr
                                     key={row.id}
+                                    ref={measureMasterlistRow}
+                                    data-index={virtualItem.index}
                                     className={`transition-all duration-200 group ${isInactive(row)
                                         ? 'bg-danger/10 hover:bg-danger/20'
                                         : 'hover:bg-primary/5'
@@ -642,7 +661,11 @@ const Masterlist: React.FC<MasterlistProps> = ({ onBack }) => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
+                            {masterlistBottomSpacer > 0 && (
+                                <tr aria-hidden><td colSpan={masterlistColCount} style={spacerRowStyle(masterlistBottomSpacer)} /></tr>
+                            )}
                         </tbody>
                     </table>
                 )}

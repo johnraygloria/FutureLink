@@ -116,7 +116,7 @@ const EngagementHR: React.FC = () => {
 
         if (idx === -1) {
           if (allowed) {
-            fetch('/api/applicants')
+            fetch(`/api/applicants?NO=${encodeURIComponent(no)}`)
               .then(res => res.json())
               .then((rows: any[]) => {
                 const mapped: User[] = rows
@@ -188,7 +188,7 @@ const EngagementHR: React.FC = () => {
 
   return (
     <>
-      <PipelinePageShell>
+      <PipelinePageShell fullHeight>
         <PipelineModuleHeader
           title="Engagement"
           subtitle="Monitor deployment readiness and onboarded applicants."
