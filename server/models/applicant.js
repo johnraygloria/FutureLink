@@ -85,6 +85,21 @@ async function provisionTables() {
   } catch (error) {
     if (error && error.code !== 'ER_DUP_FIELDNAME') throw error;
   }
+
+  const numberColumns = [
+    ['nbi_clearance_no', 'VARCHAR(50) DEFAULT NULL'],
+    ['sss_no', 'VARCHAR(50) DEFAULT NULL'],
+    ['pagibig_no', 'VARCHAR(50) DEFAULT NULL'],
+    ['philhealth_no', 'VARCHAR(50) DEFAULT NULL'],
+    ['tin_no', 'VARCHAR(50) DEFAULT NULL'],
+  ];
+  for (const [col, def] of numberColumns) {
+    try {
+      await pool.query(`ALTER TABLE recruitment_applicants ADD COLUMN ${col} ${def}`);
+    } catch (error) {
+      if (error && error.code !== 'ER_DUP_FIELDNAME') throw error;
+    }
+  }
   // Screening history table
   await pool.query(`CREATE TABLE IF NOT EXISTS screening_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -169,6 +184,11 @@ async function insertRecruitmentApplicant(data) {
     data.coe ? 1 : 0,
     data.philhealth ? 1 : 0,
     data.tin_number ? 1 : 0,
+    data.nbi_clearance_no || null,
+    data.sss_no || null,
+    data.pagibig_no || null,
+    data.philhealth_no || null,
+    data.tin_no || null,
   ];
 
   const placeholders = values.map(() => '?').join(',');
@@ -179,7 +199,8 @@ async function insertRecruitmentApplicant(data) {
       date_applied, fb_name, age, location, contact_number, email, position_applied_for, experience, status,
       requirements_status, final_interview_status, medical_status, status_remarks, applicant_remarks,
       recent_picture, psa_birth_certificate, school_credentials, nbi_clearance, police_clearance,
-      barangay_clearance, sss, pagibig, cedula, vaccination_status, resume, coe, philhealth, tin_number
+      barangay_clearance, sss, pagibig, cedula, vaccination_status, resume, coe, philhealth, tin_number,
+      nbi_clearance_no, sss_no, pagibig_no, philhealth_no, tin_no
      ) VALUES (${placeholders})`,
     values
   );
@@ -250,6 +271,10 @@ async function upsertRecruitmentApplicant(data) {
       if (v === undefined || v === null || v === '') return null;
       return v;
     };
+    const normalizeText = (v) => {
+      if (v === undefined || v === null) return null;
+      return v;
+    };
     const normalizeBit = (v) => {
       if (v === undefined || v === null || v === '') return null;
       return v ? 1 : 0;
@@ -261,7 +286,8 @@ async function upsertRecruitmentApplicant(data) {
            status=IFNULL(?, status),
            requirements_status=IFNULL(?, requirements_status), final_interview_status=IFNULL(?, final_interview_status), medical_status=IFNULL(?, medical_status), status_remarks=IFNULL(?, status_remarks), applicant_remarks=IFNULL(?, applicant_remarks),
            recent_picture=IFNULL(?, recent_picture), psa_birth_certificate=IFNULL(?, psa_birth_certificate), school_credentials=IFNULL(?, school_credentials), nbi_clearance=IFNULL(?, nbi_clearance), police_clearance=IFNULL(?, police_clearance),
-           barangay_clearance=IFNULL(?, barangay_clearance), sss=IFNULL(?, sss), pagibig=IFNULL(?, pagibig), cedula=IFNULL(?, cedula), vaccination_status=IFNULL(?, vaccination_status), resume=IFNULL(?, resume), coe=IFNULL(?, coe), philhealth=IFNULL(?, philhealth), tin_number=IFNULL(?, tin_number)
+           barangay_clearance=IFNULL(?, barangay_clearance), sss=IFNULL(?, sss), pagibig=IFNULL(?, pagibig), cedula=IFNULL(?, cedula), vaccination_status=IFNULL(?, vaccination_status), resume=IFNULL(?, resume), coe=IFNULL(?, coe), philhealth=IFNULL(?, philhealth), tin_number=IFNULL(?, tin_number),
+           nbi_clearance_no=IFNULL(?, nbi_clearance_no), sss_no=IFNULL(?, sss_no), pagibig_no=IFNULL(?, pagibig_no), philhealth_no=IFNULL(?, philhealth_no), tin_no=IFNULL(?, tin_no)
        WHERE id = ?`,
       [
         normalize(data.referred_by),
@@ -300,6 +326,11 @@ async function upsertRecruitmentApplicant(data) {
         normalizeBit(data.coe),
         normalizeBit(data.philhealth),
         normalizeBit(data.tin_number),
+        normalizeText(data.nbi_clearance_no),
+        normalizeText(data.sss_no),
+        normalizeText(data.pagibig_no),
+        normalizeText(data.philhealth_no),
+        normalizeText(data.tin_no),
         id,
       ]
     );

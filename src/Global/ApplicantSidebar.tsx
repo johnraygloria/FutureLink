@@ -21,8 +21,9 @@ import {
   fieldValueClass,
   inputClass,
   selectClass,
-  checkboxClass,
 } from "../constants/applicantFormStyles";
+import { DOCUMENT_NUMBER_FIELDS } from "../constants/documentChecklist";
+import DocumentChecklistFields from "../components/DocumentChecklist/DocumentChecklistFields";
 
 interface ApplicantSidebarProps {
   selectedUser: User | null;
@@ -334,26 +335,67 @@ const updateDocumentFlag = async (user: User, key: string, checked: boolean) => 
     philhealth: 'PHILHEALTH',
     tinNumber: 'TIN_NUMBER',
   };
+  const numberPayloadMap: Record<string, string> = {
+    nbiClearanceNo: 'NBI_CLEARANCE_NO',
+    sssNo: 'SSS_NO',
+    pagibigNo: 'PAGIBIG_NO',
+    philhealthNo: 'PHILHEALTH_NO',
+    tinNo: 'TIN_NO',
+  };
   const payloadKey = map[key];
+  if (!payloadKey) return;
+  const payload: Record<string, string> = { NO: user.no || '', [payloadKey]: checked ? '1' : '0' };
+  if (!checked) {
+    const numberConfig = DOCUMENT_NUMBER_FIELDS[key];
+    if (numberConfig) {
+      payload[numberPayloadMap[numberConfig.numberKey]] = '';
+    }
+  }
+  try {
+    const res = await fetch('/api/applicants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Failed to update document flag');
+    const broadcastDetail: Record<string, unknown> = { no: user.no, [key]: checked };
+    if (!checked) {
+      const numberConfig = DOCUMENT_NUMBER_FIELDS[key];
+      if (numberConfig) broadcastDetail[numberConfig.numberKey] = '';
+    }
+    // Broadcast change
+    try {
+      window.dispatchEvent(new CustomEvent('applicant-updated', { detail: broadcastDetail }));
+    } catch { }
+  } catch (e) {
+    console.error('Failed to sync document flag', key, e);
+  }
+};
+
+const updateDocumentNumber = async (user: User, numberKey: string, value: string) => {
+  const numberPayloadMap: Record<string, string> = {
+    nbiClearanceNo: 'NBI_CLEARANCE_NO',
+    sssNo: 'SSS_NO',
+    pagibigNo: 'PAGIBIG_NO',
+    philhealthNo: 'PHILHEALTH_NO',
+    tinNo: 'TIN_NO',
+  };
+  const payloadKey = numberPayloadMap[numberKey];
   if (!payloadKey) return;
   try {
     const res = await fetch('/api/applicants', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ NO: user.no, [payloadKey]: checked ? '1' : '0' })
+      body: JSON.stringify({ NO: user.no || '', [payloadKey]: value })
     });
-    if (!res.ok) throw new Error('Failed to update document flag');
-    // Broadcast change
+    if (!res.ok) throw new Error('Failed to update document number');
     try {
-      window.dispatchEvent(new CustomEvent('applicant-updated', { 
-        detail: { 
-          no: user.no, 
-          [key]: checked 
-        } 
+      window.dispatchEvent(new CustomEvent('applicant-updated', {
+        detail: { no: user.no, [numberKey]: value }
       }));
     } catch { }
   } catch (e) {
-    console.error('Failed to sync document flag', key, e);
+    console.error('Failed to sync document number', numberKey, e);
   }
 };
 
@@ -369,6 +411,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState<User | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [documentNumbers, setDocumentNumbers] = useState<Record<string, string>>({});
   const { activeSection, setActiveSection, setCurrentApplicantNo } = useNavigation();
   const isOpen = !!selectedUser;
 
@@ -376,8 +419,15 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
     if (selectedUser) {
       setEditedUser(selectedUser);
       setIsEditing(false);
+      setDocumentNumbers({
+        nbiClearanceNo: selectedUser.nbiClearanceNo || '',
+        sssNo: selectedUser.sssNo || '',
+        pagibigNo: selectedUser.pagibigNo || '',
+        philhealthNo: selectedUser.philhealthNo || '',
+        tinNo: selectedUser.tinNo || '',
+      });
     }
-  }, [selectedUser?.id]);
+  }, [selectedUser?.id, selectedUser?.nbiClearanceNo, selectedUser?.sssNo, selectedUser?.pagibigNo, selectedUser?.philhealthNo, selectedUser?.tinNo]);
 
   const handleSaveDetails = async () => {
     if (!editedUser) return;
@@ -930,30 +980,47 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      {documentFields.map((doc) => (
-                        <label
-                          key={doc.key}
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer group ${doc.checked
-                            ? 'bg-success/5 border-success/20 hover:bg-success/10'
-                            : 'bg-black/10 border-white/[0.06] hover:bg-white/[0.04] hover:border-white/10'
-                            }`}
-                        >
-                          <input
-                            type="checkbox"
-                            className={checkboxClass}
-                            checked={doc.checked}
-                            onChange={(e) => {
-                              onScreeningUpdate?.(selectedUser.id, doc.key as any, e.target.checked as any);
-                              updateDocumentFlag(selectedUser, doc.key, e.target.checked);
-                            }}
-                          />
-                          <span className={`transition-colors ${doc.checked ? 'text-white font-medium' : 'text-text-secondary group-hover:text-white'}`}>
-                            {doc.label}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
+                    <DocumentChecklistFields
+                      variant="sidebar"
+                      numberInputClassName={`${inputClass} text-xs py-1.5`}
+                      values={{
+                        recentPicture: selectedUser.recentPicture,
+                        psaBirthCertificate: selectedUser.psaBirthCertificate,
+                        schoolCredentials: selectedUser.schoolCredentials,
+                        nbiClearance: selectedUser.nbiClearance,
+                        policeClearance: selectedUser.policeClearance,
+                        barangayClearance: selectedUser.barangayClearance,
+                        sss: selectedUser.sss,
+                        pagibig: selectedUser.pagibig,
+                        cedula: selectedUser.cedula,
+                        vaccinationStatus: selectedUser.vaccinationStatus,
+                        resume: (selectedUser as any).resume,
+                        coe: (selectedUser as any).coe,
+                        philhealth: (selectedUser as any).philhealth,
+                        tinNumber: (selectedUser as any).tinNumber,
+                        nbiClearanceNo: documentNumbers.nbiClearanceNo,
+                        sssNo: documentNumbers.sssNo,
+                        pagibigNo: documentNumbers.pagibigNo,
+                        philhealthNo: documentNumbers.philhealthNo,
+                        tinNo: documentNumbers.tinNo,
+                      }}
+                      onCheckboxChange={(key, checked) => {
+                        onScreeningUpdate?.(selectedUser.id, key as any, checked as any);
+                        updateDocumentFlag(selectedUser, key, checked);
+                        if (!checked) {
+                          const numberConfig = DOCUMENT_NUMBER_FIELDS[key];
+                          if (numberConfig) {
+                            setDocumentNumbers((prev) => ({ ...prev, [numberConfig.numberKey]: '' }));
+                            onScreeningUpdate?.(selectedUser.id, numberConfig.numberKey as any, '' as any);
+                          }
+                        }
+                      }}
+                      onNumberChange={(numberKey, value) => {
+                        setDocumentNumbers((prev) => ({ ...prev, [numberKey]: value }));
+                        onScreeningUpdate?.(selectedUser.id, numberKey as any, value as any);
+                      }}
+                      onNumberBlur={(numberKey, value) => updateDocumentNumber(selectedUser, numberKey, value)}
+                    />
                   </div>
                 </div>
               )}

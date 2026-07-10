@@ -75,6 +75,11 @@ const mapBodyToApplicant = (body) => ({
   coe: toBitOrUndefined(body.COE ?? body.coe),
   philhealth: toBitOrUndefined(body.PHILHEALTH ?? body.philhealth),
   tin_number: toBitOrUndefined(body.TIN_NUMBER ?? body.tinNumber ?? body.tin_number),
+  nbi_clearance_no: body.NBI_CLEARANCE_NO ?? body.nbiClearanceNo ?? body.nbi_clearance_no,
+  sss_no: body.SSS_NO ?? body.sssNo ?? body.sss_no,
+  pagibig_no: body.PAGIBIG_NO ?? body.pagibigNo ?? body.pagibig_no,
+  philhealth_no: body.PHILHEALTH_NO ?? body.philhealthNo ?? body.philhealth_no,
+  tin_no: body.TIN_NO ?? body.tinNo ?? body.tin_no,
 });
 
 // Mirrors the auto-log condition in addOrUpdateApplicant: which body fields
@@ -291,11 +296,15 @@ exports.patchApplicant = async (req, res) => {
       NBI_CLEARANCE: 'nbi_clearance', POLICE_CLEARANCE: 'police_clearance', BARANGAY_CLEARANCE: 'barangay_clearance',
       SSS: 'sss', PAGIBIG: 'pagibig', CEDULA: 'cedula', VACCINATION_STATUS: 'vaccination_status',
       RESUME: 'resume', COE: 'coe', PHILHEALTH: 'philhealth', TIN_NUMBER: 'tin_number',
+      NBI_CLEARANCE_NO: 'nbi_clearance_no', SSS_NO: 'sss_no', PAGIBIG_NO: 'pagibig_no',
+      PHILHEALTH_NO: 'philhealth_no', TIN_NO: 'tin_no',
     };
     const toBit = (v) => (v === 1 || v === '1' || v === true) ? 1 : 0;
     const fields = {};
     Object.keys(allow).forEach(k => {
-      if (k in body) fields[allow[k]] = toBit(body[k]);
+      if (!(k in body)) return;
+      const col = allow[k];
+      fields[col] = col.endsWith('_no') ? (body[k] ?? null) : toBit(body[k]);
     });
     await updateApplicantFields(no, fields);
     res.json({ ok: true });

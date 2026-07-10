@@ -1,14 +1,24 @@
 import React, { useState } from 'react';
+import DocumentChecklistFields from '../../../components/DocumentChecklist/DocumentChecklistFields';
+import { DOCUMENT_NUMBER_FIELDS } from '../../../constants/documentChecklist';
 
 interface DocumentChecklistFormProps {
   form: any;
-  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  onFieldChange: (name: string, value: boolean | string) => void;
   onBack: () => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
-const DocumentChecklistForm: React.FC<DocumentChecklistFormProps> = ({ form, handleChange, onBack, onSubmit }) => {
+const DocumentChecklistForm: React.FC<DocumentChecklistFormProps> = ({ form, onFieldChange, onBack, onSubmit }) => {
   const [submitted, setSubmitted] = useState(false);
+
+  const handleCheckboxChange = (key: string, checked: boolean) => {
+    onFieldChange(key, checked);
+    if (!checked) {
+      const numberConfig = DOCUMENT_NUMBER_FIELDS[key];
+      if (numberConfig) onFieldChange(numberConfig.numberKey, '');
+    }
+  };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     onSubmit(e);
@@ -41,7 +51,7 @@ const DocumentChecklistForm: React.FC<DocumentChecklistFormProps> = ({ form, han
             <select
               name="screeningStatus"
               value={form.screeningStatus || "Pending"}
-              onChange={handleChange}
+              onChange={(e) => onFieldChange('screeningStatus', e.target.value)}
               className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-custom-teal/50 appearance-none"
             >
               <option value="Pending" className="bg-slate-900">Status</option>
@@ -55,148 +65,12 @@ const DocumentChecklistForm: React.FC<DocumentChecklistFormProps> = ({ form, han
 
       <form onSubmit={handleFormSubmit} className="space-y-6">
         <div className="bg-black/20 rounded-xl p-5 border border-white/5">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6">
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="recentPicture"
-                checked={form.recentPicture}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">Recent 2x2 picture</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="psaBirthCertificate"
-                checked={form.psaBirthCertificate}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">PSA Birth Certificate</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="schoolCredentials"
-                checked={form.schoolCredentials}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">School Credentials/Certificate</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="nbiClearance"
-                checked={form.nbiClearance}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">NBI Clearance</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="policeClearance"
-                checked={form.policeClearance}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">Police Clearance</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="barangayClearance"
-                checked={form.barangayClearance}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">Barangay Clearance</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="sss"
-                checked={form.sss}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">SSS</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="pagibig"
-                checked={form.pagibig}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">Pag-IBIG #</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="cedula"
-                checked={form.cedula}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">Cedula</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="vaccinationStatus"
-                checked={form.vaccinationStatus}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">Vaccination Status</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="resume"
-                checked={form.resume}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">Resume</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="coe"
-                checked={form.coe}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">Certificate of Employment (COE)</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="philhealth"
-                checked={form.philhealth}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">PhilHealth</span>
-            </label>
-            <label className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer group">
-              <input
-                type="checkbox"
-                name="tinNumber"
-                checked={form.tinNumber}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-custom-teal focus:ring-custom-teal/50 focus:ring-offset-0 transition-all cursor-pointer"
-              />
-              <span className="text-white/80 group-hover:text-white transition-colors text-sm">TIN Number</span>
-            </label>
-          </div>
+          <DocumentChecklistFields
+            variant="form"
+            values={form}
+            onCheckboxChange={handleCheckboxChange}
+            onNumberChange={(numberKey, value) => onFieldChange(numberKey, value)}
+          />
         </div>
 
         <div className="flex justify-between items-center pt-4 border-t border-white/10">
@@ -222,4 +96,4 @@ const DocumentChecklistForm: React.FC<DocumentChecklistFormProps> = ({ form, han
   );
 };
 
-export default DocumentChecklistForm; 
+export default DocumentChecklistForm;

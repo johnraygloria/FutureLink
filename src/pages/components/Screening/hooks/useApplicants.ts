@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import type { User, ApplicationStatus, ScreeningStatus } from "../../../../api/applicant";
+import type { User, ApplicationStatus } from "../../../../api/applicant";
 import { initialFormState } from '../InputApplicantModal';
 import {
   initialFilters,
@@ -40,10 +40,10 @@ export function useApplicants() {
     setUsers(prevUsers => prevUsers.map(user => user.id === userId ? { ...user, status: newStatus } : user));
   };
 
-  const handleScreeningUpdate = (userId: number, key: keyof User, status: ScreeningStatus) => {
-    setUsers(prevUsers => prevUsers.map(user => user.id === userId ? { ...user, [key]: status } : user));
+  const handleScreeningUpdate = (userId: number, key: keyof User, value: boolean | string) => {
+    setUsers(prevUsers => prevUsers.map(user => user.id === userId ? { ...user, [key]: value } : user));
     if (selectedUser && selectedUser.id === userId) {
-      setSelectedUser(prev => prev ? { ...prev, [key]: status } : null);
+      setSelectedUser(prev => prev ? { ...prev, [key]: value } : null);
     }
   };
 
@@ -94,6 +94,11 @@ export function useApplicants() {
       COE: data.coe ? '1' : '0',
       PHILHEALTH: data.philhealth ? '1' : '0',
       TIN_NUMBER: data.tinNumber ? '1' : '0',
+      NBI_CLEARANCE_NO: data.nbiClearanceNo || '',
+      SSS_NO: data.sssNo || '',
+      PAGIBIG_NO: data.pagibigNo || '',
+      PHILHEALTH_NO: data.philhealthNo || '',
+      TIN_NO: data.tinNo || '',
     };
     try {
       await fetch('/api/applicants', {
@@ -136,6 +141,11 @@ export function useApplicants() {
         coe: data.coe,
         philhealth: data.philhealth,
         tinNumber: data.tinNumber,
+        nbiClearanceNo: data.nbiClearanceNo || '',
+        sssNo: data.sssNo || '',
+        pagibigNo: data.pagibigNo || '',
+        philhealthNo: data.philhealthNo || '',
+        tinNo: data.tinNo || '',
         datian: data.datian || '',
         hokei: data.hokei || '',
         pobc: data.pobc || '',
