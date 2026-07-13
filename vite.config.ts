@@ -14,6 +14,13 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:5001',
     },
-    // http://192.168.1.22:4173/
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 4173,
+    strictPort: true,
+    proxy: {
+      '/api': 'http://localhost:5001',
+    },
   },
 })
