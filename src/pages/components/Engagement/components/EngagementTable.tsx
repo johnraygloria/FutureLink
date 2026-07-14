@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useEffect } from "react";
 import type { User } from "../../../../api/applicant";
 import { formatAppliedDate, getUserInitials, ADDITIONAL_ENGAGEMENT_COLUMNS, mapUserToDisplayFormat } from "../utils/engagementUtils";
 import { useVirtualRows, spacerRowStyle } from "../../../../components/Tables/useVirtualRows";
+import { useTableSort } from "../../../../components/Tables/useTableSort";
+import SortHeaderButton, { ariaSortValue } from "../../../../components/Tables/SortHeaderButton";
+import { PIPELINE_SORT_COLUMNS } from "../../../../components/Tables/pipelineSortColumns";
 import {
   pipelineColDate,
   pipelineColExtra,
@@ -33,21 +36,34 @@ type EngagementTableProps = {
 const virtualScrollContainer = `${pipelineTableContainer} flex-1 min-h-0 overflow-y-auto`;
 
 const EngagementTable: React.FC<EngagementTableProps> = ({ users, selectedUser, onUserClick, isLoading, hasActiveFilters = false }) => {
-  const { containerRef, items, topSpacer, bottomSpacer, measureRow } = useVirtualRows(users, 73);
+  const { sortedRows, sortState, toggleSort } = useTableSort(users, PIPELINE_SORT_COLUMNS);
+  const { containerRef, items, topSpacer, bottomSpacer, measureRow } = useVirtualRows(sortedRows, 73);
   const colCount = 4 + ADDITIONAL_ENGAGEMENT_COLUMNS.length;
+
+  useEffect(() => {
+    containerRef.current?.scrollTo({ top: 0 });
+  }, [sortState, containerRef]);
 
   return (
   <div ref={containerRef} className={virtualScrollContainer}>
     <table className={pipelineTable}>
       <thead className={pipelineThead}>
         <tr>
-          <th scope="col" className={pipelineThSticky}>Name</th>
-          <th scope="col" className={`${pipelineTh} ${pipelineColPosition}`}>Position</th>
-          <th scope="col" className={`${pipelineTh} ${pipelineColDate}`}>Applied Date</th>
-          <th scope="col" className={`${pipelineTh} ${pipelineColStatus}`}>Status</th>
+          <th scope="col" aria-sort={ariaSortValue('Name', sortState)} className={pipelineThSticky}>
+            <SortHeaderButton label="Name" sortKey="Name" sortState={sortState} onToggle={toggleSort} />
+          </th>
+          <th scope="col" aria-sort={ariaSortValue('Position', sortState)} className={`${pipelineTh} ${pipelineColPosition}`}>
+            <SortHeaderButton label="Position" sortKey="Position" sortState={sortState} onToggle={toggleSort} />
+          </th>
+          <th scope="col" aria-sort={ariaSortValue('Applied Date', sortState)} className={`${pipelineTh} ${pipelineColDate}`}>
+            <SortHeaderButton label="Applied Date" sortKey="Applied Date" sortState={sortState} onToggle={toggleSort} />
+          </th>
+          <th scope="col" aria-sort={ariaSortValue('Status', sortState)} className={`${pipelineTh} ${pipelineColStatus}`}>
+            <SortHeaderButton label="Status" sortKey="Status" sortState={sortState} onToggle={toggleSort} />
+          </th>
           {ADDITIONAL_ENGAGEMENT_COLUMNS.map((columnKey) => (
-            <th key={columnKey} scope="col" className={`${pipelineThExtra} ${pipelineColExtra}`}>
-              {columnKey}
+            <th key={columnKey} scope="col" aria-sort={ariaSortValue(columnKey, sortState)} className={`${pipelineThExtra} ${pipelineColExtra}`}>
+              <SortHeaderButton label={columnKey} sortKey={columnKey} sortState={sortState} onToggle={toggleSort} />
             </th>
           ))}
         </tr>
@@ -85,7 +101,7 @@ const EngagementTable: React.FC<EngagementTableProps> = ({ users, selectedUser, 
           <tr aria-hidden><td colSpan={colCount} style={spacerRowStyle(topSpacer)} /></tr>
         )}
         {!isLoading && items.map((virtualItem) => {
-          const user = users[virtualItem.index];
+          const user = sortedRows[virtualItem.index];
           const displayData = mapUserToDisplayFormat(user);
           const isSelected = selectedUser?.id === user.id;
           return (

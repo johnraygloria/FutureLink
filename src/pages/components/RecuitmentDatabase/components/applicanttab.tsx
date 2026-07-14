@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ApplicantRow from './googlerow';
 import type { GoogleSheetApplicant } from '../hook/googlesheettab';
 import { useVirtualRows, spacerRowStyle } from '../../../../components/Tables/useVirtualRows';
+import type { SortState } from '../../../../components/Tables/tableSort';
+import SortHeaderButton, { ariaSortValue } from '../../../../components/Tables/SortHeaderButton';
 import {
   recruitmentTable,
   recruitmentThead,
@@ -10,10 +12,12 @@ import {
 } from '../../../../components/Tables/pipelineTableStyles';
 
 interface ApplicantTableProps {
-  applicants: GoogleSheetApplicant[];
+  applicants: GoogleSheetApplicant[]; // already filtered + sorted by the page
   selectedApplicants: Set<string>;
   onSelectAll: (checked: boolean) => void;
   onSelectApplicant: (id: string, checked: boolean) => void;
+  sortState: SortState;
+  onToggleSort: (key: string) => void;
 }
 
 // Scroll container: fills its bounded parent (the page's `flex-1 overflow-hidden`
@@ -26,8 +30,14 @@ const ApplicantTable: React.FC<ApplicantTableProps> = ({
   selectedApplicants,
   onSelectAll,
   onSelectApplicant,
+  sortState,
+  onToggleSort,
 }) => {
   const { containerRef, items, topSpacer, bottomSpacer, measureRow } = useVirtualRows(applicants, 58);
+
+  useEffect(() => {
+    containerRef.current?.scrollTo({ top: 0 });
+  }, [sortState, containerRef]);
 
   if (applicants.length === 0) {
     return (
@@ -58,8 +68,8 @@ const ApplicantTable: React.FC<ApplicantTableProps> = ({
               />
             </th>
             {columns.map((key) => (
-              <th key={key} scope="col" className={recruitmentTh}>
-                {key}
+              <th key={key} scope="col" aria-sort={ariaSortValue(key, sortState)} className={recruitmentTh}>
+                <SortHeaderButton label={key} sortKey={key} sortState={sortState} onToggle={onToggleSort} />
               </th>
             ))}
           </tr>

@@ -44,6 +44,7 @@ The auth layer is **built but not wired in**. Right now the API is effectively p
 9. **`applicant_no` is a fragile business key.** Free-text, **not unique**, generated as `MAX(numeric)+1` in app code (`applicant.js` ~line 300) — race-prone and collision-prone. Make it unique (or use a proper sequence) and back history joins with it.
 10. **No foreign keys anywhere.** `applicant_principals`, `masterlist_employees.applicant_no`, and all `*_history.applicant_no` relate by convention only. Add FKs (or documented invariants + cleanup jobs).
 11. **`IFNULL` upsert can't clear fields.** `upsertRecruitmentApplicant` uses `col = IFNULL(?, col)`, so a blanked value is ignored — you can set but not unset. Provide an explicit-clear path where the UI needs it.
+12. **`npx tsc -b` fails on `src/pages/dashboard.tsx` (~line 122).** Pre-existing TS2322: the activity items are built with `id: user.id ?? {}`-style fallback typed `{}`, not `string | number` as `ActivityItem` requires. `npm run build` doesn't typecheck, so it slips through; fix the `id` fallback so the typecheck gate is usable.
 
 ---
 

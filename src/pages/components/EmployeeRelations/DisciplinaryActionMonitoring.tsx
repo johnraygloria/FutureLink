@@ -6,6 +6,9 @@ import {
     IconDotsVertical,
     IconPlus
 } from '@tabler/icons-react';
+import { useTableSort } from '../../../components/Tables/useTableSort';
+import type { SortColumnMap } from '../../../components/Tables/tableSort';
+import SortHeaderButton, { ariaSortValue } from '../../../components/Tables/SortHeaderButton';
 
 interface DisciplinaryRecord {
     no: number;
@@ -25,12 +28,24 @@ interface DisciplinaryActionMonitoringProps {
     onBack: () => void;
 }
 
+const dummyData: DisciplinaryRecord[] = [
+    { no: 1, idNo: 'FLI-JBW-A00263', fullname: 'Delonday, Jackielyn', principal: 'JBW', dateHired: '19-Aug-25', violationDate: '4-Sep-25', reason: 'Caught Coffee and Softdrinks During Frisking', kindOfViolation: 'Conduct of Behavior', category: 'A', deliveryDate: '-', status: 'Pending' },
+    { no: 2, idNo: 'FLI-JBW-A00273', fullname: 'Navarro, Julia Rose', principal: 'JBW', dateHired: '19-Aug-25', violationDate: '4-Sep-25', reason: 'Caught Coffee and Softdrinks During Frisking', kindOfViolation: 'Conduct of Behavior', category: 'A', deliveryDate: '-', status: 'Ongoing' },
+    { no: 3, idNo: 'FLI-JBW-A00278', fullname: 'Ranido, Jhustin Leigh', principal: 'JBW', dateHired: '19-Aug-25', violationDate: '4-Sep-25', reason: 'Caught Coffee and Softdrinks During Frisking', kindOfViolation: 'Conduct of Behavior', category: 'A', deliveryDate: '-', status: 'Resolved' },
+];
+
+const DISCIPLINARY_SORT_COLUMNS: SortColumnMap<DisciplinaryRecord> = {
+    'No': { accessor: (r) => r.no, type: 'number' },
+    'ID #': { accessor: (r) => r.idNo },
+    'Fullname': { accessor: (r) => r.fullname },
+    'Principal': { accessor: (r) => r.principal },
+    'Cat.': { accessor: (r) => r.category },
+    'Status': { accessor: (r) => r.status },
+    'Violation': { accessor: (r) => r.reason },
+};
+
 const DisciplinaryActionMonitoring: React.FC<DisciplinaryActionMonitoringProps> = ({ onBack }) => {
-    const dummyData: DisciplinaryRecord[] = [
-        { no: 1, idNo: 'FLI-JBW-A00263', fullname: 'Delonday, Jackielyn', principal: 'JBW', dateHired: '19-Aug-25', violationDate: '4-Sep-25', reason: 'Caught Coffee and Softdrinks During Frisking', kindOfViolation: 'Conduct of Behavior', category: 'A', deliveryDate: '-', status: 'Pending' },
-        { no: 2, idNo: 'FLI-JBW-A00273', fullname: 'Navarro, Julia Rose', principal: 'JBW', dateHired: '19-Aug-25', violationDate: '4-Sep-25', reason: 'Caught Coffee and Softdrinks During Frisking', kindOfViolation: 'Conduct of Behavior', category: 'A', deliveryDate: '-', status: 'Ongoing' },
-        { no: 3, idNo: 'FLI-JBW-A00278', fullname: 'Ranido, Jhustin Leigh', principal: 'JBW', dateHired: '19-Aug-25', violationDate: '4-Sep-25', reason: 'Caught Coffee and Softdrinks During Frisking', kindOfViolation: 'Conduct of Behavior', category: 'A', deliveryDate: '-', status: 'Resolved' },
-    ];
+    const { sortedRows, sortState, toggleSort } = useTableSort(dummyData, DISCIPLINARY_SORT_COLUMNS);
 
     return (
         <div className="flex flex-col h-full animate-fadeIn">
@@ -70,18 +85,18 @@ const DisciplinaryActionMonitoring: React.FC<DisciplinaryActionMonitoringProps> 
                     <table className="w-full text-left border-collapse min-w-[900px]">
                         <thead>
                             <tr className="border-b border-white/10 bg-white/5 text-[8.5px] font-black text-text-secondary uppercase tracking-[0.15em] sticky top-0 z-20 backdrop-blur-xl">
-                                <th className="px-2 py-1.5 text-center w-8 text-white">No</th>
-                                <th className="px-2 py-1.5">ID #</th>
-                                <th className="px-2 py-1.5">Fullname</th>
-                                <th className="px-2 py-1.5">Principal</th>
-                                <th className="px-2 py-1.5 text-center">Cat.</th>
-                                <th className="px-2 py-1.5 text-center">Status</th>
-                                <th className="px-2 py-1.5">Violation</th>
+                                <th className="px-2 py-1.5 text-center w-8 text-white" aria-sort={ariaSortValue('No', sortState)}><SortHeaderButton label="No" sortKey="No" sortState={sortState} onToggle={toggleSort} className="justify-center" /></th>
+                                <th className="px-2 py-1.5" aria-sort={ariaSortValue('ID #', sortState)}><SortHeaderButton label="ID #" sortKey="ID #" sortState={sortState} onToggle={toggleSort} /></th>
+                                <th className="px-2 py-1.5" aria-sort={ariaSortValue('Fullname', sortState)}><SortHeaderButton label="Fullname" sortKey="Fullname" sortState={sortState} onToggle={toggleSort} /></th>
+                                <th className="px-2 py-1.5" aria-sort={ariaSortValue('Principal', sortState)}><SortHeaderButton label="Principal" sortKey="Principal" sortState={sortState} onToggle={toggleSort} /></th>
+                                <th className="px-2 py-1.5 text-center" aria-sort={ariaSortValue('Cat.', sortState)}><SortHeaderButton label="Cat." sortKey="Cat." sortState={sortState} onToggle={toggleSort} className="justify-center" /></th>
+                                <th className="px-2 py-1.5 text-center" aria-sort={ariaSortValue('Status', sortState)}><SortHeaderButton label="Status" sortKey="Status" sortState={sortState} onToggle={toggleSort} className="justify-center" /></th>
+                                <th className="px-2 py-1.5" aria-sort={ariaSortValue('Violation', sortState)}><SortHeaderButton label="Violation" sortKey="Violation" sortState={sortState} onToggle={toggleSort} /></th>
                                 <th className="px-1.5 py-1.5 text-right"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                            {dummyData.map((record) => (
+                            {sortedRows.map((record) => (
                                 <tr key={record.no} className="group hover:bg-primary/5 transition-colors">
                                     <td className="px-2 py-0.5 text-center text-[8.5px] font-bold text-text-secondary">{record.no}</td>
                                     <td className="px-2 py-0.5 font-mono text-[8.5px] text-primary-light">{record.idNo}</td>

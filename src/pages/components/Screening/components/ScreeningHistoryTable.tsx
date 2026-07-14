@@ -1,5 +1,7 @@
 import React from "react";
 import PipelineHistoryTable, { historyCellClass, historyRowClass } from "../../../../components/Pipeline/PipelineHistoryTable";
+import { useTableSort } from "../../../../components/Tables/useTableSort";
+import type { SortColumnMap } from "../../../../components/Tables/tableSort";
 
 type ScreeningHistoryRow = {
   id: number;
@@ -17,9 +19,18 @@ type ScreeningHistoryTableProps = {
   rows: ScreeningHistoryRow[];
 };
 
-const ScreeningHistoryTable: React.FC<ScreeningHistoryTableProps> = ({ rows }) => (
-  <PipelineHistoryTable columns={['Name', 'Position', 'Applied Date', 'Status']}>
-    {rows.map((row) => (
+const HISTORY_SORT_COLUMNS: SortColumnMap<ScreeningHistoryRow> = {
+  'Name': { accessor: (r) => r.full_name },
+  'Position': { accessor: (r) => r.position_applied_for },
+  'Applied Date': { accessor: (r) => r.date_applied, type: 'date' },
+  'Status': { accessor: (r) => r.status },
+};
+
+const ScreeningHistoryTable: React.FC<ScreeningHistoryTableProps> = ({ rows }) => {
+  const { sortedRows, sortState, toggleSort } = useTableSort(rows, HISTORY_SORT_COLUMNS);
+  return (
+  <PipelineHistoryTable columns={['Name', 'Position', 'Applied Date', 'Status']} sortState={sortState} onToggleSort={toggleSort}>
+    {sortedRows.map((row) => (
       <tr key={row.id} className={historyRowClass}>
         <td className={`${historyCellClass} text-sm font-medium text-white`}>{row.full_name || '-'}</td>
         <td className={`${historyCellClass} text-sm text-text-secondary group-hover:text-white transition-colors`}>{row.position_applied_for || '-'}</td>
@@ -32,6 +43,7 @@ const ScreeningHistoryTable: React.FC<ScreeningHistoryTableProps> = ({ rows }) =
       </tr>
     ))}
   </PipelineHistoryTable>
-);
+  );
+};
 
 export default ScreeningHistoryTable;

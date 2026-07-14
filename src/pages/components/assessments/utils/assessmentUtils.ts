@@ -1,5 +1,7 @@
 export const ALLOWED_ASSESSMENT_STATUSES = new Set([
   "Initial Interview",
+  "For Assessment", // legacy Excel status: applicants imported at the assessment stage
+  "For Final Interview", // legacy Excel status: awaiting final interview
   "Final Interview",
   "Final Interview/Incomplete Requirements",
 ]);
