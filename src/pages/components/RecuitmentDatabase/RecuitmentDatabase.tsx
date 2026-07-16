@@ -20,6 +20,16 @@ import {
   type ActiveFilter
 } from '../../../components/Filters/filterUtils';
 import type { User } from '../../../api/applicant';
+import { useTableSort } from '../../../components/Tables/useTableSort';
+import type { SortColumnMap } from '../../../components/Tables/tableSort';
+
+// Only the non-string columns need config; every other header key falls back
+// to reading the row's own key as a natural string.
+const RECRUITMENT_SORT_COLUMNS: SortColumnMap<GoogleSheetApplicant> = {
+  'DATE OF BIRTH': { accessor: (a) => a['DATE OF BIRTH'], type: 'date' },
+  'DATE APPLIED': { accessor: (a) => a['DATE APPLIED'], type: 'date' },
+  'AGE': { accessor: (a) => a['AGE'], type: 'number' },
+};
 
 const mapApplicantRow = (r: any): GoogleSheetApplicant => ({
   NO: r.applicant_no || '',
@@ -142,6 +152,10 @@ function RecruitmentDatabase() {
     setFilteredApplicants(filtered);
   }, [statusFilter, searchTerm, applicants, filters, mappedUsersForFiltering]);
 
+  // Sort downstream of filtering; sortedRows also drives the Excel export so
+  // the file matches the on-screen order.
+  const { sortedRows, sortState, toggleSort } = useTableSort(filteredApplicants, RECRUITMENT_SORT_COLUMNS);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       const allIds = new Set(filteredApplicants.map(applicant => applicant["NO"]));
@@ -250,7 +264,7 @@ function RecruitmentDatabase() {
     ];
 
     // Prepare data for export
-    const exportData = filteredApplicants.map(applicant => {
+    const exportData = sortedRows.map(applicant => {
       const row: Record<string, string> = {};
       columns.forEach(column => {
         row[column] = (applicant as any)[column] || '';
@@ -374,10 +388,12 @@ function RecruitmentDatabase() {
           </div>
         ) : (
           <ApplicantTable
-            applicants={filteredApplicants}
+            applicants={sortedRows}
             selectedApplicants={selectedApplicants}
             onSelectAll={handleSelectAll}
             onSelectApplicant={handleSelectApplicant}
+            sortState={sortState}
+            onToggleSort={toggleSort}
           />
         )}
       </div>

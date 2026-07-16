@@ -2,10 +2,16 @@ import type { User } from "../../../../api/applicant";
 
 export const ALLOWED_SELECTION_STATUSES = new Set([
   'Final Interview/Complete Requirements',
+  'For Completion', // legacy Excel: requirements complete, entering selection/medical
+  'For Completion/Medical', // legacy Excel
   'For Medical',
   'Pending For Medical',
+  'Medical Pending', // legacy Excel variant of 'Pending For Medical'
+  'For Medical Result', // legacy Excel
+  'For Medical Evaluation', // legacy Excel
   'For SBMA Gate Pass',
   'Biometrics',
+  'For Biometrics', // legacy Excel variant of 'Biometrics'
 ]);
 
 export const isSelectionStatus = (status?: string) => ALLOWED_SELECTION_STATUSES.has(status || '');

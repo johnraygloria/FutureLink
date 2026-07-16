@@ -2,6 +2,7 @@ import type { User } from "../../../../api/applicant";
 
 export const ALLOWED_ENGAGEMENT_STATUSES = new Set([
   'On Boarding',
+  'For Onboarding Orientation', // legacy Excel: onboarding stage
   'Metrex',
   'For Deployment',
 ]);

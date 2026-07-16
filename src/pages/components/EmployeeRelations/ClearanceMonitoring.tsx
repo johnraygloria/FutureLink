@@ -7,6 +7,9 @@ import {
     IconPlus,
     IconChevronDown
 } from '@tabler/icons-react';
+import { useTableSort } from '../../../components/Tables/useTableSort';
+import type { SortColumnMap } from '../../../components/Tables/tableSort';
+import SortHeaderButton, { ariaSortValue } from '../../../components/Tables/SortHeaderButton';
 
 interface ClearanceRecord {
     idNo: string;
@@ -27,6 +30,21 @@ interface ClearanceMonitoringProps {
     onBack: () => void;
 }
 
+const CLEARANCE_SORT_COLUMNS: SortColumnMap<ClearanceRecord> = {
+    'ID #': { accessor: (r) => r.idNo },
+    'Fullname': { accessor: (r) => r.fullname },
+    'Principal': { accessor: (r) => r.principal },
+    'Hired': { accessor: (r) => r.dateHired, type: 'date' },
+    'Resigned': { accessor: (r) => r.dateResignation, type: 'date' },
+    'Res.': { accessor: (r) => r.withResignation },
+    'Exit': { accessor: (r) => r.withExitInterview },
+    'ID Return': { accessor: (r) => r.returnedIdSbma },
+    'Status': { accessor: (r) => r.clearanceStatus },
+    'Returned': { accessor: (r) => r.dateReturned, type: 'date' },
+    'Last Pay': { accessor: (r) => r.dateLastPay, type: 'date' },
+    'Claimed': { accessor: (r) => r.dateClaimed, type: 'date' },
+};
+
 const ClearanceMonitoring: React.FC<ClearanceMonitoringProps> = ({ onBack }) => {
     const [data, setData] = useState<ClearanceRecord[]>([
         { idNo: 'A00218', fullname: 'Martillano, Ivy', principal: 'JBW-ENJOY', dateHired: '19-Mar-25', dateResignation: '-', withResignation: 'YES', withExitInterview: 'YES', returnedIdSbma: 'YES', clearanceStatus: 'CLEARED / PAID', dateReturned: '9-Aug-25', dateLastPay: '13-Sep-25', dateClaimed: '13-Sep-25' },
@@ -37,10 +55,11 @@ const ClearanceMonitoring: React.FC<ClearanceMonitoringProps> = ({ onBack }) => 
 
     const statusOptions: ClearanceRecord['clearanceStatus'][] = ['CLEARED / PAID', 'WITH CLEARANCE', 'RETURNED CLEARANCE', 'NOT ISSUED', 'PENDING'];
 
-    const handleStatusChange = (index: number, newStatus: ClearanceRecord['clearanceStatus']) => {
-        const updatedData = [...data];
-        updatedData[index].clearanceStatus = newStatus;
-        setData(updatedData);
+    const { sortedRows, sortState, toggleSort } = useTableSort(data, CLEARANCE_SORT_COLUMNS);
+
+    // Keyed by idNo, not display index — the sorted view reorders rows.
+    const handleStatusChange = (idNo: string, newStatus: ClearanceRecord['clearanceStatus']) => {
+        setData(prev => prev.map(r => r.idNo === idNo ? { ...r, clearanceStatus: newStatus } : r));
     };
 
     const getStatusColor = (status: string) => {
@@ -78,24 +97,24 @@ const ClearanceMonitoring: React.FC<ClearanceMonitoringProps> = ({ onBack }) => 
                     <table className="w-full text-left border-collapse min-w-[1200px]">
                         <thead>
                             <tr className="border-b border-white/10 bg-white/5 text-[8px] font-black text-text-secondary uppercase tracking-[0.15em] sticky top-0 z-20 backdrop-blur-xl">
-                                <th className="px-2 py-1">ID #</th>
-                                <th className="px-2 py-1">Fullname</th>
-                                <th className="px-2 py-1">Principal</th>
-                                <th className="px-2 py-1">Hired</th>
-                                <th className="px-2 py-1">Resigned</th>
-                                <th className="px-1 py-1 text-center w-8">Res.</th>
-                                <th className="px-1 py-1 text-center w-8">Exit</th>
-                                <th className="px-2 py-1">ID Return</th>
-                                <th className="px-2 py-1 text-center w-32">Status</th>
-                                <th className="px-2 py-1">Returned</th>
-                                <th className="px-2 py-1">Last Pay</th>
-                                <th className="px-2 py-1">Claimed</th>
+                                <th className="px-2 py-1" aria-sort={ariaSortValue('ID #', sortState)}><SortHeaderButton label="ID #" sortKey="ID #" sortState={sortState} onToggle={toggleSort} /></th>
+                                <th className="px-2 py-1" aria-sort={ariaSortValue('Fullname', sortState)}><SortHeaderButton label="Fullname" sortKey="Fullname" sortState={sortState} onToggle={toggleSort} /></th>
+                                <th className="px-2 py-1" aria-sort={ariaSortValue('Principal', sortState)}><SortHeaderButton label="Principal" sortKey="Principal" sortState={sortState} onToggle={toggleSort} /></th>
+                                <th className="px-2 py-1" aria-sort={ariaSortValue('Hired', sortState)}><SortHeaderButton label="Hired" sortKey="Hired" sortState={sortState} onToggle={toggleSort} /></th>
+                                <th className="px-2 py-1" aria-sort={ariaSortValue('Resigned', sortState)}><SortHeaderButton label="Resigned" sortKey="Resigned" sortState={sortState} onToggle={toggleSort} /></th>
+                                <th className="px-1 py-1 text-center w-8" aria-sort={ariaSortValue('Res.', sortState)}><SortHeaderButton label="Res." sortKey="Res." sortState={sortState} onToggle={toggleSort} className="justify-center" /></th>
+                                <th className="px-1 py-1 text-center w-8" aria-sort={ariaSortValue('Exit', sortState)}><SortHeaderButton label="Exit" sortKey="Exit" sortState={sortState} onToggle={toggleSort} className="justify-center" /></th>
+                                <th className="px-2 py-1" aria-sort={ariaSortValue('ID Return', sortState)}><SortHeaderButton label="ID Return" sortKey="ID Return" sortState={sortState} onToggle={toggleSort} /></th>
+                                <th className="px-2 py-1 text-center w-32" aria-sort={ariaSortValue('Status', sortState)}><SortHeaderButton label="Status" sortKey="Status" sortState={sortState} onToggle={toggleSort} className="justify-center" /></th>
+                                <th className="px-2 py-1" aria-sort={ariaSortValue('Returned', sortState)}><SortHeaderButton label="Returned" sortKey="Returned" sortState={sortState} onToggle={toggleSort} /></th>
+                                <th className="px-2 py-1" aria-sort={ariaSortValue('Last Pay', sortState)}><SortHeaderButton label="Last Pay" sortKey="Last Pay" sortState={sortState} onToggle={toggleSort} /></th>
+                                <th className="px-2 py-1" aria-sort={ariaSortValue('Claimed', sortState)}><SortHeaderButton label="Claimed" sortKey="Claimed" sortState={sortState} onToggle={toggleSort} /></th>
                                 <th className="px-1 py-1 text-right"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                            {data.map((record, index) => (
-                                <tr key={index} className="group hover:bg-primary/5 transition-colors">
+                            {sortedRows.map((record) => (
+                                <tr key={record.idNo} className="group hover:bg-primary/5 transition-colors">
                                     <td className="px-2 py-0.5 font-mono text-[8.5px] text-primary-light">{record.idNo}</td>
                                     <td className="px-2 py-0.5 text-white font-semibold text-[9.5px] whitespace-nowrap">{record.fullname}</td>
                                     <td className="px-2 py-0.5 text-text-secondary text-[8.5px]">{record.principal}</td>
@@ -112,7 +131,7 @@ const ClearanceMonitoring: React.FC<ClearanceMonitoringProps> = ({ onBack }) => 
                                             </button>
                                             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0.5 w-32 bg-background/95 backdrop-blur-2xl border border-white/10 rounded shadow-2xl opacity-0 invisible group-hover/status:opacity-100 group-hover/status:visible transition-all z-30 py-1">
                                                 {statusOptions.map((opt) => (
-                                                    <button key={opt} onClick={() => handleStatusChange(index, opt)} className={`w-full px-2 py-1 text-[7px] font-bold uppercase tracking-wider text-left hover:bg-white/5 transition-colors ${record.clearanceStatus === opt ? 'text-primary' : 'text-text-secondary'}`}>{opt}</button>
+                                                    <button key={opt} onClick={() => handleStatusChange(record.idNo, opt)} className={`w-full px-2 py-1 text-[7px] font-bold uppercase tracking-wider text-left hover:bg-white/5 transition-colors ${record.clearanceStatus === opt ? 'text-primary' : 'text-text-secondary'}`}>{opt}</button>
                                                 ))}
                                             </div>
                                         </div>

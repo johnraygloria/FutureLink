@@ -1,5 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useVirtualRows, spacerRowStyle } from '../../../components/Tables/useVirtualRows';
+import { useTableSort } from '../../../components/Tables/useTableSort';
+import type { SortColumnMap } from '../../../components/Tables/tableSort';
+import SortHeaderButton, { ariaSortValue } from '../../../components/Tables/SortHeaderButton';
 import * as XLSX from 'xlsx';
 import {
     IconArrowLeft,
@@ -144,6 +147,23 @@ const TABLE_COLUMNS: { key: ColumnKey; label: string }[] = [
     { key: 'other_remarks', label: 'OTHER REMARKS' },
     { key: 'transfer_status', label: 'TRANSFER STATUS' },
 ];
+
+// Date/number columns need typed comparators; every other column key falls
+// back to a natural string sort on the field itself. `row_number` is the
+// display index and is deliberately not sortable.
+const MASTERLIST_SORT_COLUMNS: SortColumnMap<MasterlistEmployee> = {
+    date_hired: { accessor: (r) => r.date_hired, type: 'date' },
+    record_date: { accessor: (r) => r.record_date, type: 'date' },
+    last_date_present: { accessor: (r) => r.last_date_present, type: 'date' },
+    sbma_id_validity: { accessor: (r) => r.sbma_id_validity, type: 'date' },
+    age: { accessor: (r) => r.age, type: 'number' },
+    num_children: { accessor: (r) => r.num_children, type: 'number' },
+};
+
+const searchableValues = (item: MasterlistEmployee) =>
+    TABLE_COLUMNS
+        .filter(col => col.key !== 'row_number')
+        .map(col => item[col.key as keyof MasterlistEmployee]);
 
 const ADD_FORM_FIELDS: { name: keyof CreateMasterlistEmployeeInput; label: string; required?: boolean; type?: string }[] = [
     { name: 'lastName', label: 'Last Name', required: true },
@@ -339,12 +359,9 @@ const Masterlist: React.FC<MasterlistProps> = ({ onBack }) => {
         }
     };
 
-    const searchableValues = (item: MasterlistEmployee) =>
-        TABLE_COLUMNS
-            .filter(col => col.key !== 'row_number')
-            .map(col => item[col.key as keyof MasterlistEmployee]);
-
-    const filteredData = data.filter(item => {
+    // Memoized so unrelated re-renders (e.g. modal form keystrokes) don't
+    // re-filter and re-sort thousands of 54-field rows.
+    const filteredData = useMemo(() => data.filter(item => {
         const matchesSearch = searchableValues(item).some(val =>
             (val ?? '').toString().toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -353,7 +370,9 @@ const Masterlist: React.FC<MasterlistProps> = ({ onBack }) => {
         if (activeTab === 'ACTIVE') return item.status === 'ACTIVE';
         if (activeTab === 'TURNOVER') return isTurnover(item.status);
         return true;
-    });
+    }), [data, searchTerm, activeTab]);
+
+    const { sortedRows, sortState, toggleSort } = useTableSort(filteredData, MASTERLIST_SORT_COLUMNS);
 
     // Windowed rendering — the masterlist row is very short, so a small estimate.
     const {
@@ -362,8 +381,12 @@ const Masterlist: React.FC<MasterlistProps> = ({ onBack }) => {
         topSpacer: masterlistTopSpacer,
         bottomSpacer: masterlistBottomSpacer,
         measureRow: measureMasterlistRow,
-    } = useVirtualRows(filteredData, 24);
+    } = useVirtualRows(sortedRows, 24);
     const masterlistColCount = TABLE_COLUMNS.length + 1;
+
+    useEffect(() => {
+        masterlistScrollRef.current?.scrollTo({ top: 0 });
+    }, [sortState, masterlistScrollRef]);
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -440,7 +463,7 @@ const Masterlist: React.FC<MasterlistProps> = ({ onBack }) => {
     };
 
     const exportToExcel = () => {
-        const exportData = filteredData.map((row, index) => {
+        const exportData = sortedRows.map((row, index) => {
             const record: Record<string, string> = {};
             TABLE_COLUMNS.forEach((col) => {
                 if (col.key === 'row_number') {
@@ -590,8 +613,12 @@ const Masterlist: React.FC<MasterlistProps> = ({ onBack }) => {
                         <thead className="sticky top-0 z-20">
                             <tr className="bg-[#1a1c1e] border-b border-white/10">
                                 {TABLE_COLUMNS.map((col) => (
-                                    <th key={col.key} className="px-2 py-1 text-[8px] font-black text-text-secondary uppercase tracking-tight border-r border-white/5 last:border-0 text-center whitespace-nowrap">
-                                        {col.label}
+                                    <th key={col.key} aria-sort={col.key === 'row_number' ? undefined : ariaSortValue(col.key, sortState)} className="px-2 py-1 text-[8px] font-black text-text-secondary uppercase tracking-tight border-r border-white/5 last:border-0 text-center whitespace-nowrap">
+                                        {col.key === 'row_number' ? (
+                                            col.label
+                                        ) : (
+                                            <SortHeaderButton label={col.label} sortKey={col.key} sortState={sortState} onToggle={toggleSort} className="justify-center" />
+                                        )}
                                     </th>
                                 ))}
                                 <th className="px-2 py-1 text-[8px] font-black text-text-secondary uppercase tracking-tighter text-center sticky right-0 bg-[#1a1c1e] border-l border-white/10 z-30">OPS</th>
@@ -602,7 +629,7 @@ const Masterlist: React.FC<MasterlistProps> = ({ onBack }) => {
                                 <tr aria-hidden><td colSpan={masterlistColCount} style={spacerRowStyle(masterlistTopSpacer)} /></tr>
                             )}
                             {virtualRows.map((virtualItem) => {
-                                const row = filteredData[virtualItem.index];
+                                const row = sortedRows[virtualItem.index];
                                 const index = virtualItem.index;
                                 return (
                                 <tr

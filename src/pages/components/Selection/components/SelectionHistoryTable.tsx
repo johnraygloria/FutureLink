@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import PipelineHistoryTable, { historyCellClass, historyRowClass } from '../../../../components/Pipeline/PipelineHistoryTable';
+import { useTableSort } from '../../../../components/Tables/useTableSort';
+import type { SortColumnMap } from '../../../../components/Tables/tableSort';
 
 type SelectionHistoryRow = {
   id: number;
@@ -18,9 +20,23 @@ type SelectionHistoryTableProps = {
   getEmployeeInfo: (employeeId: number) => { name: string; position: string; dateApplied: string };
 };
 
-const SelectionHistoryTable: React.FC<SelectionHistoryTableProps> = ({ rows, getEmployeeInfo }) => (
-  <PipelineHistoryTable columns={['Name', 'Position', 'Application Date', 'Status', 'Actions']}>
-    {rows.map((history) => {
+const SelectionHistoryTable: React.FC<SelectionHistoryTableProps> = ({ rows, getEmployeeInfo }) => {
+  // Accessors close over the getEmployeeInfo prop, so the config can't be module-scope.
+  const sortColumns = useMemo<SortColumnMap<SelectionHistoryRow>>(() => ({
+    'Name': { accessor: (r) => getEmployeeInfo(r.employeeId).name },
+    'Position': { accessor: (r) => getEmployeeInfo(r.employeeId).position },
+    'Application Date': { accessor: (r) => getEmployeeInfo(r.employeeId).dateApplied || r.date, type: 'date' },
+    'Status': { accessor: (r) => r.status },
+  }), [getEmployeeInfo]);
+  const { sortedRows, sortState, toggleSort } = useTableSort(rows, sortColumns);
+  return (
+  <PipelineHistoryTable
+    columns={['Name', 'Position', 'Application Date', 'Status', 'Actions']}
+    sortState={sortState}
+    onToggleSort={toggleSort}
+    unsortableColumns={['Actions']}
+  >
+    {sortedRows.map((history) => {
       const info = getEmployeeInfo(history.employeeId);
       return (
         <tr key={history.id} className={historyRowClass}>
@@ -49,6 +65,7 @@ const SelectionHistoryTable: React.FC<SelectionHistoryTableProps> = ({ rows, get
       );
     })}
   </PipelineHistoryTable>
-);
+  );
+};
 
 export default SelectionHistoryTable;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     IconArrowLeft,
     IconSearch,
@@ -9,6 +9,9 @@ import {
     IconChevronLeft,
     IconDotsVertical
 } from '@tabler/icons-react';
+import { useTableSort } from '../../../components/Tables/useTableSort';
+import type { SortColumnMap } from '../../../components/Tables/tableSort';
+import SortHeaderButton, { ariaSortValue } from '../../../components/Tables/SortHeaderButton';
 
 interface ManningUpdateProps {
     onBack: () => void;
@@ -34,17 +37,43 @@ interface ManningRecord {
     shift: 'DAY' | 'NIGHT';
 }
 
+const data: ManningRecord[] = [
+    { no: 1, idNumber: 'A00218', lastName: 'Martillano', firstName: 'Ivy', extName: '', middleName: 'J', mobileNumber: '0917-xxx-xxxx', address: 'Subic, Zambales', gender: 'F', dateHired: '19-Mar-25', status: 'ACTIVE', remarks: 'Good', position: 'Operator', deptLine: 'Line 01', section: 'Production', building: 'Bldg 1', shift: 'DAY' },
+    { no: 2, idNumber: 'NJY-00014', lastName: 'Bautista', firstName: 'Juvelyn', extName: '', middleName: 'S', mobileNumber: '0918-xxx-xxxx', address: 'Olongapo City', gender: 'F', dateHired: '23-Jun-25', status: 'TURNOVER', remarks: 'Resigned', position: 'Operator', deptLine: 'Line 02', section: 'Production', building: 'Bldg 1', shift: 'NIGHT' },
+    { no: 3, idNumber: 'NJY-00172', lastName: 'Medrana', firstName: 'Jaymar Rubi', extName: '', middleName: 'R', mobileNumber: '0920-xxx-xxxx', address: 'Castillejos', gender: 'M', dateHired: '05-Aug-25', status: 'ACTIVE', remarks: '-', position: 'Leadman', deptLine: 'Line 05', section: 'QA', building: 'Bldg 2', shift: 'NIGHT' },
+];
+
+const columns = [
+    '#', 'ID NUMBER', 'LAST NAME', 'FIRST NAME', 'EXT NAME', 'MIDDLE NAME',
+    'MOBILE NUMBER', 'ADDRESS', 'GENDER', 'DATE HIRED', 'STATUS',
+    'REMARKS', 'POSITION', 'DEPARTMENT / LINE', 'SECTION', 'BUILDING'
+];
+
+// Header labels → record fields; '#' is the record's own number here, so it sorts.
+const MANNING_SORT_COLUMNS: SortColumnMap<ManningRecord> = {
+    '#': { accessor: (r) => r.no, type: 'number' },
+    'ID NUMBER': { accessor: (r) => r.idNumber },
+    'LAST NAME': { accessor: (r) => r.lastName },
+    'FIRST NAME': { accessor: (r) => r.firstName },
+    'EXT NAME': { accessor: (r) => r.extName },
+    'MIDDLE NAME': { accessor: (r) => r.middleName },
+    'MOBILE NUMBER': { accessor: (r) => r.mobileNumber },
+    'ADDRESS': { accessor: (r) => r.address },
+    'GENDER': { accessor: (r) => r.gender },
+    'DATE HIRED': { accessor: (r) => r.dateHired, type: 'date' },
+    'STATUS': { accessor: (r) => r.status },
+    'REMARKS': { accessor: (r) => r.remarks },
+    'POSITION': { accessor: (r) => r.position },
+    'DEPARTMENT / LINE': { accessor: (r) => r.deptLine },
+    'SECTION': { accessor: (r) => r.section },
+    'BUILDING': { accessor: (r) => r.building },
+};
+
 const ManningUpdate: React.FC<ManningUpdateProps> = ({ onBack }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<'ACTIVE' | 'TURNOVER' | 'NIGHT SHIFT' | 'DAY SHIFT'>('ACTIVE');
 
-    const data: ManningRecord[] = [
-        { no: 1, idNumber: 'A00218', lastName: 'Martillano', firstName: 'Ivy', extName: '', middleName: 'J', mobileNumber: '0917-xxx-xxxx', address: 'Subic, Zambales', gender: 'F', dateHired: '19-Mar-25', status: 'ACTIVE', remarks: 'Good', position: 'Operator', deptLine: 'Line 01', section: 'Production', building: 'Bldg 1', shift: 'DAY' },
-        { no: 2, idNumber: 'NJY-00014', lastName: 'Bautista', firstName: 'Juvelyn', extName: '', middleName: 'S', mobileNumber: '0918-xxx-xxxx', address: 'Olongapo City', gender: 'F', dateHired: '23-Jun-25', status: 'TURNOVER', remarks: 'Resigned', position: 'Operator', deptLine: 'Line 02', section: 'Production', building: 'Bldg 1', shift: 'NIGHT' },
-        { no: 3, idNumber: 'NJY-00172', lastName: 'Medrana', firstName: 'Jaymar Rubi', extName: '', middleName: 'R', mobileNumber: '0920-xxx-xxxx', address: 'Castillejos', gender: 'M', dateHired: '05-Aug-25', status: 'ACTIVE', remarks: '-', position: 'Leadman', deptLine: 'Line 05', section: 'QA', building: 'Bldg 2', shift: 'NIGHT' },
-    ];
-
-    const filteredData = data.filter(record => {
+    const filteredData = useMemo(() => data.filter(record => {
         const matchesSearch = Object.values(record).some(val =>
             val.toString().toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -55,13 +84,9 @@ const ManningUpdate: React.FC<ManningUpdateProps> = ({ onBack }) => {
         if (activeTab === 'NIGHT SHIFT') return record.shift === 'NIGHT';
         if (activeTab === 'DAY SHIFT') return record.shift === 'DAY';
         return true;
-    });
+    }), [searchTerm, activeTab]);
 
-    const columns = [
-        '#', 'ID NUMBER', 'LAST NAME', 'FIRST NAME', 'EXT NAME', 'MIDDLE NAME',
-        'MOBILE NUMBER', 'ADDRESS', 'GENDER', 'DATE HIRED', 'STATUS',
-        'REMARKS', 'POSITION', 'DEPARTMENT / LINE', 'SECTION', 'BUILDING'
-    ];
+    const { sortedRows, sortState, toggleSort } = useTableSort(filteredData, MANNING_SORT_COLUMNS);
 
     return (
         <div className="flex flex-col h-full animate-fadeIn bg-background/50">
@@ -124,16 +149,16 @@ const ManningUpdate: React.FC<ManningUpdateProps> = ({ onBack }) => {
                 <table className="w-full text-left border-collapse min-w-[2000px]">
                     <thead className="sticky top-0 z-20">
                         <tr className="bg-[#1a1c1e] border-b border-white/10">
-                            {columns.map((col, idx) => (
-                                <th key={idx} className="px-2 py-1.5 text-[9px] font-black text-text-secondary uppercase tracking-tight border-r border-white/5 last:border-0 text-center">
-                                    {col}
+                            {columns.map((col) => (
+                                <th key={col} aria-sort={ariaSortValue(col, sortState)} className="px-2 py-1.5 text-[9px] font-black text-text-secondary uppercase tracking-tight border-r border-white/5 last:border-0 text-center">
+                                    <SortHeaderButton label={col} sortKey={col} sortState={sortState} onToggle={toggleSort} className="justify-center" />
                                 </th>
                             ))}
                             <th className="px-2 py-1.5 text-[9px] font-black text-text-secondary uppercase tracking-tight text-center sticky right-0 bg-[#1a1c1e] border-l border-white/10 z-30">OPS</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                        {filteredData.map((row) => (
+                        {sortedRows.map((row) => (
                             <tr
                                 key={row.no}
                                 className={`transition-colors group ${row.status === 'TURNOVER' ? 'bg-danger/10 hover:bg-danger/20' : 'hover:bg-white/5'}`}

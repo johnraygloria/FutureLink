@@ -1,5 +1,7 @@
 import React from "react";
 import PipelineHistoryTable, { historyCellClass, historyRowClass } from "../../../../components/Pipeline/PipelineHistoryTable";
+import { useTableSort } from "../../../../components/Tables/useTableSort";
+import type { SortColumnMap } from "../../../../components/Tables/tableSort";
 
 type AssessmentHistoryRow = {
   id: string | number;
@@ -13,9 +15,18 @@ type AssessmentHistoryTableProps = {
   rows: AssessmentHistoryRow[];
 };
 
-const AssessmentHistoryTable: React.FC<AssessmentHistoryTableProps> = ({ rows }) => (
-  <PipelineHistoryTable columns={['Name', 'Position', 'Applied Date', 'Status']}>
-    {rows.map((history) => (
+const HISTORY_SORT_COLUMNS: SortColumnMap<AssessmentHistoryRow> = {
+  'Name': { accessor: (r) => r.full_name },
+  'Position': { accessor: (r) => r.position_applied_for },
+  'Applied Date': { accessor: (r) => r.date_applied, type: 'date' },
+  'Status': { accessor: (r) => r.status },
+};
+
+const AssessmentHistoryTable: React.FC<AssessmentHistoryTableProps> = ({ rows }) => {
+  const { sortedRows, sortState, toggleSort } = useTableSort(rows, HISTORY_SORT_COLUMNS);
+  return (
+  <PipelineHistoryTable columns={['Name', 'Position', 'Applied Date', 'Status']} sortState={sortState} onToggleSort={toggleSort}>
+    {sortedRows.map((history) => (
       <tr key={history.id} className={historyRowClass}>
         <td className={`${historyCellClass} text-sm font-medium text-white`}>{history.full_name || '-'}</td>
         <td className={`${historyCellClass} text-sm text-text-secondary group-hover:text-white transition-colors`}>{history.position_applied_for || '-'}</td>
@@ -31,6 +42,7 @@ const AssessmentHistoryTable: React.FC<AssessmentHistoryTableProps> = ({ rows })
       </tr>
     ))}
   </PipelineHistoryTable>
-);
+  );
+};
 
 export default AssessmentHistoryTable;
