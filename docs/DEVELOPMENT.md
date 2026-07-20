@@ -11,6 +11,26 @@
 - MySQL running locally with database `company_ftl` present and populated
 - Dependencies installed in **both** roots: `npm install` and `cd server && npm install`
 
+## ⚠ Windows dev machine: MySQL runs as a native Windows service, not via XAMPP
+
+On the Windows dev/deploy machine, MySQL no longer runs through XAMPP. XAMPP's
+bundled MariaDB used to silently fail to come up after a reboot (it only
+started if someone opened XAMPP Control Panel and clicked "Start" on MySQL).
+MySQL Server 8.4 is now installed directly (`winget install Oracle.MySQL`),
+registered as a Windows service (`MySQL84`, Startup Type: Automatic), and
+owns port 3306 — it starts on boot with no GUI interaction needed.
+
+- XAMPP's MariaDB is still installed but reconfigured to port **3307**
+  (`C:\xampp\mysql\bin\my.ini`) and no longer autostarts
+  (`C:\xampp\xampp-control.ini`, `[Autostart] MySQL=0`) — it's dormant unless
+  manually started. XAMPP's Apache/phpMyAdmin are untouched and still
+  autostart normally.
+- Unlike XAMPP's blank root password, the native MySQL Server **requires** a
+  root password — set it in `server/.env`'s `DB_PASSWORD`. There is no
+  passwordless `mysql -u root` shortcut here; use
+  `mysql -u root -p -P 3306 company_ftl` and check `server/.env` (gitignored)
+  for the password.
+
 ---
 
 ## ⚠ Gotcha #1 — the backend runs on port 5001, not 5000
@@ -61,7 +81,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:5173/api/applicants   
 PORT=5001
 DB_HOST=127.0.0.1
 DB_USER=root
-DB_PASSWORD=
+DB_PASSWORD=<see server/.env on the machine - not committed>
 DB_NAME=company_ftl
 JWT_SECRET=change-me
 JWT_EXPIRES_IN=7d
@@ -106,10 +126,13 @@ npm start         # node index.js
 
 ## Useful DB one-liners
 
+On the Windows dev machine, connect through the native MySQL Server on 3306
+with `-p` (it will prompt for the password in `server/.env`):
+
 ```bash
-mysql -u root company_ftl -e "SHOW TABLES;"
-mysql -u root company_ftl -e "SELECT id,hr_department,role FROM users;"
-mysql -u root company_ftl -e "SELECT applicant_no,first_name,last_name,status FROM recruitment_applicants;"
+mysql -u root -p -P 3306 company_ftl -e "SHOW TABLES;"
+mysql -u root -p -P 3306 company_ftl -e "SELECT id,hr_department,role FROM users;"
+mysql -u root -p -P 3306 company_ftl -e "SELECT applicant_no,first_name,last_name,status FROM recruitment_applicants;"
 ```
 
 ---

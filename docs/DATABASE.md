@@ -5,7 +5,7 @@
 
 _Verified against the live `company_ftl` database: 2026-07-07._
 
-Database: **`company_ftl`** (MySQL, InnoDB, utf8mb4). Connect: `mysql -u root company_ftl` (no password in dev).
+Database: **`company_ftl`** (MySQL, InnoDB, utf8mb4). Connect: `mysql -u root -p -P 3306 company_ftl` (password in `server/.env`, not committed) — see [DEVELOPMENT.md](DEVELOPMENT.md) for the native-Windows-service MySQL setup.
 
 ---
 
