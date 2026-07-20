@@ -12,6 +12,7 @@ Internal Applicant Tracking System (ATS) for a Philippine staffing agency. React
 | [docs/DATABASE.md](docs/DATABASE.md) | Touching data/schema. **The live DB is the source of truth — the SQL dump is stale.** |
 | [docs/CONVENTIONS.md](docs/CONVENTIONS.md) | Writing code. Naming, the 3-name field mapping, status guards, hooks, event bus. |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Running it locally, ports, credentials, commands. |
+| [docs/MYSQL_MIGRATION.md](docs/MYSQL_MIGRATION.md) | Setting up MySQL on a new Windows machine, or understanding why it's a native service instead of XAMPP. |
 | [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) | Prioritized known issues + tech debt. Add to it when you find something out of scope. |
 
 ## Run it (macOS)
