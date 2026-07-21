@@ -3,6 +3,8 @@ import type { User, ApplicationStatus, ScreeningStatus } from '../api/applicant'
 import {
   IconArrowLeft,
   IconArrowBackUp,
+  IconArrowDown,
+  IconAlertTriangle,
   IconUser,
   IconClipboardCheck,
   IconPhone,
@@ -12,6 +14,7 @@ import {
   IconCheck,
   IconX,
 } from "@tabler/icons-react";
+import ConfirmDialog from "../components/ConfirmDialog";
 import Assessment from "../pages/components/assessments/assessmentStatus";
 import { useNavigation } from "./NavigationContext";
 import { fetchPrincipals } from "../api/principal";
@@ -502,6 +505,12 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   const { activeSection, setActiveSection, setCurrentApplicantNo } = useNavigation();
   const isOpen = !!selectedUser;
 
+  // Rollback confirmation modal state
+  const [rollbackPrompt, setRollbackPrompt] = useState<
+    { currentStatus: string; target: string; usedFallback: boolean; atEarliest?: boolean } | null
+  >(null);
+  const [rollbackBusy, setRollbackBusy] = useState(false);
+
   useEffect(() => {
     if (selectedUser) {
       setEditedUser(selectedUser);
@@ -573,41 +582,42 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
 
   const admin = isAdmin();
 
-  // Admin-only: revert the applicant to its previous status. Prefers the exact
-  // status captured on the last change (previous_status); otherwise falls back to
-  // the previous pipeline stage's entry. Field edits are kept — only status changes.
-  const handleRollback = async () => {
+  // Admin-only: resolve where a rollback would send the applicant, then open the
+  // confirmation modal. Prefers walking back through the recorded status history
+  // (multi-step undo); once that trail is exhausted it falls back to the previous
+  // pipeline stage's entry. The actual change happens in confirmRollback.
+  const requestRollback = async () => {
     if (!selectedUser) return;
     const currentStatus = selectedUser.status || '';
+    let target: string | null = null;
     try {
-      // 1) Walk back through the applicant's recorded status history (multi-step undo).
-      let target: string | null = null;
-      try {
-        const res = await fetch('/api/applicants/screening-history');
-        if (res.ok) {
-          const rows = await res.json();
-          target = computeRollbackTarget(rows, selectedUser.no || '');
-        }
-      } catch { }
-
-      // 2) Once the recorded trail is exhausted, fall back to the previous stage's entry.
-      let usedFallback = false;
-      if (!target) {
-        target = stageFallbackTarget(currentStatus);
-        usedFallback = true;
+      const res = await fetch('/api/applicants/screening-history');
+      if (res.ok) {
+        const rows = await res.json();
+        target = computeRollbackTarget(rows, selectedUser.no || '');
       }
-      if (!target) {
-        alert('This applicant is already at the earliest stage — there is nothing to roll back to.');
-        return;
-      }
+    } catch { }
 
-      const ok = window.confirm(
-        `Roll back ${getDisplayName(selectedUser)} from "${currentStatus}" to "${target}"?` +
-        (usedFallback ? `\n\nNo exact prior status was recorded, so this returns them to the start of the previous stage.` : ``) +
-        `\n\nOnly the status changes — field edits are kept.`
-      );
-      if (!ok) return;
+    let usedFallback = false;
+    if (!target) {
+      target = stageFallbackTarget(currentStatus);
+      usedFallback = true;
+    }
+    if (!target) {
+      setRollbackPrompt({ currentStatus, target: '', usedFallback: false, atEarliest: true });
+      return;
+    }
+    setRollbackPrompt({ currentStatus, target, usedFallback });
+  };
 
+  const confirmRollback = async () => {
+    if (!selectedUser || !rollbackPrompt || rollbackPrompt.atEarliest) {
+      setRollbackPrompt(null);
+      return;
+    }
+    const { currentStatus, target } = rollbackPrompt;
+    setRollbackBusy(true);
+    try {
       // Log the rollback for the audit trail.
       try {
         await fetch('/api/applicants/screening-history', {
@@ -646,7 +656,9 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
       }
     } catch (e) {
       console.error('Rollback failed:', e);
-      alert('Rollback failed. Please try again.');
+    } finally {
+      setRollbackBusy(false);
+      setRollbackPrompt(null);
     }
   };
 
@@ -865,7 +877,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                       {admin && (
                         <button
                           type="button"
-                          onClick={handleRollback}
+                          onClick={requestRollback}
                           className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 transition-all active:scale-[0.99]"
                           title="Admin only: revert this applicant to its previous status"
                         >
@@ -1258,6 +1270,56 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
 
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!rollbackPrompt}
+        title={rollbackPrompt?.atEarliest ? 'Nothing to roll back' : 'Roll back applicant'}
+        subtitle={rollbackPrompt?.atEarliest ? undefined : (selectedUser ? getDisplayName(selectedUser) : undefined)}
+        icon={<IconArrowBackUp size={20} />}
+        tone={rollbackPrompt?.atEarliest ? 'primary' : 'warning'}
+        confirmLabel={rollbackPrompt?.atEarliest ? 'Got it' : 'Roll back'}
+        hideCancel={!!rollbackPrompt?.atEarliest}
+        isBusy={rollbackBusy}
+        onConfirm={confirmRollback}
+        onCancel={() => { if (!rollbackBusy) setRollbackPrompt(null); }}
+      >
+        {rollbackPrompt?.atEarliest ? (
+          <p className="text-sm text-text-secondary leading-relaxed">
+            This applicant is already at the earliest stage of the pipeline, so there's no previous status to return to.
+          </p>
+        ) : rollbackPrompt ? (
+          <div className="space-y-3">
+            <div className={`${panelClass} p-4 space-y-3`}>
+              <div>
+                <p className={`${fieldLabelClass} mb-1.5`}>Current status</p>
+                {getStatusBadge(rollbackPrompt.currentStatus)}
+              </div>
+              <div className="flex items-center gap-2 text-text-secondary/60 pl-0.5">
+                <IconArrowDown size={16} />
+                <span className="text-[11px] uppercase tracking-[0.14em] font-bold">rolls back to</span>
+              </div>
+              <div>
+                <p className={`${fieldLabelClass} mb-1.5`}>New status</p>
+                {getStatusBadge(rollbackPrompt.target)}
+              </div>
+            </div>
+
+            {rollbackPrompt.usedFallback && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-warning/25 bg-warning/10 px-3.5 py-3">
+                <IconAlertTriangle size={16} className="text-warning flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-warning/90 leading-relaxed">
+                  No exact prior status was recorded for this applicant, so this returns them to the <span className="font-semibold">start of the previous stage</span>.
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 text-xs text-text-secondary pl-0.5">
+              <IconCheck size={14} className="text-success flex-shrink-0" />
+              Only the status changes — all field edits are kept.
+            </div>
+          </div>
+        ) : null}
+      </ConfirmDialog>
     </>
   );
 };
