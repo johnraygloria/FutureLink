@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { User } from "../../../api/applicant";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
 import { useNavigation } from "../../../Global/NavigationContext";
@@ -83,7 +83,16 @@ const EngagementHR: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { currentApplicantNo } = useNavigation();
 
+  // Keep a ref of the currently open applicant so the silent auto-refresh
+  // can skip while the sidebar is open (avoids clobbering in-progress edits).
+  const selectedUserRef = useRef(selectedUser);
+  useEffect(() => {
+    selectedUserRef.current = selectedUser;
+  }, [selectedUser]);
+
   const refreshData = (silent = false) => {
+    // Don't let the timer's silent refresh overwrite edits while a sidebar is open.
+    if (silent && selectedUserRef.current) return;
     if (!silent) setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {

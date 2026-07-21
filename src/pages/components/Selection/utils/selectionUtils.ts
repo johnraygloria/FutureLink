@@ -2,7 +2,7 @@ import type { User } from "../../../../api/applicant";
 
 export const ALLOWED_SELECTION_STATUSES = new Set([
   'Final Interview/Complete Requirements',
-  'For Completion', // legacy Excel: requirements complete, entering selection/medical
+  // 'For Completion' now belongs to the Assessment stage (see assessmentUtils.ts)
   'For Completion/Medical', // legacy Excel
   'For Medical',
   'Pending For Medical',

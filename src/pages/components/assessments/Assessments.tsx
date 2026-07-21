@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
 import AssessmentTable from "./components/AssessmentTable";
 import { useAssessmentApplicants } from "./hooks/useAssessmentApplicants";
@@ -44,7 +44,16 @@ const Assessments: React.FC = () => {
   const { history: assessmentHistory } = useAssessmentHistory();
   const [isLoading, setIsLoading] = useState(true);
 
+  // Keep a ref of the currently open applicant so the silent auto-refresh
+  // can skip while the sidebar is open (avoids clobbering in-progress edits).
+  const selectedUserRef = useRef(selectedUser);
+  useEffect(() => {
+    selectedUserRef.current = selectedUser;
+  }, [selectedUser]);
+
   const refreshData = (silent = false) => {
+    // Don't let the timer's silent refresh overwrite edits while a sidebar is open.
+    if (silent && selectedUserRef.current) return;
     if (!silent) setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {

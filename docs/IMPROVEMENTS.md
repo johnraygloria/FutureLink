@@ -35,6 +35,12 @@ The auth layer is **built but not wired in**. Right now the API is effectively p
 
 > Fixes #1–#5 are ~half a day because the pieces (JWT middleware, bcrypt, roles enum) already exist and just need connecting. Re-verify login + one mutation per module afterward.
 
+### Day-one test-fix follow-ups (2026-07-21)
+
+- **Admin Rollback is UI-gated only.** The new "Rollback to previous status" control in `ApplicantSidebar.tsx` renders only when `isAdmin()` (client-side), and the `/api/applicants` + `screening-history` writes it uses are unauthenticated like the rest of the app. Enforce `requireRoles(0)` server-side once auth is wired (#2–#3).
+- **`doc_screening_status` still isn't persisted.** `physical_screening_status` was added to the schema + upsert during the field relocation, but the Assessment form's remaining "Doc Screening Status" select is still silently dropped by `upsertRecruitmentApplicant` (no column). Add the column + INSERT/UPDATE handling if that field is meant to save.
+- **Relocated status fields can't be cleared to empty** (see #11): selecting "— None —" for the Screening "Physical Screening Status" or Selection "Medical Status" control won't blank a previously-stored value because of the `IFNULL` upsert.
+
 ---
 
 ## 🟠 Correctness & data integrity

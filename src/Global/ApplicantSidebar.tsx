@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import type { User, ApplicationStatus, ScreeningStatus } from '../api/applicant';
 import {
   IconArrowLeft,
+  IconArrowBackUp,
   IconUser,
   IconClipboardCheck,
   IconPhone,
@@ -14,6 +15,11 @@ import {
 import Assessment from "../pages/components/assessments/assessmentStatus";
 import { useNavigation } from "./NavigationContext";
 import { fetchPrincipals } from "../api/principal";
+import { isAdmin } from "../lib/currentUser";
+import { isScreeningStatus } from "../pages/components/Screening/utils/screeningUtils";
+import { isAssessmentStatus } from "../pages/components/assessments/utils/assessmentUtils";
+import { isSelectionStatus } from "../pages/components/Selection/utils/selectionUtils";
+import { isEngagementStatus } from "../pages/components/Engagement/utils/engagementUtils";
 import {
   panelClass,
   panelTitleClass,
@@ -43,6 +49,7 @@ const getStatusIcon = (status: string) => {
     'Final Interview/Complete Requirements': <IconClipboardCheck size={16} />,
     'For Medical': <IconUser size={16} />,
     'For SBMA Gate Pass': <IconUser size={16} />,
+    'For Onboarding': <IconUser size={16} />,
     'On Boarding': <IconUser size={16} />,
     'Biometrics': <IconClipboardCheck size={16} />,
     'Metrex': <IconUser size={16} />,
@@ -399,6 +406,80 @@ const updateDocumentNumber = async (user: User, numberKey: string, value: string
   }
 };
 
+// Persist a single free-form status field (e.g. physical screening / medical status).
+// Sends only { NO, <PAYLOAD_KEY> } so the upsert preserves all other columns.
+const updateApplicantField = async (user: User, payloadKey: string, detailKey: string, value: string) => {
+  try {
+    const res = await fetch('/api/applicants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ NO: user.no || '', [payloadKey]: value })
+    });
+    if (!res.ok) throw new Error('Failed to update applicant field');
+    try {
+      window.dispatchEvent(new CustomEvent('applicant-updated', {
+        detail: { no: user.no, [detailKey]: value }
+      }));
+    } catch { }
+  } catch (e) {
+    console.error('Failed to sync applicant field', payloadKey, e);
+  }
+};
+
+// Maps a status to the pipeline section whose ALLOWED set contains it.
+const sectionForStatus = (status: string): 'screening' | 'assessment' | 'selection' | 'engagement' | null => {
+  if (isScreeningStatus(status)) return 'screening';
+  if (isAssessmentStatus(status)) return 'assessment';
+  if (isSelectionStatus(status)) return 'selection';
+  if (isEngagementStatus(status)) return 'engagement';
+  return null;
+};
+
+// Fallback when no exact previous status was captured (e.g. bulk-imported
+// applicants, or a move made before previous_status tracking existed): send the
+// applicant back to the entry status of the previous pipeline stage.
+const PREVIOUS_STAGE_ENTRY: Record<string, string> = {
+  assessment: 'For Screening',
+  selection: 'Initial Interview',
+  engagement: 'For Medical',
+};
+const stageFallbackTarget = (currentStatus: string): string | null => {
+  const section = sectionForStatus(currentStatus);
+  if (!section) return null;
+  return PREVIOUS_STAGE_ENTRY[section] || null;
+};
+
+// Reconstructs the applicant's undo stack by replaying its status-change log in
+// chronological order — 'Status Updated' = a forward move (push the status being
+// left), 'Rollback' = an undo (pop). The top of the resulting stack is the next
+// status to roll back to, so repeated rollbacks walk back through the COMPLETE
+// recorded history one step at a time (and it stays correct even if forward moves
+// and rollbacks are interleaved). Returns null once the recorded trail is exhausted
+// (caller then uses the stage fallback for the pre-history / cross-stage origin).
+const computeRollbackTarget = (rows: any[], applicantNo: string): string | null => {
+  const events = (Array.isArray(rows) ? rows : [])
+    .filter((r) => r.applicant_no === applicantNo && (r.action === 'Status Updated' || r.action === 'Rollback'))
+    .sort((a, b) => {
+      const ta = new Date(a.created_at).getTime();
+      const tb = new Date(b.created_at).getTime();
+      if (ta !== tb) return ta - tb;
+      return (Number(a.id) || 0) - (Number(b.id) || 0);
+    });
+  let current: string | null = null;
+  const stack: string[] = [];
+  for (const e of events) {
+    if (e.action === 'Rollback') {
+      if (stack.length > 0) current = stack.pop() as string;
+    } else {
+      const to = String(e.status || '');
+      if (!to) continue;
+      if (current !== null && current !== to) stack.push(current);
+      current = to;
+    }
+  }
+  return stack.length > 0 ? stack[stack.length - 1] : null;
+};
+
 const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   selectedUser,
   onClose,
@@ -412,6 +493,12 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   const [editedUser, setEditedUser] = useState<User | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [documentNumbers, setDocumentNumbers] = useState<Record<string, string>>({});
+  // Stage-specific status fields relocated out of the Assessment form:
+  // Physical Screening Status is edited in Screening, Medical Status in Selection.
+  const [stageStatusFields, setStageStatusFields] = useState<{ physicalScreeningStatus: string; medicalStatus: string }>({
+    physicalScreeningStatus: '',
+    medicalStatus: '',
+  });
   const { activeSection, setActiveSection, setCurrentApplicantNo } = useNavigation();
   const isOpen = !!selectedUser;
 
@@ -425,6 +512,10 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
         pagibigNo: selectedUser.pagibigNo || '',
         philhealthNo: selectedUser.philhealthNo || '',
         tinNo: selectedUser.tinNo || '',
+      });
+      setStageStatusFields({
+        physicalScreeningStatus: (selectedUser as any).physicalScreeningStatus || '',
+        medicalStatus: (selectedUser as any).medicalStatus || '',
       });
     }
   }, [selectedUser?.id, selectedUser?.nbiClearanceNo, selectedUser?.sssNo, selectedUser?.pagibigNo, selectedUser?.philhealthNo, selectedUser?.tinNo]);
@@ -477,6 +568,85 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
       } else {
         updateStatusInGoogleSheet(selectedUser, finalStatus);
       }
+    }
+  };
+
+  const admin = isAdmin();
+
+  // Admin-only: revert the applicant to its previous status. Prefers the exact
+  // status captured on the last change (previous_status); otherwise falls back to
+  // the previous pipeline stage's entry. Field edits are kept — only status changes.
+  const handleRollback = async () => {
+    if (!selectedUser) return;
+    const currentStatus = selectedUser.status || '';
+    try {
+      // 1) Walk back through the applicant's recorded status history (multi-step undo).
+      let target: string | null = null;
+      try {
+        const res = await fetch('/api/applicants/screening-history');
+        if (res.ok) {
+          const rows = await res.json();
+          target = computeRollbackTarget(rows, selectedUser.no || '');
+        }
+      } catch { }
+
+      // 2) Once the recorded trail is exhausted, fall back to the previous stage's entry.
+      let usedFallback = false;
+      if (!target) {
+        target = stageFallbackTarget(currentStatus);
+        usedFallback = true;
+      }
+      if (!target) {
+        alert('This applicant is already at the earliest stage — there is nothing to roll back to.');
+        return;
+      }
+
+      const ok = window.confirm(
+        `Roll back ${getDisplayName(selectedUser)} from "${currentStatus}" to "${target}"?` +
+        (usedFallback ? `\n\nNo exact prior status was recorded, so this returns them to the start of the previous stage.` : ``) +
+        `\n\nOnly the status changes — field edits are kept.`
+      );
+      if (!ok) return;
+
+      // Log the rollback for the audit trail.
+      try {
+        await fetch('/api/applicants/screening-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            applicant_no: selectedUser.no,
+            action: 'Rollback',
+            status: target,
+            notes: `Rolled back from ${currentStatus} to ${target} by Admin`,
+          }),
+        });
+      } catch { }
+
+      // Persist the status change (keeps other fields via IFNULL) and move the applicant.
+      if (onStatusChange) {
+        onStatusChange(selectedUser.id, target as ApplicationStatus);
+      } else {
+        await fetch('/api/applicants', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ NO: selectedUser.no, STATUS: target }),
+        });
+        try {
+          window.dispatchEvent(new CustomEvent('applicant-updated', { detail: { no: selectedUser.no, status: target } }));
+        } catch { }
+      }
+
+      // Follow the applicant to whichever stage now owns it.
+      const targetSection = sectionForStatus(target);
+      if (targetSection && targetSection !== activeSection) {
+        try {
+          setCurrentApplicantNo(selectedUser.no);
+          setActiveSection(targetSection);
+        } catch { }
+      }
+    } catch (e) {
+      console.error('Rollback failed:', e);
+      alert('Rollback failed. Please try again.');
     }
   };
 
@@ -648,6 +818,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               {/* Assessment statuses */}
                               <option value="Final Interview" className="bg-gray-800 text-white">Final Interview</option>
                               <option value="Final Interview/Incomplete Requirements" className="bg-gray-800 text-white">Final Interview/Incomplete Requirements</option>
+                              <option value="For Completion" className="bg-gray-800 text-white">For Completion</option>
                               <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
                             </>
                           ) : activeSection === 'selection' ? (
@@ -657,7 +828,8 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               <option value="Pending For Medical" className="bg-gray-800 text-white">Pending For Medical</option>
                               <option value="Biometrics" className="bg-gray-800 text-white">Biometrics</option>
                               <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
-                              <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
+                              {/* Push through to Engagement */}
+                              <option value="For Onboarding" className="bg-gray-800 text-white">For Onboarding</option>
                             </>
                           ) : activeSection === 'engagement' ? (
                             <>
@@ -690,6 +862,57 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                       <p className="text-xs text-text-secondary/70 mt-3">
                         Update status to move this applicant through the hiring pipeline.
                       </p>
+                      {admin && (
+                        <button
+                          type="button"
+                          onClick={handleRollback}
+                          className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 transition-all active:scale-[0.99]"
+                          title="Admin only: revert this applicant to its previous status"
+                        >
+                          <IconArrowBackUp size={16} />
+                          Rollback to previous status
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {activeSection === 'screening' && selectedUser && (
+                    <div className={`${panelClass} p-5 sm:p-6`}>
+                      <h2 className={`${panelTitleClass} mb-3`}>Physical Screening Status</h2>
+                      <div className="relative">
+                        <select
+                          className={selectClass}
+                          value={stageStatusFields.physicalScreeningStatus}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setStageStatusFields((prev) => ({ ...prev, physicalScreeningStatus: value }));
+                            updateApplicantField(selectedUser, 'PHYSICAL_SCREENING_STATUS', 'physicalScreeningStatus', value);
+                          }}
+                        >
+                          <option value="" className="bg-gray-800 text-white">— None —</option>
+                          <option value="Passed" className="bg-gray-800 text-white">Passed</option>
+                          <option value="Failed" className="bg-gray-800 text-white">Failed</option>
+                          <option value="Pending" className="bg-gray-800 text-white">Pending</option>
+                          <option value="Not Applicable" className="bg-gray-800 text-white">Not Applicable</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-secondary">
+                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeSection === 'selection' && selectedUser && (
+                    <div className={`${panelClass} p-5 sm:p-6`}>
+                      <h2 className={`${panelTitleClass} mb-3`}>Medical Status</h2>
+                      <input
+                        type="text"
+                        className={inputClass}
+                        placeholder="Enter medical status"
+                        value={stageStatusFields.medicalStatus}
+                        onChange={(e) => setStageStatusFields((prev) => ({ ...prev, medicalStatus: e.target.value }))}
+                        onBlur={(e) => updateApplicantField(selectedUser, 'MEDICAL_STATUS', 'medicalStatus', e.target.value)}
+                      />
                     </div>
                   )}
 

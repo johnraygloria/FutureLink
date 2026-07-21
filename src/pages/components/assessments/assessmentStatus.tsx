@@ -23,9 +23,7 @@ const emptyApplicant: { [key: string]: any } = {
   STATUS: "",
   REQUIREMENTS_STATUS: "",
   FINAL_INTERVIEW_STATUS: "",
-  MEDICAL_STATUS: "",
   DOC_SCREENING_STATUS: "",
-  PHYSICAL_SCREENING_STATUS: "",
   STATUS_REMARKS: "",
   APPLICANT_REMARKS: "",
   id: undefined,
@@ -57,9 +55,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
   const [no, setNo] = useState<string>(applicantNo || '');
   const [requirementsStatus, setRequirementsStatus] = useState<string>('');
   const [finalInterviewStatus, setFinalInterviewStatus] = useState<string>('');
-  const [medicalStatus, setMedicalStatus] = useState<string>('');
   const [docScreeningStatus, setDocScreeningStatus] = useState<string>('');
-  const [physicalScreeningStatus, setPhysicalScreeningStatus] = useState<string>('');
   const [statusRemarks, setStatusRemarks] = useState<string>('');
   const [applicantRemarks, setApplicantRemarks] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -128,9 +124,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
 
         setRequirementsStatus(applicant.REQUIREMENTS_STATUS || "");
         setFinalInterviewStatus(applicant.FINAL_INTERVIEW_STATUS || "");
-        setMedicalStatus(applicant.MEDICAL_STATUS || "");
         setDocScreeningStatus(applicant.DOC_SCREENING_STATUS || "");
-        setPhysicalScreeningStatus(applicant.PHYSICAL_SCREENING_STATUS || "");
         setStatusRemarks(applicant.STATUS_REMARKS || applicant.Status_REMARKS || "");
         setApplicantRemarks(applicant.APPLICANT_REMARKS || "");
 
@@ -146,9 +140,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
         setApplicantData({ ...emptyApplicant, NO: applicantNumber });
         setRequirementsStatus("");
         setFinalInterviewStatus("");
-        setMedicalStatus("");
         setDocScreeningStatus("");
-        setPhysicalScreeningStatus("");
         setStatusRemarks("");
         setApplicantRemarks("");
         setSelectedCompanies([]);
@@ -188,9 +180,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
 
     updatedApplicantData["REQUIREMENTS_STATUS"] = requirementsStatus;
     updatedApplicantData["FINAL_INTERVIEW_STATUS"] = finalInterviewStatus;
-    updatedApplicantData["MEDICAL_STATUS"] = medicalStatus;
     updatedApplicantData["DOC_SCREENING_STATUS"] = docScreeningStatus;
-    updatedApplicantData["PHYSICAL_SCREENING_STATUS"] = physicalScreeningStatus;
     updatedApplicantData["STATUS_REMARKS"] = statusRemarks;
     updatedApplicantData["APPLICANT_REMARKS"] = applicantRemarks;
 
@@ -225,7 +215,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
           body: JSON.stringify({
             applicant_no: no,
             action: 'Assessment Updated',
-            status: finalInterviewStatus || requirementsStatus || medicalStatus || '',
+            status: finalInterviewStatus || requirementsStatus || '',
             notes: statusRemarks || applicantRemarks || ''
           })
         });
@@ -259,9 +249,7 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
         // Sync other assessment fields if they were provided (e.g. from a data refresh)
         if (detail.requirementsStatus !== undefined) setRequirementsStatus(detail.requirementsStatus);
         if (detail.finalInterviewStatus !== undefined) setFinalInterviewStatus(detail.finalInterviewStatus);
-        if (detail.medicalStatus !== undefined) setMedicalStatus(detail.medicalStatus);
         if (detail.docScreeningStatus !== undefined) setDocScreeningStatus(detail.docScreeningStatus);
-        if (detail.physicalScreeningStatus !== undefined) setPhysicalScreeningStatus(detail.physicalScreeningStatus);
         if (detail.statusRemarks !== undefined) setStatusRemarks(detail.statusRemarks);
         if (detail.applicantRemarks !== undefined) setApplicantRemarks(detail.applicantRemarks);
         
@@ -518,15 +506,14 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wide">
                     <i className="fas fa-user-tie text-custom-teal"></i>
-                    Final Interview Status *
+                    Final Interview Status
                   </label>
                   <select
                     value={finalInterviewStatus}
                     onChange={e => setFinalInterviewStatus(e.target.value)}
-                    required
                     className="w-full border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white/5 text-white transition-colors [&>option]:bg-gray-800 [&>option]:text-white"
                   >
-                    <option value="" disabled>Select final interview status</option>
+                    <option value="">— None —</option>
                     <option value="Passed">Passed</option>
                     <option value="Good">Good</option>
                     <option value="Very Good">Very Good</option>
@@ -552,41 +539,9 @@ const Assessment: React.FC<AssessmentProps> = ({ applicantNo, showApplicantHeade
                     <option value="Not Applicable">Not Applicable</option>
                   </select>
                 </div>
-
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wide">
-                    <i className="fas fa-user-md text-custom-teal"></i>
-                    Physical Screening Status
-                  </label>
-                  <select
-                    value={physicalScreeningStatus}
-                    onChange={e => setPhysicalScreeningStatus(e.target.value)}
-                    className="w-full border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white/5 text-white transition-colors [&>option]:bg-gray-800 [&>option]:text-white"
-                  >
-                    <option value="" disabled>Select physical screening status</option>
-                    <option value="Passed">Passed</option>
-                    <option value="Failed">Failed</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Not Applicable">Not Applicable</option>
-                  </select>
-                </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-white/5 rounded-xl p-4 border border-white/10 shadow-sm backdrop-blur-sm">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wide">
-                    <i className="fas fa-heartbeat text-custom-teal"></i>
-                    Medical Status
-                  </label>
-                  <input
-                    type="text"
-                    value={medicalStatus}
-                    onChange={e => setMedicalStatus(e.target.value)}
-                    placeholder="Enter medical status"
-                    className="w-full border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-custom-teal focus:border-custom-teal bg-white/5 text-white placeholder-text-secondary/30 transition-colors"
-                  />
-                </div>
-
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wide">
                     <i className="fas fa-comment-dots text-custom-teal"></i>

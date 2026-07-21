@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from "react";
 
-type SectionKey =
+export type SectionKey =
   | "dashboard"
   | "screening"
   | "assessment"

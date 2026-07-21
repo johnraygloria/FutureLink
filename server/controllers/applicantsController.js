@@ -59,6 +59,7 @@ const mapBodyToApplicant = (body) => ({
   requirements_status: body.REQUIREMENTS_STATUS || body.requirements_status,
   final_interview_status: body.FINAL_INTERVIEW_STATUS || body.final_interview_status,
   medical_status: body.MEDICAL_STATUS || body.medical_status,
+  physical_screening_status: body.PHYSICAL_SCREENING_STATUS || body.physical_screening_status,
   status_remarks: body.STATUS_REMARKS || body.status_remarks,
   applicant_remarks: body.APPLICANT_REMARKS || body.applicant_remarks,
   recent_picture: toBitOrUndefined(body.RECENT_PICTURE ?? body.recentPicture ?? body.recent_picture),

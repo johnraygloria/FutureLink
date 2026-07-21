@@ -24,6 +24,7 @@ export type ApplicationStatus =
   | 'Pending For Medical'
   | 'For SBMA Gate Pass'
   | 'Biometrics'
+  | 'For Onboarding'
   | 'On Boarding'
   | 'Metrex'
   | 'For Deployment'

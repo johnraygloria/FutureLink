@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
 import type { User } from "../../../api/applicant";
 import { useNavigation } from "../../../Global/NavigationContext";
@@ -55,6 +55,13 @@ export default function SelectionEmployees() {
   const [isLoading, setIsLoading] = useState(true);
   const { currentApplicantNo, setCurrentApplicantNo } = useNavigation();
 
+  // Keep a ref of the currently open applicant so the silent auto-refresh
+  // can skip while the sidebar is open (avoids clobbering in-progress edits).
+  const selectedUserRef = useRef(selectedEmployee);
+  useEffect(() => {
+    selectedUserRef.current = selectedEmployee;
+  }, [selectedEmployee]);
+
   const handleRemoveEmployee = (employeeId: number) => {
     const employee = employees.find(emp => emp.id === employeeId);
     if (employee) {
@@ -78,6 +85,8 @@ export default function SelectionEmployees() {
 
   // Fetch selection-stage applicants from API
   const refreshData = (silent = false) => {
+    // Don't let the timer's silent refresh overwrite edits while a sidebar is open.
+    if (silent && selectedUserRef.current) return;
     if (!silent) setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {

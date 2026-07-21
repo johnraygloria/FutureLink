@@ -4,6 +4,7 @@ export const ALLOWED_ASSESSMENT_STATUSES = new Set([
   "For Final Interview", // legacy Excel status: awaiting final interview
   "Final Interview",
   "Final Interview/Incomplete Requirements",
+  "For Completion", // requirements being completed before pushing through to Selection
 ]);
 
 export const isAssessmentStatus = (status?: string) => ALLOWED_ASSESSMENT_STATUSES.has(status || "");
