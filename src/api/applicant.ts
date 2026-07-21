@@ -37,7 +37,8 @@ export type ApplicationStatus =
   | 'Offer Extended'
   | 'Hired'
   | 'Rejected'
-  | 'Withdrawn';
+  | 'Withdrawn'
+  | 'Blacklisted';
 
 export interface ScreeningData {
   resumePassed: ScreeningStatus;

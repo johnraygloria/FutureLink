@@ -80,7 +80,9 @@ const EngagementHR: React.FC = () => {
   } = useEngagementApplicants();
   const [assessmentHistory] = useState<AssessmentHistory[]>(initialAssessmentHistory);
   const [showHistory, setShowHistory] = useState(false);
+  const [showBlacklist, setShowBlacklist] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [blacklistedUsers, setBlacklistedUsers] = useState<User[]>([]);
   const { currentApplicantNo } = useNavigation();
 
   // Keep a ref of the currently open applicant so the silent auto-refresh
@@ -100,12 +102,12 @@ const EngagementHR: React.FC = () => {
         return res.json();
       })
       .then((rows) => {
-        const mapped: User[] = rows
-          .filter((r: any) => isEngagementStatus(r.status))
-          .map(mapEngagementApplicantRow);
-        setUsers(mapped);
+        setUsers(rows.filter((r: any) => isEngagementStatus(r.status)).map(mapEngagementApplicantRow));
+        setBlacklistedUsers(
+          rows.filter((r: any) => r.status === 'Blacklisted' && isEngagementStatus(r.previous_status || '')).map(mapEngagementApplicantRow)
+        );
       })
-      .catch(() => setUsers([]))
+      .catch(() => { setUsers([]); setBlacklistedUsers([]); })
       .finally(() => {
         if (!silent) setIsLoading(false);
       });
@@ -195,6 +197,32 @@ const EngagementHR: React.FC = () => {
     );
   }
 
+  if (showBlacklist) {
+    return (
+      <>
+        <PipelineHistoryShell
+          title="Engagement — Blacklisted"
+          backLabel="Back to Engagement"
+          onBack={() => setShowBlacklist(false)}
+        >
+          <EngagementTable
+            users={blacklistedUsers}
+            selectedUser={selectedUser}
+            onUserClick={handleUserClick}
+            isLoading={isLoading}
+            hasActiveFilters={false}
+          />
+        </PipelineHistoryShell>
+        <ApplicantSidebar
+          selectedUser={selectedUser}
+          onClose={handleCloseSidebar}
+          onStatusChange={handleStatusChangeAndSync}
+          onRemoveApplicant={removeUser}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <PipelinePageShell fullHeight>
@@ -229,6 +257,8 @@ const EngagementHR: React.FC = () => {
           search={search}
           setSearch={setSearch}
           onViewHistory={() => setShowHistory(true)}
+          onViewBlacklist={() => setShowBlacklist(true)}
+          blacklistCount={blacklistedUsers.length}
         />
 
         <EngagementTable

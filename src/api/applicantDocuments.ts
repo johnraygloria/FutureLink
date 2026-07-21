@@ -36,6 +36,7 @@ export interface ApplicantDocuments {
   requirementsStatus?: string;
   medicalStatus?: string;
   physicalScreeningStatus?: string;
+  previousStatus?: string;
   statusRemarks?: string;
   applicantRemarks?: string;
 } 

@@ -5,6 +5,7 @@ import { useApplicants } from "./hooks/useApplicants";
 import ApplicantsTable from "./components/ApplicantsTable";
 import ScreeningHistoryTable from "./components/ScreeningHistoryTable";
 import { isScreeningStatus, mapScreeningApplicantRow } from "./utils/screeningUtils";
+import type { User } from "../../../api/applicant";
 import FilterBar from "../../../components/Filters/FilterBar";
 import FilterSidebar from "../../../components/Filters/FilterSidebar";
 import ProcessTimer from "../../../components/ProcessTimer";
@@ -28,8 +29,10 @@ type ScreeningHistoryRow = {
 
 const ScreeningList: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
+  const [showBlacklist, setShowBlacklist] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [screeningHistory, setScreeningHistory] = useState<ScreeningHistoryRow[]>([]);
+  const [blacklistedUsers, setBlacklistedUsers] = useState<User[]>([]);
   const {
     selectedUser,
     search,
@@ -74,10 +77,12 @@ const ScreeningList: React.FC = () => {
         return res.json();
       })
       .then((rows) => {
-        const mapped = rows.map(mapScreeningApplicantRow).filter((u: any) => isScreeningStatus(u.status));
-        setUsers(mapped);
+        const mapped: User[] = rows.map(mapScreeningApplicantRow);
+        setUsers(mapped.filter((u) => isScreeningStatus(u.status)));
+        // Blacklisted applicants whose pre-blacklist status belonged to this stage.
+        setBlacklistedUsers(mapped.filter((u) => u.status === 'Blacklisted' && isScreeningStatus(u.previousStatus || '')));
       })
-      .catch(() => setUsers([]))
+      .catch(() => { setUsers([]); setBlacklistedUsers([]); })
       .finally(() => {
         if (!silent) setIsLoading(false);
       });
@@ -145,6 +150,33 @@ const ScreeningList: React.FC = () => {
     );
   }
 
+  if (showBlacklist) {
+    return (
+      <>
+        <PipelineHistoryShell
+          title="Screening — Blacklisted"
+          backLabel="Back to Screening"
+          onBack={() => setShowBlacklist(false)}
+        >
+          <ApplicantsTable
+            users={blacklistedUsers}
+            selectedUser={selectedUser}
+            onUserClick={handleUserClick}
+            isLoading={isLoading}
+            hasActiveFilters={false}
+          />
+        </PipelineHistoryShell>
+        <ApplicantSidebar
+          selectedUser={selectedUser}
+          onClose={handleCloseSidebar}
+          onStatusChange={handleStatusChangeAndSync}
+          onScreeningUpdate={handleScreeningUpdate}
+          onRemoveApplicant={removeApplicant}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <PipelinePageShell fullHeight>
@@ -179,6 +211,8 @@ const ScreeningList: React.FC = () => {
           search={search}
           setSearch={setSearch}
           onViewHistory={() => setShowHistory(true)}
+          onViewBlacklist={() => setShowBlacklist(true)}
+          blacklistCount={blacklistedUsers.length}
           primaryAction={{
             label: 'Input Data',
             icon: 'fa-plus',

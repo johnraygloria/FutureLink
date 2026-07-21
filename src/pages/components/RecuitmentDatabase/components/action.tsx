@@ -3,9 +3,11 @@ import React from 'react';
 interface ActionsBarProps {
   selectedCount: number;
   onAction: (action: string) => void;
+  /** Stage-move buttons are admin-only. */
+  canMove?: boolean;
 }
 
-const ActionsBar: React.FC<ActionsBarProps> = ({ selectedCount, onAction }) => {
+const ActionsBar: React.FC<ActionsBarProps> = ({ selectedCount, onAction, canMove = false }) => {
   const actions = [
     { label: 'Screening', accent: 'bg-info/20 hover:bg-info/30 text-info border-info/30' },
     { label: 'Assessment', accent: 'bg-success/20 hover:bg-success/30 text-success border-success/30' },
@@ -16,7 +18,9 @@ const ActionsBar: React.FC<ActionsBarProps> = ({ selectedCount, onAction }) => {
   return (
     <div className="p-4 rounded-2xl border border-white/10 bg-[#0d1219]/70 backdrop-blur-sm flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex items-center gap-3 flex-wrap flex-1">
-        {selectedCount > 0 ? (
+        {!canMove ? (
+          <span className="text-sm text-text-secondary/80 pl-1">Only an admin can move applicants across pipeline stages.</span>
+        ) : selectedCount > 0 ? (
           <>
             <span className="text-sm font-bold text-white bg-primary/15 px-3 py-1.5 rounded-full border border-primary/25">
               {selectedCount} Selected

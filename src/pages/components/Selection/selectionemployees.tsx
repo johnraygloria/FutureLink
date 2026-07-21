@@ -52,7 +52,9 @@ export default function SelectionEmployees() {
   } = useSelectionApplicants();
   const [selectionHistory, setSelectionHistory] = useState<SelectionHistory[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showBlacklist, setShowBlacklist] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [blacklistedEmployees, setBlacklistedEmployees] = useState<User[]>([]);
   const { currentApplicantNo, setCurrentApplicantNo } = useNavigation();
 
   // Keep a ref of the currently open applicant so the silent auto-refresh
@@ -94,12 +96,12 @@ export default function SelectionEmployees() {
         return res.json();
       })
       .then((rows) => {
-        const mapped: User[] = rows
-          .filter((r: any) => isSelectionStatus(r.status))
-          .map(mapSelectionApplicantRow);
-        setEmployees(mapped);
+        setEmployees(rows.filter((r: any) => isSelectionStatus(r.status)).map(mapSelectionApplicantRow));
+        setBlacklistedEmployees(
+          rows.filter((r: any) => r.status === 'Blacklisted' && isSelectionStatus(r.previous_status || '')).map(mapSelectionApplicantRow)
+        );
       })
-      .catch(() => setEmployees([]))
+      .catch(() => { setEmployees([]); setBlacklistedEmployees([]); })
       .finally(() => {
         if (!silent) setIsLoading(false);
       });
@@ -210,6 +212,32 @@ export default function SelectionEmployees() {
     );
   }
 
+  if (showBlacklist) {
+    return (
+      <>
+        <PipelineHistoryShell
+          title="Selection — Blacklisted"
+          backLabel="Back to Selection"
+          onBack={() => setShowBlacklist(false)}
+        >
+          <SelectionTable
+            users={blacklistedEmployees}
+            selectedUser={selectedEmployee}
+            onUserClick={openSidebar}
+            isLoading={isLoading}
+            hasActiveFilters={false}
+          />
+        </PipelineHistoryShell>
+        <ApplicantSidebar
+          selectedUser={selectedEmployee}
+          onClose={closeSidebar}
+          onStatusChange={handleStatusChangeAndSync}
+          onRemoveApplicant={handleRemoveEmployee}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <PipelinePageShell fullHeight>
@@ -244,6 +272,8 @@ export default function SelectionEmployees() {
           search={search}
           setSearch={setSearch}
           onViewHistory={() => setShowHistory(true)}
+          onViewBlacklist={() => setShowBlacklist(true)}
+          blacklistCount={blacklistedEmployees.length}
         />
 
         <SelectionTable

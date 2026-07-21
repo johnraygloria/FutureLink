@@ -12,6 +12,8 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   /** Hide the cancel button (e.g. an informational, single-action dialog). */
   hideCancel?: boolean;
+  /** Hide the confirm button (e.g. when the body itself provides the actions). */
+  hideConfirm?: boolean;
   isBusy?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -47,6 +49,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   hideCancel = false,
+  hideConfirm = false,
   isBusy = false,
   onConfirm,
   onCancel,
@@ -102,15 +105,17 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 {cancelLabel}
               </button>
             )}
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={isBusy}
-              className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 ${t.confirm}`}
-            >
-              {isBusy && <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
-              {confirmLabel}
-            </button>
+            {!hideConfirm && (
+              <button
+                type="button"
+                onClick={onConfirm}
+                disabled={isBusy}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 ${t.confirm}`}
+              >
+                {isBusy && <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+                {confirmLabel}
+              </button>
+            )}
           </div>
         </div>
       </div>

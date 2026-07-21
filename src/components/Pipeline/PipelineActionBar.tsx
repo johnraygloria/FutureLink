@@ -5,6 +5,8 @@ type PipelineActionBarProps = {
   setSearch: (value: string) => void;
   searchPlaceholder?: string;
   onViewHistory?: () => void;
+  onViewBlacklist?: () => void;
+  blacklistCount?: number;
   primaryAction?: {
     label: string;
     onClick: () => void;
@@ -17,6 +19,8 @@ const PipelineActionBar: React.FC<PipelineActionBarProps> = ({
   setSearch,
   searchPlaceholder = 'Search by name, ID, or position...',
   onViewHistory,
+  onViewBlacklist,
+  blacklistCount,
   primaryAction,
 }) => (
   <div className="flex flex-col gap-3 px-5 sm:px-6 py-4 border-b border-white/10 bg-[#0d1219]/60 sm:flex-row sm:items-center sm:justify-between">
@@ -37,6 +41,20 @@ const PipelineActionBar: React.FC<PipelineActionBarProps> = ({
         >
           <i className="fas fa-clock-rotate-left text-text-secondary" />
           View History
+        </button>
+      )}
+      {onViewBlacklist && (
+        <button
+          onClick={onViewBlacklist}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-danger/10 text-danger text-sm font-medium shadow-sm hover:bg-danger/20 transition-all border border-danger/25"
+        >
+          <i className="fas fa-ban" />
+          Blacklisted
+          {typeof blacklistCount === 'number' && blacklistCount > 0 && (
+            <span className="ml-0.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-danger/20 text-danger text-[11px] font-bold">
+              {blacklistCount}
+            </span>
+          )}
         </button>
       )}
     </div>
