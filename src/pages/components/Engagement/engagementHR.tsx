@@ -185,6 +185,28 @@ const EngagementHR: React.FC = () => {
     }
   }, [users, selectedUser?.no]);
 
+  // Keep the Blacklisted view + badge current in real time (before the sync timer).
+  useEffect(() => {
+    const onBlacklisted = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no) return;
+      if (isEngagementStatus(d.previousStatus || '')) {
+        setBlacklistedUsers(prev => (prev.some(u => u.no === d.no) ? prev : [{ ...d } as User, ...prev]));
+      }
+    };
+    const onStatusForBlacklist = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no || !d.status || d.status === 'Blacklisted') return;
+      setBlacklistedUsers(prev => prev.filter(u => u.no !== d.no));
+    };
+    window.addEventListener('applicant-blacklisted', onBlacklisted);
+    window.addEventListener('applicant-updated', onStatusForBlacklist);
+    return () => {
+      window.removeEventListener('applicant-blacklisted', onBlacklisted);
+      window.removeEventListener('applicant-updated', onStatusForBlacklist);
+    };
+  }, []);
+
   if (showHistory) {
     return (
       <PipelineHistoryShell
@@ -257,7 +279,7 @@ const EngagementHR: React.FC = () => {
           search={search}
           setSearch={setSearch}
           onViewHistory={() => setShowHistory(true)}
-          onViewBlacklist={() => setShowBlacklist(true)}
+          onViewBlacklist={() => { refreshData(); setShowBlacklist(true); }}
           blacklistCount={blacklistedUsers.length}
         />
 

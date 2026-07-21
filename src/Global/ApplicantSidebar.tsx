@@ -613,9 +613,20 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   };
 
   const confirmBlacklist = () => {
+    if (!selectedUser) { setBlacklistPrompt(false); return; }
+    const prevStatus = selectedUser.status || '';
+    const applicant = selectedUser;
     setBlacklistBusy(true);
     try {
-      if (selectedUser) applyStatusChange('Blacklisted');
+      applyStatusChange('Blacklisted');
+      // Let stage pages reflect the blacklist immediately (badge + view) without
+      // waiting for the sync timer — carries the applicant + their pre-blacklist
+      // status so each page can route them to the right stage's Blacklisted view.
+      try {
+        window.dispatchEvent(new CustomEvent('applicant-blacklisted', {
+          detail: { ...applicant, no: applicant.no, status: 'Blacklisted', previousStatus: prevStatus },
+        }));
+      } catch { }
     } finally {
       setBlacklistBusy(false);
       setBlacklistPrompt(false);
@@ -947,21 +958,21 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <button
                             type="button"
+                            onClick={() => setMoveStagePrompt(true)}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-info/30 bg-info/10 text-info hover:bg-info/20 transition-all active:scale-[0.99]"
+                            title="Admin only: move this applicant to any stage"
+                          >
+                            <IconArrowsExchange size={16} />
+                            Move to
+                          </button>
+                          <button
+                            type="button"
                             onClick={requestRollback}
                             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 transition-all active:scale-[0.99]"
                             title="Admin only: revert this applicant to its previous status"
                           >
                             <IconArrowBackUp size={16} />
                             Rollback
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMoveStagePrompt(true)}
-                            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-info/30 bg-info/10 text-info hover:bg-info/20 transition-all active:scale-[0.99]"
-                            title="Admin only: move this applicant to any stage"
-                          >
-                            <IconArrowsExchange size={16} />
-                            Move to stage
                           </button>
                         </div>
                       )}
