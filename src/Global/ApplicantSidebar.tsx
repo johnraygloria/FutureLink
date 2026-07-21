@@ -828,9 +828,9 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                           ) : activeSection === 'assessment' ? (
                             <>
                               {/* Assessment statuses */}
+                              <option value="For Completion" className="bg-gray-800 text-white">For Completion</option>
                               <option value="Final Interview" className="bg-gray-800 text-white">Final Interview</option>
                               <option value="Final Interview/Incomplete Requirements" className="bg-gray-800 text-white">Final Interview/Incomplete Requirements</option>
-                              <option value="For Completion" className="bg-gray-800 text-white">For Completion</option>
                               <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
                             </>
                           ) : activeSection === 'selection' ? (
