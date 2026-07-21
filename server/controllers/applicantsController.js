@@ -1,4 +1,4 @@
-const { insertRecruitmentApplicant, fetchRecruitmentApplicants, fetchApplicantNumbers, upsertRecruitmentApplicant, updateApplicantFields, addScreeningHistory, fetchScreeningHistory, fetchScreeningHistoryEnriched, addAssessmentHistory, addAssessmentHistoryBulk, fetchAssessmentHistoryEnriched, addSelectionHistory, fetchSelectionHistoryEnriched, addEngagementHistory, fetchEngagementHistoryEnriched, getNextApplicantNumber } = require('../models/applicant');
+const { insertRecruitmentApplicant, fetchRecruitmentApplicants, fetchApplicantNumbers, upsertRecruitmentApplicant, updateApplicantFields, addScreeningHistory, fetchScreeningHistory, fetchScreeningHistoryEnriched, addAssessmentHistory, addAssessmentHistoryBulk, fetchAssessmentHistoryEnriched, addSelectionHistory, fetchSelectionHistoryEnriched, addEngagementHistory, fetchEngagementHistoryEnriched, getNextApplicantNumber, deleteEmptyApplicants } = require('../models/applicant');
 const { setApplicantPrincipals, setApplicantPrincipalsBulk } = require('../models/applicantPrincipal');
 const { getAllPrincipals } = require('../models/principal');
 
@@ -185,6 +185,7 @@ exports.bulkUpsertApplicants = async (req, res) => {
 
     let inserted = 0;
     let updated = 0;
+    let skippedEmpty = 0;
     const failed = [];
     const principalPairs = []; // { applicantId, principalIds }
     const historyEntries = [];
@@ -193,6 +194,14 @@ exports.bulkUpsertApplicants = async (req, res) => {
       const applicantNo = body.NO || body.applicant_no;
       if (!applicantNo) {
         failed.push({ no: '', error: 'Missing NO / applicant_no' });
+        continue;
+      }
+      // Skip empty placeholder rows — a NO with no name / no real person data.
+      const hasName = String(
+        body.FIRST_NAME || body.first_name || body.LAST_NAME || body.last_name || body.FB_NAME || body.fb_name || ''
+      ).trim() !== '';
+      if (!hasName) {
+        skippedEmpty++;
         continue;
       }
       try {
@@ -224,10 +233,22 @@ exports.bulkUpsertApplicants = async (req, res) => {
       console.error('bulk history insert error:', err);
     }
 
-    return res.json({ inserted, updated, failed });
+    return res.json({ inserted, updated, skippedEmpty, failed });
   } catch (error) {
     console.error('bulkUpsertApplicants error:', error);
     return res.status(500).json({ error: 'Bulk import failed', detail: error?.message });
+  }
+};
+
+// TEMPORARY: deletes fully-empty placeholder rows from the recruitment table.
+// Triggered by the bulk import to sweep out legacy empties; remove once clean.
+exports.cleanupEmptyApplicants = async (req, res) => {
+  try {
+    const deleted = await deleteEmptyApplicants();
+    return res.json({ deleted });
+  } catch (error) {
+    console.error('cleanupEmptyApplicants error:', error);
+    return res.status(500).json({ error: 'Failed to clean up empty rows', detail: error?.message });
   }
 };
 

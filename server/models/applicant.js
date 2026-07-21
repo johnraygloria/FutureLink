@@ -360,6 +360,36 @@ async function upsertRecruitmentApplicant(data) {
   }
 }
 
+// TEMPORARY cleanup: removes fully-empty placeholder rows — a NO with no name
+// and no other person data (these come from pre-numbered blank rows in the
+// source spreadsheet). Every column that could hold real data must be blank, so
+// a row with ANY meaningful value is never touched. Remove once the DB is clean.
+// See docs/IMPROVEMENTS.md.
+async function deleteEmptyApplicants() {
+  await ensureTables();
+  const pool = await getPool();
+  const blank = (c) => `(${c} IS NULL OR TRIM(${c}) = '')`;
+  const cols = [
+    'referred_by', 'last_name', 'first_name', 'ext', 'middle_name', 'gender', 'size',
+    'date_of_birth', 'date_applied', 'fb_name', 'age', 'location', 'contact_number',
+    'email', 'position_applied_for', 'experience', 'status', 'previous_status',
+    'requirements_status', 'final_interview_status', 'medical_status',
+    'physical_screening_status', 'status_remarks', 'applicant_remarks',
+    'nbi_clearance_no', 'sss_no', 'pagibig_no', 'philhealth_no', 'tin_no',
+  ];
+  const flagCols = [
+    'recent_picture', 'psa_birth_certificate', 'school_credentials', 'nbi_clearance',
+    'police_clearance', 'barangay_clearance', 'sss', 'pagibig', 'cedula',
+    'vaccination_status', 'resume', 'coe', 'philhealth', 'tin_number',
+  ];
+  const where = [
+    ...cols.map(blank),
+    ...flagCols.map((c) => `(${c} IS NULL OR ${c} = 0)`),
+  ].join(' AND ');
+  const [result] = await pool.query(`DELETE FROM recruitment_applicants WHERE ${where}`);
+  return result.affectedRows || 0;
+}
+
 module.exports = {
   getPool,
   ensureTables,
@@ -367,6 +397,7 @@ module.exports = {
   fetchRecruitmentApplicants,
   fetchApplicantNumbers,
   upsertRecruitmentApplicant,
+  deleteEmptyApplicants,
 };
 
 // Partially update specific fields without overwriting other columns
