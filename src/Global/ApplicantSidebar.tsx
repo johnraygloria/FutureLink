@@ -6,6 +6,7 @@ import {
   IconArrowDown,
   IconAlertTriangle,
   IconBan,
+  IconUserX,
   IconArrowsExchange,
   IconUser,
   IconClipboardCheck,
@@ -69,6 +70,7 @@ const getStatusIcon = (status: string) => {
     'Hired': <IconUser size={16} />,
     'Withdrawn': <IconUser size={16} />,
     'Blacklisted': <IconBan size={16} />,
+    'Not interested': <IconUserX size={16} />,
   };
   return icons[status] || <IconUser size={16} />;
 };
@@ -609,7 +611,17 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
       setBlacklistPrompt(true);
       return;
     }
+    const applicant = selectedUser;
+    const prevStatus = selectedUser.status || '';
     applyStatusChange(newStatus);
+    // Real-time sync for the per-stage "Not interested" list (no confirm needed).
+    if (newStatus === 'Not interested') {
+      try {
+        window.dispatchEvent(new CustomEvent('applicant-not-interested', {
+          detail: { ...applicant, no: applicant.no, status: 'Not interested', previousStatus: prevStatus },
+        }));
+      } catch { }
+    }
   };
 
   const confirmBlacklist = () => {
@@ -758,6 +770,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
 
   const getStatusBadgeClass = (status: string) => {
     if (status.includes('Rejected') || status.includes('Failed') || status.includes('Blacklisted')) return 'bg-danger/10 text-danger border-danger/20';
+    if (status.toLowerCase().includes('not interested')) return 'bg-warning/10 text-warning border-warning/20';
     if (status.includes('Deployed') || status.includes('Hired') || status.includes('Complete')) return 'bg-success/10 text-success border-success/20';
     if (status.includes('Pending') || status.includes('Incomplete')) return 'bg-warning/10 text-warning border-warning/20';
     if (status.includes('Medical') || status.includes('Interview') || status.includes('Screening')) return 'bg-info/10 text-info border-info/20';
@@ -903,6 +916,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               {/* Both of these push through to Selection */}
                               <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
                               <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
+                              <option value="Not interested" className="bg-gray-800 text-white">Not interested</option>
                             </>
                           ) : activeSection === 'selection' ? (
                             <>
@@ -913,12 +927,14 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
                               {/* Push through to Engagement */}
                               <option value="For Onboarding" className="bg-gray-800 text-white">For Onboarding</option>
+                              <option value="Not interested" className="bg-gray-800 text-white">Not interested</option>
                             </>
                           ) : activeSection === 'engagement' ? (
                             <>
                               {/* Engagement statuses */}
                               <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
                               <option value="Deployed" className="bg-gray-800 text-white">Deployed</option>
+                              <option value="Not interested" className="bg-gray-800 text-white">Not interested</option>
                             </>
                           ) : (
                             <>
@@ -935,6 +951,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
                               <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
                               <option value="Deployed" className="bg-gray-800 text-white">Deployed</option>
+                              <option value="Not interested" className="bg-gray-800 text-white">Not interested</option>
                             </>
                           )}
                           {/* Available in every stage — always confirmed before applying */}

@@ -81,8 +81,10 @@ const EngagementHR: React.FC = () => {
   const [assessmentHistory] = useState<AssessmentHistory[]>(initialAssessmentHistory);
   const [showHistory, setShowHistory] = useState(false);
   const [showBlacklist, setShowBlacklist] = useState(false);
+  const [showNotInterested, setShowNotInterested] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [blacklistedUsers, setBlacklistedUsers] = useState<User[]>([]);
+  const [notInterestedUsers, setNotInterestedUsers] = useState<User[]>([]);
   const { currentApplicantNo } = useNavigation();
 
   // Keep a ref of the currently open applicant so the silent auto-refresh
@@ -106,8 +108,11 @@ const EngagementHR: React.FC = () => {
         setBlacklistedUsers(
           rows.filter((r: any) => r.status === 'Blacklisted' && isEngagementStatus(r.previous_status || '')).map(mapEngagementApplicantRow)
         );
+        setNotInterestedUsers(
+          rows.filter((r: any) => String(r.status || '').toLowerCase() === 'not interested' && isEngagementStatus(r.previous_status || '')).map(mapEngagementApplicantRow)
+        );
       })
-      .catch(() => { setUsers([]); setBlacklistedUsers([]); })
+      .catch(() => { setUsers([]); setBlacklistedUsers([]); setNotInterestedUsers([]); })
       .finally(() => {
         if (!silent) setIsLoading(false);
       });
@@ -207,6 +212,28 @@ const EngagementHR: React.FC = () => {
     };
   }, []);
 
+  // Keep the Not-interested view + badge current in real time.
+  useEffect(() => {
+    const onNotInterested = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no) return;
+      if (isEngagementStatus(d.previousStatus || '')) {
+        setNotInterestedUsers(prev => (prev.some(u => u.no === d.no) ? prev : [{ ...d } as User, ...prev]));
+      }
+    };
+    const onStatusForNI = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no || !d.status || String(d.status).toLowerCase() === 'not interested') return;
+      setNotInterestedUsers(prev => prev.filter(u => u.no !== d.no));
+    };
+    window.addEventListener('applicant-not-interested', onNotInterested);
+    window.addEventListener('applicant-updated', onStatusForNI);
+    return () => {
+      window.removeEventListener('applicant-not-interested', onNotInterested);
+      window.removeEventListener('applicant-updated', onStatusForNI);
+    };
+  }, []);
+
   if (showHistory) {
     return (
       <PipelineHistoryShell
@@ -229,6 +256,32 @@ const EngagementHR: React.FC = () => {
         >
           <EngagementTable
             users={blacklistedUsers}
+            selectedUser={selectedUser}
+            onUserClick={handleUserClick}
+            isLoading={isLoading}
+            hasActiveFilters={false}
+          />
+        </PipelineHistoryShell>
+        <ApplicantSidebar
+          selectedUser={selectedUser}
+          onClose={handleCloseSidebar}
+          onStatusChange={handleStatusChangeAndSync}
+          onRemoveApplicant={removeUser}
+        />
+      </>
+    );
+  }
+
+  if (showNotInterested) {
+    return (
+      <>
+        <PipelineHistoryShell
+          title="Engagement — Not interested"
+          backLabel="Back to Engagement"
+          onBack={() => setShowNotInterested(false)}
+        >
+          <EngagementTable
+            users={notInterestedUsers}
             selectedUser={selectedUser}
             onUserClick={handleUserClick}
             isLoading={isLoading}
@@ -281,6 +334,8 @@ const EngagementHR: React.FC = () => {
           onViewHistory={() => setShowHistory(true)}
           onViewBlacklist={() => { refreshData(); setShowBlacklist(true); }}
           blacklistCount={blacklistedUsers.length}
+          onViewNotInterested={() => { refreshData(); setShowNotInterested(true); }}
+          notInterestedCount={notInterestedUsers.length}
         />
 
         <EngagementTable
