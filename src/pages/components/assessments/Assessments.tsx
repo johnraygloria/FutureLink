@@ -43,9 +43,11 @@ const Assessments: React.FC = () => {
   const { currentApplicantNo } = useNavigation();
   const [showHistory, setShowHistory] = useState(false);
   const [showBlacklist, setShowBlacklist] = useState(false);
+  const [showNotInterested, setShowNotInterested] = useState(false);
   const { history: assessmentHistory } = useAssessmentHistory();
   const [isLoading, setIsLoading] = useState(true);
   const [blacklistedUsers, setBlacklistedUsers] = useState<User[]>([]);
+  const [notInterestedUsers, setNotInterestedUsers] = useState<User[]>([]);
 
   // Keep a ref of the currently open applicant so the silent auto-refresh
   // can skip while the sidebar is open (avoids clobbering in-progress edits).
@@ -67,8 +69,9 @@ const Assessments: React.FC = () => {
         const mapped = rows.map(mapApplicantRow);
         setUsers(mapped.filter((u: any) => isAssessmentStatus(u.status)));
         setBlacklistedUsers(mapped.filter((u: any) => u.status === 'Blacklisted' && isAssessmentStatus(u.previousStatus || '')));
+        setNotInterestedUsers(mapped.filter((u: any) => String(u.status || '').toLowerCase() === 'not interested' && isAssessmentStatus(u.previousStatus || '')));
       })
-      .catch(() => { setUsers([]); setBlacklistedUsers([]); })
+      .catch(() => { setUsers([]); setBlacklistedUsers([]); setNotInterestedUsers([]); })
       .finally(() => {
         if (!silent) setIsLoading(false);
       });
@@ -129,6 +132,28 @@ const Assessments: React.FC = () => {
     };
   }, []);
 
+  // Keep the Not-interested view + badge current in real time.
+  useEffect(() => {
+    const onNotInterested = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no) return;
+      if (isAssessmentStatus(d.previousStatus || '')) {
+        setNotInterestedUsers(prev => (prev.some(u => u.no === d.no) ? prev : [{ ...d } as User, ...prev]));
+      }
+    };
+    const onStatusForNI = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no || !d.status || String(d.status).toLowerCase() === 'not interested') return;
+      setNotInterestedUsers(prev => prev.filter(u => u.no !== d.no));
+    };
+    window.addEventListener('applicant-not-interested', onNotInterested);
+    window.addEventListener('applicant-updated', onStatusForNI);
+    return () => {
+      window.removeEventListener('applicant-not-interested', onNotInterested);
+      window.removeEventListener('applicant-updated', onStatusForNI);
+    };
+  }, []);
+
   useEffect(() => {
     if (selectedUser) {
       const updated = users.find(u => u.no === selectedUser.no);
@@ -160,6 +185,33 @@ const Assessments: React.FC = () => {
         >
           <AssessmentTable
             users={blacklistedUsers}
+            selectedUser={selectedUser}
+            onUserClick={handleUserClick}
+            isLoading={isLoading}
+            hasActiveFilters={false}
+          />
+        </PipelineHistoryShell>
+        <ApplicantSidebar
+          selectedUser={selectedUser}
+          onClose={handleCloseSidebar}
+          onStatusChange={handleStatusChangeAndSync}
+          onScreeningUpdate={handleScreeningUpdate}
+          onRemoveApplicant={removeApplicant}
+        />
+      </>
+    );
+  }
+
+  if (showNotInterested) {
+    return (
+      <>
+        <PipelineHistoryShell
+          title="Assessment — Not interested"
+          backLabel="Back to Assessment"
+          onBack={() => setShowNotInterested(false)}
+        >
+          <AssessmentTable
+            users={notInterestedUsers}
             selectedUser={selectedUser}
             onUserClick={handleUserClick}
             isLoading={isLoading}
@@ -213,6 +265,8 @@ const Assessments: React.FC = () => {
           onViewHistory={() => setShowHistory(true)}
           onViewBlacklist={() => { refreshData(); setShowBlacklist(true); }}
           blacklistCount={blacklistedUsers.length}
+          onViewNotInterested={() => { refreshData(); setShowNotInterested(true); }}
+          notInterestedCount={notInterestedUsers.length}
         />
 
         <AssessmentTable

@@ -65,6 +65,7 @@ const Filters: React.FC<FiltersProps> = ({
           </optgroup>
           <optgroup label="Other" className="bg-slate-900 text-white">
             <option value="Blacklisted" className="bg-slate-900 text-white">Blacklisted</option>
+            <option value="Not interested" className="bg-slate-900 text-white">Not interested</option>
           </optgroup>
         </select>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-secondary">

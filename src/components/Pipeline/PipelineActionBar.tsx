@@ -7,6 +7,8 @@ type PipelineActionBarProps = {
   onViewHistory?: () => void;
   onViewBlacklist?: () => void;
   blacklistCount?: number;
+  onViewNotInterested?: () => void;
+  notInterestedCount?: number;
   primaryAction?: {
     label: string;
     onClick: () => void;
@@ -21,6 +23,8 @@ const PipelineActionBar: React.FC<PipelineActionBarProps> = ({
   onViewHistory,
   onViewBlacklist,
   blacklistCount,
+  onViewNotInterested,
+  notInterestedCount,
   primaryAction,
 }) => (
   <div className="flex flex-col gap-3 px-5 sm:px-6 py-4 border-b border-white/10 bg-[#0d1219]/60 sm:flex-row sm:items-center sm:justify-between">
@@ -53,6 +57,20 @@ const PipelineActionBar: React.FC<PipelineActionBarProps> = ({
           {typeof blacklistCount === 'number' && blacklistCount > 0 && (
             <span className="ml-0.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-danger/20 text-danger text-[11px] font-bold">
               {blacklistCount}
+            </span>
+          )}
+        </button>
+      )}
+      {onViewNotInterested && (
+        <button
+          onClick={onViewNotInterested}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-warning/10 text-warning text-sm font-medium shadow-sm hover:bg-warning/20 transition-all border border-warning/25"
+        >
+          <i className="fas fa-user-slash" />
+          Not interested
+          {typeof notInterestedCount === 'number' && notInterestedCount > 0 && (
+            <span className="ml-0.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-warning/20 text-warning text-[11px] font-bold">
+              {notInterestedCount}
             </span>
           )}
         </button>

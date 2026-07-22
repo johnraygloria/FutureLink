@@ -53,8 +53,10 @@ export default function SelectionEmployees() {
   const [selectionHistory, setSelectionHistory] = useState<SelectionHistory[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showBlacklist, setShowBlacklist] = useState(false);
+  const [showNotInterested, setShowNotInterested] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [blacklistedEmployees, setBlacklistedEmployees] = useState<User[]>([]);
+  const [notInterestedEmployees, setNotInterestedEmployees] = useState<User[]>([]);
   const { currentApplicantNo, setCurrentApplicantNo } = useNavigation();
 
   // Keep a ref of the currently open applicant so the silent auto-refresh
@@ -100,8 +102,11 @@ export default function SelectionEmployees() {
         setBlacklistedEmployees(
           rows.filter((r: any) => r.status === 'Blacklisted' && isSelectionStatus(r.previous_status || '')).map(mapSelectionApplicantRow)
         );
+        setNotInterestedEmployees(
+          rows.filter((r: any) => String(r.status || '').toLowerCase() === 'not interested' && isSelectionStatus(r.previous_status || '')).map(mapSelectionApplicantRow)
+        );
       })
-      .catch(() => { setEmployees([]); setBlacklistedEmployees([]); })
+      .catch(() => { setEmployees([]); setBlacklistedEmployees([]); setNotInterestedEmployees([]); })
       .finally(() => {
         if (!silent) setIsLoading(false);
       });
@@ -211,6 +216,28 @@ export default function SelectionEmployees() {
     };
   }, []);
 
+  // Keep the Not-interested view + badge current in real time.
+  useEffect(() => {
+    const onNotInterested = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no) return;
+      if (isSelectionStatus(d.previousStatus || '')) {
+        setNotInterestedEmployees(prev => (prev.some(u => u.no === d.no) ? prev : [{ ...d } as User, ...prev]));
+      }
+    };
+    const onStatusForNI = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no || !d.status || String(d.status).toLowerCase() === 'not interested') return;
+      setNotInterestedEmployees(prev => prev.filter(u => u.no !== d.no));
+    };
+    window.addEventListener('applicant-not-interested', onNotInterested);
+    window.addEventListener('applicant-updated', onStatusForNI);
+    return () => {
+      window.removeEventListener('applicant-not-interested', onNotInterested);
+      window.removeEventListener('applicant-updated', onStatusForNI);
+    };
+  }, []);
+
   // Selection History Page
   if (showHistory) {
     return (
@@ -244,6 +271,32 @@ export default function SelectionEmployees() {
         >
           <SelectionTable
             users={blacklistedEmployees}
+            selectedUser={selectedEmployee}
+            onUserClick={openSidebar}
+            isLoading={isLoading}
+            hasActiveFilters={false}
+          />
+        </PipelineHistoryShell>
+        <ApplicantSidebar
+          selectedUser={selectedEmployee}
+          onClose={closeSidebar}
+          onStatusChange={handleStatusChangeAndSync}
+          onRemoveApplicant={handleRemoveEmployee}
+        />
+      </>
+    );
+  }
+
+  if (showNotInterested) {
+    return (
+      <>
+        <PipelineHistoryShell
+          title="Selection — Not interested"
+          backLabel="Back to Selection"
+          onBack={() => setShowNotInterested(false)}
+        >
+          <SelectionTable
+            users={notInterestedEmployees}
             selectedUser={selectedEmployee}
             onUserClick={openSidebar}
             isLoading={isLoading}
@@ -296,6 +349,8 @@ export default function SelectionEmployees() {
           onViewHistory={() => setShowHistory(true)}
           onViewBlacklist={() => { refreshData(); setShowBlacklist(true); }}
           blacklistCount={blacklistedEmployees.length}
+          onViewNotInterested={() => { refreshData(); setShowNotInterested(true); }}
+          notInterestedCount={notInterestedEmployees.length}
         />
 
         <SelectionTable
