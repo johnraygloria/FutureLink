@@ -8,6 +8,8 @@ router.get('/', applicantsController.getApplicants);
 router.post('/', applicantsController.addOrUpdateApplicant);
 // Bulk upsert (Excel import)
 router.post('/bulk', applicantsController.bulkUpsertApplicants);
+// TEMPORARY: sweep out fully-empty placeholder rows (called after bulk import)
+router.post('/cleanup-empty', applicantsController.cleanupEmptyApplicants);
 // GET applicant names (from MySQL)
 router.get('/names', applicantsController.getApplicantNames);
 // GET applicant numbers only (lightweight, for import preview)

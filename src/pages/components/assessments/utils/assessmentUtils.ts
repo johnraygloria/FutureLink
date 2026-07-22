@@ -4,6 +4,7 @@ export const ALLOWED_ASSESSMENT_STATUSES = new Set([
   "For Final Interview", // legacy Excel status: awaiting final interview
   "Final Interview",
   "Final Interview/Incomplete Requirements",
+  "For Completion", // requirements being completed before pushing through to Selection
 ]);
 
 export const isAssessmentStatus = (status?: string) => ALLOWED_ASSESSMENT_STATUSES.has(status || "");
@@ -30,6 +31,7 @@ export const mapApplicantRow = (r: any) => ({
   // Clients from backend (array of names)
   ...(r.principals || r.clients ? { principals: r.principals || r.clients } : {}),
   status: r.status || '',
+  previousStatus: r.previous_status || '',
   requirementsStatus: r.requirements_status || '',
   finalInterviewStatus: r.final_interview_status || '',
   medicalStatus: r.medical_status || '',

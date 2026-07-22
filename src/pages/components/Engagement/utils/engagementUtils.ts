@@ -1,6 +1,7 @@
 import type { User } from "../../../../api/applicant";
 
 export const ALLOWED_ENGAGEMENT_STATUSES = new Set([
+  'For Onboarding',             // entry point when pushed through from Selection
   'On Boarding',
   'For Onboarding Orientation', // legacy Excel: onboarding stage
   'Metrex',
@@ -31,6 +32,7 @@ export const mapEngagementApplicantRow = (r: any): User => ({
   // Clients from backend (array of names)
   ...(r.principals || r.clients ? { principals: r.principals || r.clients } : {}),
   status: r.status || '',
+  previousStatus: r.previous_status || '',
   requirementsStatus: r.requirements_status || '',
   finalInterviewStatus: r.final_interview_status || '',
   medicalStatus: r.medical_status || '',

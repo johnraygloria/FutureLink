@@ -9,6 +9,7 @@ import {
 import PipelinePageShell from '../components/Pipeline/PipelinePageShell';
 import PipelineModuleHeader from '../components/Pipeline/PipelineModuleHeader';
 import { useDebouncedCallback } from '../lib/useDebouncedCallback';
+import { useNavigation, type SectionKey } from '../Global/NavigationContext';
 
 type ActivityType = 'application' | 'screening' | 'document' | 'interview' | 'success' | 'update';
 
@@ -98,6 +99,7 @@ export default function Dashboard() {
   });
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { setActiveSection } = useNavigation();
 
   const fetchMetrics = async () => {
     try {
@@ -130,7 +132,7 @@ export default function Dashboard() {
         const lastName = String(app.last_name || '');
 
         return [{
-          id: app.id ?? app.applicant_no ?? index,
+          id: (app.id ?? app.applicant_no ?? index) as string | number,
           user: `${firstName} ${lastName}`.trim() || String(app.fb_name || 'Unknown Applicant'),
           content,
           timeLabel: label,
@@ -147,11 +149,11 @@ export default function Dashboard() {
 
         if (['For Screening', 'Doc Screening', 'Physical Screening', 'Initial Interview', 'Document Screening', 'Initial Review', 'Interview Scheduled', 'Interview Completed'].includes(status)) {
           newMetrics.screening++;
-        } else if (['Final Interview', 'Final Interview/Incomplete Requirements', 'Final Interview/Complete Requirements'].includes(status)) {
+        } else if (['Final Interview', 'Final Interview/Incomplete Requirements', 'Final Interview/Complete Requirements', 'For Completion'].includes(status)) {
           newMetrics.assessment++;
-        } else if (['For Completion', 'For Medical', 'Pending For Medical', 'For SBMA Gate Pass', 'Biometrics'].includes(status)) {
+        } else if (['For Medical', 'Pending For Medical', 'For SBMA Gate Pass', 'Biometrics'].includes(status)) {
           newMetrics.selection++;
-        } else if (['For Deployment', 'Deployed', 'On Boarding', 'Metrex'].includes(status)) {
+        } else if (['For Onboarding', 'For Deployment', 'Deployed', 'On Boarding', 'Metrex'].includes(status)) {
           newMetrics.engagement++;
         }
       });
@@ -214,10 +216,22 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((item) => {
             const Icon = item.icon;
+            const section = item.name.toLowerCase() as SectionKey;
+            const goToSection = () => setActiveSection(section);
             return (
               <div
                 key={item.id}
-                className={`rounded-2xl border p-5 transition-all hover:brightness-110 ${statAccent[item.color]}`}
+                role="button"
+                tabIndex={0}
+                onClick={goToSection}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    goToSection();
+                  }
+                }}
+                title={`View ${item.name}`}
+                className={`cursor-pointer rounded-2xl border p-5 transition-all hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${statAccent[item.color]}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>

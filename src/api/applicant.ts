@@ -24,6 +24,7 @@ export type ApplicationStatus =
   | 'Pending For Medical'
   | 'For SBMA Gate Pass'
   | 'Biometrics'
+  | 'For Onboarding'
   | 'On Boarding'
   | 'Metrex'
   | 'For Deployment'
@@ -36,7 +37,8 @@ export type ApplicationStatus =
   | 'Offer Extended'
   | 'Hired'
   | 'Rejected'
-  | 'Withdrawn';
+  | 'Withdrawn'
+  | 'Blacklisted';
 
 export interface ScreeningData {
   resumePassed: ScreeningStatus;

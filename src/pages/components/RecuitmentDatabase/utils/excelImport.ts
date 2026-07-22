@@ -57,6 +57,7 @@ export interface ParsedImport {
   totalRowsScanned: number;
   rows: ParsedRow[];
   skippedBlankNoCount: number;
+  skippedEmptyCount: number;
   duplicateNumbersInFile: string[];
   unknownHeaders: string[];
   principalHeadersFound: string[];
@@ -67,6 +68,8 @@ export interface ImportSummary {
   inserted: number;
   updated: number;
   failed: number;
+  skippedEmpty?: number;
+  cleaned?: number;
   errors: Array<{ applicantNo: string; message: string }>;
 }
 
@@ -129,11 +132,15 @@ export async function parseRecruitmentWorkbook(file: File): Promise<ParsedImport
   if (noColIdx === undefined) {
     throw new Error(`Required header "${NUMBER_HEADER}" not found on row ${HEADER_ROW_INDEX + 1}.`);
   }
+  const firstNameIdx = colIndexByHeader.get('FIRST NAME');
+  const lastNameIdx = colIndexByHeader.get('LAST NAME');
+  const fbNameIdx = colIndexByHeader.get('FB NAME');
 
   const rows: ParsedRow[] = [];
   const seenNumbers = new Set<string>();
   const duplicateNumbersInFile: string[] = [];
   let skippedBlankNoCount = 0;
+  let skippedEmptyCount = 0;
   let totalRowsScanned = 0;
   let consecutiveBlank = 0;
 
@@ -151,6 +158,16 @@ export async function parseRecruitmentWorkbook(file: File): Promise<ParsedImport
     }
     consecutiveBlank = 0;
     totalRowsScanned++;
+
+    // Skip empty placeholder rows — a NO with no name (no real person data).
+    const hasName =
+      (firstNameIdx !== undefined && cellToString(row[firstNameIdx]) !== '') ||
+      (lastNameIdx !== undefined && cellToString(row[lastNameIdx]) !== '') ||
+      (fbNameIdx !== undefined && cellToString(row[fbNameIdx]) !== '');
+    if (!hasName) {
+      skippedEmptyCount++;
+      continue;
+    }
 
     if (seenNumbers.has(applicantNo)) {
       duplicateNumbersInFile.push(applicantNo);
@@ -185,6 +202,7 @@ export async function parseRecruitmentWorkbook(file: File): Promise<ParsedImport
     totalRowsScanned,
     rows,
     skippedBlankNoCount,
+    skippedEmptyCount,
     duplicateNumbersInFile,
     unknownHeaders,
     principalHeadersFound,

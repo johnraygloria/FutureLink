@@ -3,7 +3,6 @@ import * as XLSX from 'xlsx';
 import Filters from './components/filter';
 import ActionsBar from './components/action';
 import ImportExcelModal from './components/ImportExcelModal';
-import { useNavigation } from '../../../Global/NavigationContext';
 import ApplicantTable from './components/applicanttab';
 import type { GoogleSheetApplicant } from './hook/googlesheettab';
 import FilterSidebar from '../../../components/Filters/FilterSidebar';
@@ -22,6 +21,7 @@ import {
 import type { User } from '../../../api/applicant';
 import { useTableSort } from '../../../components/Tables/useTableSort';
 import type { SortColumnMap } from '../../../components/Tables/tableSort';
+import { isAdmin } from '../../../lib/currentUser';
 
 // Only the non-string columns need config; every other header key falls back
 // to reading the row's own key as a natural string.
@@ -68,7 +68,8 @@ function RecruitmentDatabase() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedApplicants, setSelectedApplicants] = useState<Set<string>>(new Set());
-  const { setActiveSection, setCurrentApplicantNo } = useNavigation();
+  const [moveNotice, setMoveNotice] = useState<string | null>(null);
+  const canMove = isAdmin();
 
   // Advanced Filtering State
   const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
@@ -186,6 +187,12 @@ function RecruitmentDatabase() {
       return;
     }
 
+    // Stage moves are admin-only.
+    if (!canMove) {
+      alert('Only an admin can move applicants across stages.');
+      return;
+    }
+
     if (selectedApplicants.size === 0) {
       alert('Please select at least one applicant');
       return;
@@ -236,19 +243,13 @@ function RecruitmentDatabase() {
         } catch { }
       }));
 
-      // Set navigation to the appropriate section and open the first selected
-      const firstNo = selectedIds[0];
-      if (firstNo) setCurrentApplicantNo(firstNo);
-      if (action === 'Screening') setActiveSection('screening' as any);
-      else if (action === 'Assessment') setActiveSection('assessment' as any);
-      else if (action === 'Selection') setActiveSection('selection' as any);
-      else setActiveSection('engagement' as any);
-
-      // Clear selection and refresh list
+      // Stay on the database; the refreshed STATUS column reflects the move and a
+      // success notice confirms it (clearer than silently navigating away).
+      const movedCount = selectedIds.length;
       setSelectedApplicants(new Set());
-      setStatusFilter('');
-      setSearchTerm('');
       await loadApplicants({ silent: true });
+      setMoveNotice(`Moved ${movedCount} applicant${movedCount === 1 ? '' : 's'} to ${action}.`);
+      window.setTimeout(() => setMoveNotice(null), 4000);
     } catch (e) {
       alert('Failed to update applicants. Please try again.');
     }
@@ -365,7 +366,15 @@ function RecruitmentDatabase() {
         <ActionsBar
           selectedCount={selectedApplicants.size}
           onAction={handleAction}
+          canMove={canMove}
         />
+
+        {moveNotice && (
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-success/10 text-success border border-success/25 text-sm font-semibold animate-fadeIn">
+            <i className="fas fa-check-circle" />
+            {moveNotice}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-hidden relative">

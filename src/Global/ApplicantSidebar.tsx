@@ -2,6 +2,11 @@ import React, { useEffect, useState } from "react";
 import type { User, ApplicationStatus, ScreeningStatus } from '../api/applicant';
 import {
   IconArrowLeft,
+  IconArrowBackUp,
+  IconArrowDown,
+  IconAlertTriangle,
+  IconBan,
+  IconArrowsExchange,
   IconUser,
   IconClipboardCheck,
   IconPhone,
@@ -11,9 +16,15 @@ import {
   IconCheck,
   IconX,
 } from "@tabler/icons-react";
+import ConfirmDialog from "../components/ConfirmDialog";
 import Assessment from "../pages/components/assessments/assessmentStatus";
 import { useNavigation } from "./NavigationContext";
 import { fetchPrincipals } from "../api/principal";
+import { isAdmin } from "../lib/currentUser";
+import { isScreeningStatus } from "../pages/components/Screening/utils/screeningUtils";
+import { isAssessmentStatus } from "../pages/components/assessments/utils/assessmentUtils";
+import { isSelectionStatus } from "../pages/components/Selection/utils/selectionUtils";
+import { isEngagementStatus } from "../pages/components/Engagement/utils/engagementUtils";
 import {
   panelClass,
   panelTitleClass,
@@ -43,6 +54,7 @@ const getStatusIcon = (status: string) => {
     'Final Interview/Complete Requirements': <IconClipboardCheck size={16} />,
     'For Medical': <IconUser size={16} />,
     'For SBMA Gate Pass': <IconUser size={16} />,
+    'For Onboarding': <IconUser size={16} />,
     'On Boarding': <IconUser size={16} />,
     'Biometrics': <IconClipboardCheck size={16} />,
     'Metrex': <IconUser size={16} />,
@@ -56,6 +68,7 @@ const getStatusIcon = (status: string) => {
     'Offer Extended': <IconUser size={16} />,
     'Hired': <IconUser size={16} />,
     'Withdrawn': <IconUser size={16} />,
+    'Blacklisted': <IconBan size={16} />,
   };
   return icons[status] || <IconUser size={16} />;
 };
@@ -399,6 +412,95 @@ const updateDocumentNumber = async (user: User, numberKey: string, value: string
   }
 };
 
+// Persist a single free-form status field (e.g. physical screening / medical status).
+// Sends only { NO, <PAYLOAD_KEY> } so the upsert preserves all other columns.
+const updateApplicantField = async (user: User, payloadKey: string, detailKey: string, value: string) => {
+  try {
+    const res = await fetch('/api/applicants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ NO: user.no || '', [payloadKey]: value })
+    });
+    if (!res.ok) throw new Error('Failed to update applicant field');
+    try {
+      window.dispatchEvent(new CustomEvent('applicant-updated', {
+        detail: { no: user.no, [detailKey]: value }
+      }));
+    } catch { }
+  } catch (e) {
+    console.error('Failed to sync applicant field', payloadKey, e);
+  }
+};
+
+// Entry status for each pipeline stage — used by the admin "Move to stage"
+// control and the Recruitment Database stage move.
+const STAGE_ENTRY: Record<string, ApplicationStatus> = {
+  screening: 'For Screening',
+  assessment: 'Initial Interview',
+  selection: 'For Medical',
+  engagement: 'On Boarding',
+};
+const STAGE_LABEL: Record<string, string> = {
+  screening: 'Screening',
+  assessment: 'Assessment',
+  selection: 'Selection',
+  engagement: 'Engagement',
+};
+
+// Maps a status to the pipeline section whose ALLOWED set contains it.
+const sectionForStatus = (status: string): 'screening' | 'assessment' | 'selection' | 'engagement' | null => {
+  if (isScreeningStatus(status)) return 'screening';
+  if (isAssessmentStatus(status)) return 'assessment';
+  if (isSelectionStatus(status)) return 'selection';
+  if (isEngagementStatus(status)) return 'engagement';
+  return null;
+};
+
+// Fallback when no exact previous status was captured (e.g. bulk-imported
+// applicants, or a move made before previous_status tracking existed): send the
+// applicant back to the entry status of the previous pipeline stage.
+const PREVIOUS_STAGE_ENTRY: Record<string, string> = {
+  assessment: 'For Screening',
+  selection: 'Initial Interview',
+  engagement: 'For Medical',
+};
+const stageFallbackTarget = (currentStatus: string): string | null => {
+  const section = sectionForStatus(currentStatus);
+  if (!section) return null;
+  return PREVIOUS_STAGE_ENTRY[section] || null;
+};
+
+// Reconstructs the applicant's undo stack by replaying its status-change log in
+// chronological order — 'Status Updated' = a forward move (push the status being
+// left), 'Rollback' = an undo (pop). The top of the resulting stack is the next
+// status to roll back to, so repeated rollbacks walk back through the COMPLETE
+// recorded history one step at a time (and it stays correct even if forward moves
+// and rollbacks are interleaved). Returns null once the recorded trail is exhausted
+// (caller then uses the stage fallback for the pre-history / cross-stage origin).
+const computeRollbackTarget = (rows: any[], applicantNo: string): string | null => {
+  const events = (Array.isArray(rows) ? rows : [])
+    .filter((r) => r.applicant_no === applicantNo && (r.action === 'Status Updated' || r.action === 'Rollback'))
+    .sort((a, b) => {
+      const ta = new Date(a.created_at).getTime();
+      const tb = new Date(b.created_at).getTime();
+      if (ta !== tb) return ta - tb;
+      return (Number(a.id) || 0) - (Number(b.id) || 0);
+    });
+  let current: string | null = null;
+  const stack: string[] = [];
+  for (const e of events) {
+    if (e.action === 'Rollback') {
+      if (stack.length > 0) current = stack.pop() as string;
+    } else {
+      const to = String(e.status || '');
+      if (!to) continue;
+      if (current !== null && current !== to) stack.push(current);
+      current = to;
+    }
+  }
+  return stack.length > 0 ? stack[stack.length - 1] : null;
+};
+
 const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   selectedUser,
   onClose,
@@ -412,8 +514,24 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   const [editedUser, setEditedUser] = useState<User | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [documentNumbers, setDocumentNumbers] = useState<Record<string, string>>({});
+  // Stage-specific status fields relocated out of the Assessment form:
+  // Physical Screening Status is edited in Screening, Medical Status in Selection.
+  const [stageStatusFields, setStageStatusFields] = useState<{ physicalScreeningStatus: string; medicalStatus: string }>({
+    physicalScreeningStatus: '',
+    medicalStatus: '',
+  });
   const { activeSection, setActiveSection, setCurrentApplicantNo } = useNavigation();
   const isOpen = !!selectedUser;
+
+  // Rollback confirmation modal state
+  const [rollbackPrompt, setRollbackPrompt] = useState<
+    { currentStatus: string; target: string; usedFallback: boolean; atEarliest?: boolean } | null
+  >(null);
+  const [rollbackBusy, setRollbackBusy] = useState(false);
+  // Blacklist confirmation + admin move-to-stage dialog state
+  const [blacklistPrompt, setBlacklistPrompt] = useState(false);
+  const [blacklistBusy, setBlacklistBusy] = useState(false);
+  const [moveStagePrompt, setMoveStagePrompt] = useState(false);
 
   useEffect(() => {
     if (selectedUser) {
@@ -425,6 +543,10 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
         pagibigNo: selectedUser.pagibigNo || '',
         philhealthNo: selectedUser.philhealthNo || '',
         tinNo: selectedUser.tinNo || '',
+      });
+      setStageStatusFields({
+        physicalScreeningStatus: (selectedUser as any).physicalScreeningStatus || '',
+        medicalStatus: (selectedUser as any).medicalStatus || '',
       });
     }
   }, [selectedUser?.id, selectedUser?.nbiClearanceNo, selectedUser?.sssNo, selectedUser?.pagibigNo, selectedUser?.philhealthNo, selectedUser?.tinNo]);
@@ -456,27 +578,155 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
     }
   }, [activeSection, isOpen]);
 
-  const handleStatusChange = (newStatus: ApplicationStatus) => {
-    if (selectedUser) {
-      let finalStatus = newStatus;
+  // Persist a pipeline status change (the actual work).
+  const applyStatusChange = (newStatus: ApplicationStatus) => {
+    if (!selectedUser) return;
+    let finalStatus = newStatus;
 
-      // Assessment "push through" behavior:
-      // When requirements are complete in Assessment, the applicant should move to Selection as "For Medical".
-      if (activeSection === 'assessment' && newStatus === 'Final Interview/Complete Requirements') {
-        finalStatus = 'For Medical';
+    // Assessment "push through": both "Final Interview/Complete Requirements" and a
+    // direct "For Medical" selection move the applicant to Selection.
+    if (activeSection === 'assessment' && (newStatus === 'Final Interview/Complete Requirements' || newStatus === 'For Medical')) {
+      finalStatus = 'For Medical';
+      try {
+        setCurrentApplicantNo(selectedUser.no);
+        setActiveSection('selection');
+      } catch { }
+    }
+
+    onStatusChange?.(selectedUser.id, finalStatus);
+
+    if (activeSection === 'assessment') {
+      updateStatusOnly(selectedUser, finalStatus);
+    } else {
+      updateStatusInGoogleSheet(selectedUser, finalStatus);
+    }
+  };
+
+  // Dropdown handler — intercepts Blacklisting to confirm first.
+  const handleStatusChange = (newStatus: ApplicationStatus) => {
+    if (!selectedUser || newStatus === selectedUser.status) return;
+    if (newStatus === 'Blacklisted') {
+      setBlacklistPrompt(true);
+      return;
+    }
+    applyStatusChange(newStatus);
+  };
+
+  const confirmBlacklist = () => {
+    if (!selectedUser) { setBlacklistPrompt(false); return; }
+    const prevStatus = selectedUser.status || '';
+    const applicant = selectedUser;
+    setBlacklistBusy(true);
+    try {
+      applyStatusChange('Blacklisted');
+      // Let stage pages reflect the blacklist immediately (badge + view) without
+      // waiting for the sync timer — carries the applicant + their pre-blacklist
+      // status so each page can route them to the right stage's Blacklisted view.
+      try {
+        window.dispatchEvent(new CustomEvent('applicant-blacklisted', {
+          detail: { ...applicant, no: applicant.no, status: 'Blacklisted', previousStatus: prevStatus },
+        }));
+      } catch { }
+    } finally {
+      setBlacklistBusy(false);
+      setBlacklistPrompt(false);
+    }
+  };
+
+  // Admin-only: move the applicant to a chosen stage's entry status.
+  const applyStageMove = (stage: 'screening' | 'assessment' | 'selection' | 'engagement') => {
+    if (!selectedUser) return;
+    const target = STAGE_ENTRY[stage];
+    if (!target) return;
+    onStatusChange?.(selectedUser.id, target);
+    updateStatusInGoogleSheet(selectedUser, target);
+    try {
+      setCurrentApplicantNo(selectedUser.no);
+      setActiveSection(stage);
+    } catch { }
+    setMoveStagePrompt(false);
+  };
+
+  const admin = isAdmin();
+  const isBlacklisted = selectedUser?.status === 'Blacklisted';
+
+  // Admin-only: resolve where a rollback would send the applicant, then open the
+  // confirmation modal. Prefers walking back through the recorded status history
+  // (multi-step undo); once that trail is exhausted it falls back to the previous
+  // pipeline stage's entry. The actual change happens in confirmRollback.
+  const requestRollback = async () => {
+    if (!selectedUser) return;
+    const currentStatus = selectedUser.status || '';
+    let target: string | null = null;
+    try {
+      const res = await fetch('/api/applicants/screening-history');
+      if (res.ok) {
+        const rows = await res.json();
+        target = computeRollbackTarget(rows, selectedUser.no || '');
+      }
+    } catch { }
+
+    let usedFallback = false;
+    if (!target) {
+      target = stageFallbackTarget(currentStatus);
+      usedFallback = true;
+    }
+    if (!target) {
+      setRollbackPrompt({ currentStatus, target: '', usedFallback: false, atEarliest: true });
+      return;
+    }
+    setRollbackPrompt({ currentStatus, target, usedFallback });
+  };
+
+  const confirmRollback = async () => {
+    if (!selectedUser || !rollbackPrompt || rollbackPrompt.atEarliest) {
+      setRollbackPrompt(null);
+      return;
+    }
+    const { currentStatus, target } = rollbackPrompt;
+    setRollbackBusy(true);
+    try {
+      // Log the rollback for the audit trail.
+      try {
+        await fetch('/api/applicants/screening-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            applicant_no: selectedUser.no,
+            action: 'Rollback',
+            status: target,
+            notes: `Rolled back from ${currentStatus} to ${target} by Admin`,
+          }),
+        });
+      } catch { }
+
+      // Persist the status change (keeps other fields via IFNULL) and move the applicant.
+      if (onStatusChange) {
+        onStatusChange(selectedUser.id, target as ApplicationStatus);
+      } else {
+        await fetch('/api/applicants', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ NO: selectedUser.no, STATUS: target }),
+        });
         try {
-          setCurrentApplicantNo(selectedUser.no);
-          setActiveSection('selection');
+          window.dispatchEvent(new CustomEvent('applicant-updated', { detail: { no: selectedUser.no, status: target } }));
         } catch { }
       }
 
-      onStatusChange?.(selectedUser.id, finalStatus);
-
-      if (activeSection === 'assessment') {
-        updateStatusOnly(selectedUser, finalStatus);
-      } else {
-        updateStatusInGoogleSheet(selectedUser, finalStatus);
+      // Follow the applicant to whichever stage now owns it.
+      const targetSection = sectionForStatus(target);
+      if (targetSection && targetSection !== activeSection) {
+        try {
+          setCurrentApplicantNo(selectedUser.no);
+          setActiveSection(targetSection);
+        } catch { }
       }
+    } catch (e) {
+      console.error('Rollback failed:', e);
+    } finally {
+      setRollbackBusy(false);
+      setRollbackPrompt(null);
     }
   };
 
@@ -507,7 +757,7 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   };
 
   const getStatusBadgeClass = (status: string) => {
-    if (status.includes('Rejected') || status.includes('Failed')) return 'bg-danger/10 text-danger border-danger/20';
+    if (status.includes('Rejected') || status.includes('Failed') || status.includes('Blacklisted')) return 'bg-danger/10 text-danger border-danger/20';
     if (status.includes('Deployed') || status.includes('Hired') || status.includes('Complete')) return 'bg-success/10 text-success border-success/20';
     if (status.includes('Pending') || status.includes('Incomplete')) return 'bg-warning/10 text-warning border-warning/20';
     if (status.includes('Medical') || status.includes('Interview') || status.includes('Screening')) return 'bg-info/10 text-info border-info/20';
@@ -631,9 +881,10 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                       <h2 className={`${panelTitleClass} mb-3`}>Pipeline Status</h2>
                       <div className="relative">
                         <select
-                          className={selectClass}
+                          className={`${selectClass} ${isBlacklisted && !admin ? 'opacity-60 cursor-not-allowed' : ''}`}
                           value={selectedUser.status || ''}
                           onChange={e => handleStatusChange(e.target.value as ApplicationStatus)}
+                          disabled={isBlacklisted && !admin}
                         >
                           {/* Show only screening-related statuses when in screening section */}
                           {activeSection === 'screening' ? (
@@ -646,9 +897,12 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                           ) : activeSection === 'assessment' ? (
                             <>
                               {/* Assessment statuses */}
+                              <option value="For Completion" className="bg-gray-800 text-white">For Completion</option>
                               <option value="Final Interview" className="bg-gray-800 text-white">Final Interview</option>
                               <option value="Final Interview/Incomplete Requirements" className="bg-gray-800 text-white">Final Interview/Incomplete Requirements</option>
+                              {/* Both of these push through to Selection */}
                               <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
+                              <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
                             </>
                           ) : activeSection === 'selection' ? (
                             <>
@@ -657,7 +911,8 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               <option value="Pending For Medical" className="bg-gray-800 text-white">Pending For Medical</option>
                               <option value="Biometrics" className="bg-gray-800 text-white">Biometrics</option>
                               <option value="For SBMA Gate Pass" className="bg-gray-800 text-white">For SBMA Gate Pass</option>
-                              <option value="For Deployment" className="bg-gray-800 text-white">For Deployment</option>
+                              {/* Push through to Engagement */}
+                              <option value="For Onboarding" className="bg-gray-800 text-white">For Onboarding</option>
                             </>
                           ) : activeSection === 'engagement' ? (
                             <>
@@ -682,14 +937,85 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               <option value="Deployed" className="bg-gray-800 text-white">Deployed</option>
                             </>
                           )}
+                          {/* Available in every stage — always confirmed before applying */}
+                          <option value="Blacklisted" className="bg-gray-800 text-white">Blacklisted</option>
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-secondary">
                           <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
                         </div>
                       </div>
-                      <p className="text-xs text-text-secondary/70 mt-3">
-                        Update status to move this applicant through the hiring pipeline.
-                      </p>
+                      {isBlacklisted && !admin ? (
+                        <p className="text-xs text-danger/80 mt-3 flex items-start gap-1.5">
+                          <IconBan size={14} className="flex-shrink-0 mt-0.5" />
+                          This applicant is blacklisted. Only an admin can change their status.
+                        </p>
+                      ) : (
+                        <p className="text-xs text-text-secondary/70 mt-3">
+                          Update status to move this applicant through the hiring pipeline.
+                        </p>
+                      )}
+                      {admin && (
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setMoveStagePrompt(true)}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-info/30 bg-info/10 text-info hover:bg-info/20 transition-all active:scale-[0.99]"
+                            title="Admin only: move this applicant to any stage"
+                          >
+                            <IconArrowsExchange size={16} />
+                            Move to
+                          </button>
+                          <button
+                            type="button"
+                            onClick={requestRollback}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 transition-all active:scale-[0.99]"
+                            title="Admin only: revert this applicant to its previous status"
+                          >
+                            <IconArrowBackUp size={16} />
+                            Rollback
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeSection === 'screening' && selectedUser && (
+                    <div className={`${panelClass} p-5 sm:p-6`}>
+                      <h2 className={`${panelTitleClass} mb-3`}>Physical Screening Status</h2>
+                      <div className="relative">
+                        <select
+                          className={selectClass}
+                          value={stageStatusFields.physicalScreeningStatus}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setStageStatusFields((prev) => ({ ...prev, physicalScreeningStatus: value }));
+                            updateApplicantField(selectedUser, 'PHYSICAL_SCREENING_STATUS', 'physicalScreeningStatus', value);
+                          }}
+                        >
+                          <option value="" className="bg-gray-800 text-white">— None —</option>
+                          <option value="Passed" className="bg-gray-800 text-white">Passed</option>
+                          <option value="Failed" className="bg-gray-800 text-white">Failed</option>
+                          <option value="Pending" className="bg-gray-800 text-white">Pending</option>
+                          <option value="Not Applicable" className="bg-gray-800 text-white">Not Applicable</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-secondary">
+                          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeSection === 'selection' && selectedUser && (
+                    <div className={`${panelClass} p-5 sm:p-6`}>
+                      <h2 className={`${panelTitleClass} mb-3`}>Medical Status</h2>
+                      <input
+                        type="text"
+                        className={inputClass}
+                        placeholder="Enter medical status"
+                        value={stageStatusFields.medicalStatus}
+                        onChange={(e) => setStageStatusFields((prev) => ({ ...prev, medicalStatus: e.target.value }))}
+                        onBlur={(e) => updateApplicantField(selectedUser, 'MEDICAL_STATUS', 'medicalStatus', e.target.value)}
+                      />
                     </div>
                   )}
 
@@ -1035,6 +1361,103 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
 
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!rollbackPrompt}
+        title={rollbackPrompt?.atEarliest ? 'Nothing to roll back' : 'Roll back applicant'}
+        subtitle={rollbackPrompt?.atEarliest ? undefined : (selectedUser ? getDisplayName(selectedUser) : undefined)}
+        icon={<IconArrowBackUp size={20} />}
+        tone={rollbackPrompt?.atEarliest ? 'primary' : 'warning'}
+        confirmLabel={rollbackPrompt?.atEarliest ? 'Got it' : 'Roll back'}
+        hideCancel={!!rollbackPrompt?.atEarliest}
+        isBusy={rollbackBusy}
+        onConfirm={confirmRollback}
+        onCancel={() => { if (!rollbackBusy) setRollbackPrompt(null); }}
+      >
+        {rollbackPrompt?.atEarliest ? (
+          <p className="text-sm text-text-secondary leading-relaxed">
+            This applicant is already at the earliest stage of the pipeline, so there's no previous status to return to.
+          </p>
+        ) : rollbackPrompt ? (
+          <div className="space-y-3">
+            <div className={`${panelClass} p-4 space-y-3`}>
+              <div>
+                <p className={`${fieldLabelClass} mb-1.5`}>Current status</p>
+                {getStatusBadge(rollbackPrompt.currentStatus)}
+              </div>
+              <div className="flex items-center gap-2 text-text-secondary/60 pl-0.5">
+                <IconArrowDown size={16} />
+                <span className="text-[11px] uppercase tracking-[0.14em] font-bold">rolls back to</span>
+              </div>
+              <div>
+                <p className={`${fieldLabelClass} mb-1.5`}>New status</p>
+                {getStatusBadge(rollbackPrompt.target)}
+              </div>
+            </div>
+
+            {rollbackPrompt.usedFallback && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-warning/25 bg-warning/10 px-3.5 py-3">
+                <IconAlertTriangle size={16} className="text-warning flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-warning/90 leading-relaxed">
+                  No exact prior status was recorded for this applicant, so this returns them to the <span className="font-semibold">start of the previous stage</span>.
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 text-xs text-text-secondary pl-0.5">
+              <IconCheck size={14} className="text-success flex-shrink-0" />
+              Only the status changes — all field edits are kept.
+            </div>
+          </div>
+        ) : null}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        isOpen={blacklistPrompt}
+        title="Blacklist applicant"
+        subtitle={selectedUser ? getDisplayName(selectedUser) : undefined}
+        icon={<IconBan size={20} />}
+        tone="danger"
+        confirmLabel="Blacklist"
+        isBusy={blacklistBusy}
+        onConfirm={confirmBlacklist}
+        onCancel={() => { if (!blacklistBusy) setBlacklistPrompt(false); }}
+      >
+        <p className="text-sm text-text-secondary leading-relaxed">
+          Are you sure you want to blacklist this applicant? They'll be removed from the active pipeline and moved to the Blacklisted list. Only an admin can restore them afterward.
+        </p>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        isOpen={moveStagePrompt}
+        title="Move to stage"
+        subtitle={selectedUser ? getDisplayName(selectedUser) : undefined}
+        icon={<IconArrowsExchange size={20} />}
+        tone="primary"
+        hideConfirm
+        cancelLabel="Cancel"
+        onConfirm={() => setMoveStagePrompt(false)}
+        onCancel={() => setMoveStagePrompt(false)}
+      >
+        <div>
+          <p className="text-sm text-text-secondary leading-relaxed mb-3">
+            Choose where to place this applicant. They'll be set to the chosen stage's entry status.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {(['screening', 'assessment', 'selection', 'engagement'] as const).map((stage) => (
+              <button
+                key={stage}
+                type="button"
+                onClick={() => applyStageMove(stage)}
+                className="flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border border-white/10 bg-black/20 hover:bg-primary/10 hover:border-primary/30 transition-all text-left active:scale-[0.98]"
+              >
+                <span className="text-sm font-bold text-white">{STAGE_LABEL[stage]}</span>
+                <span className="text-[11px] text-text-secondary">{STAGE_ENTRY[stage]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </ConfirmDialog>
     </>
   );
 };

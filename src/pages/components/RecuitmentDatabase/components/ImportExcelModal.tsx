@@ -23,6 +23,7 @@ const isTransientMessage = (msg: string) =>
 interface BulkResult {
   inserted: number;
   updated: number;
+  skippedEmpty?: number;
   failed: Array<{ no: string; error: string }>;
 }
 
@@ -171,6 +172,7 @@ const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ open, onClose, onIm
     let inserted = 0;
     let updated = 0;
     let failed = 0;
+    let skippedEmpty = 0;
     let done = 0;
 
     for (let i = 0; i < parsed.rows.length; i += BULK_CHUNK_SIZE) {
@@ -188,6 +190,7 @@ const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ open, onClose, onIm
         const result = await postBulk(bodies);
         inserted += result.inserted;
         updated += result.updated;
+        skippedEmpty += result.skippedEmpty || 0;
         failed += result.failed.length;
         for (const f of result.failed) {
           if (errors.length < 20) errors.push({ applicantNo: f.no, message: f.error });
@@ -206,7 +209,19 @@ const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ open, onClose, onIm
       setProgress({ done, total: parsed.rows.length });
     }
 
-    setSummary({ attempted: parsed.rows.length, inserted, updated, failed, errors });
+    // TEMPORARY: sweep out legacy fully-empty placeholder rows from the DB.
+    let cleaned = 0;
+    try {
+      const res = await fetch('/api/applicants/cleanup-empty', { method: 'POST' });
+      if (res.ok) cleaned = (await res.json())?.deleted || 0;
+    } catch {
+      /* non-fatal — the import itself already succeeded */
+    }
+
+    // Count rows the parser dropped before upload (blank NO. rows also count as empty).
+    skippedEmpty += parsed.skippedEmptyCount;
+
+    setSummary({ attempted: parsed.rows.length, inserted, updated, failed, skippedEmpty, cleaned, errors });
     setPhase('done');
   };
 
@@ -331,12 +346,19 @@ const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ open, onClose, onIm
 
               {(parsed.duplicateNumbersInFile.length > 0 ||
                 parsed.skippedBlankNoCount > 0 ||
+                parsed.skippedEmptyCount > 0 ||
                 parsed.unknownHeaders.length > 0) && (
                 <div className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-2 text-sm text-text-secondary/90">
                   {parsed.skippedBlankNoCount > 0 && (
                     <div className="flex items-start gap-2">
                       <i className="fas fa-info-circle text-text-secondary/70 mt-0.5" />
                       <span>{parsed.skippedBlankNoCount} row(s) skipped (blank <code className="px-1 py-0.5 rounded bg-white/5">NO.</code>).</span>
+                    </div>
+                  )}
+                  {parsed.skippedEmptyCount > 0 && (
+                    <div className="flex items-start gap-2">
+                      <i className="fas fa-filter text-text-secondary/70 mt-0.5" />
+                      <span>{parsed.skippedEmptyCount} empty row(s) will be skipped (a <code className="px-1 py-0.5 rounded bg-white/5">NO.</code> with no name or data).</span>
                     </div>
                   )}
                   {parsed.duplicateNumbersInFile.length > 0 && (
@@ -440,6 +462,23 @@ const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ open, onClose, onIm
                   <div className="text-2xl font-bold text-danger mt-1">{summary.failed}</div>
                 </div>
               </div>
+
+              {((summary.skippedEmpty ?? 0) > 0 || (summary.cleaned ?? 0) > 0) && (
+                <div className="rounded-xl border border-white/10 bg-black/30 p-3 text-xs text-text-secondary/90 space-y-1.5">
+                  {(summary.skippedEmpty ?? 0) > 0 && (
+                    <div className="flex items-center gap-2">
+                      <i className="fas fa-filter text-text-secondary/70" />
+                      {summary.skippedEmpty} empty row(s) skipped — not imported.
+                    </div>
+                  )}
+                  {(summary.cleaned ?? 0) > 0 && (
+                    <div className="flex items-center gap-2">
+                      <i className="fas fa-broom text-success/80" />
+                      {summary.cleaned} existing empty row(s) cleaned from the database.
+                    </div>
+                  )}
+                </div>
+              )}
 
               {summary.errors.length > 0 && (
                 <div className="rounded-xl border border-danger/20 bg-black/40 p-4">

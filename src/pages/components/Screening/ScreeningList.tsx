@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
 import InputApplicantModal from './InputApplicantModal';
 import { useApplicants } from "./hooks/useApplicants";
 import ApplicantsTable from "./components/ApplicantsTable";
 import ScreeningHistoryTable from "./components/ScreeningHistoryTable";
 import { isScreeningStatus, mapScreeningApplicantRow } from "./utils/screeningUtils";
+import type { User } from "../../../api/applicant";
 import FilterBar from "../../../components/Filters/FilterBar";
 import FilterSidebar from "../../../components/Filters/FilterSidebar";
 import ProcessTimer from "../../../components/ProcessTimer";
@@ -28,8 +29,10 @@ type ScreeningHistoryRow = {
 
 const ScreeningList: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
+  const [showBlacklist, setShowBlacklist] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [screeningHistory, setScreeningHistory] = useState<ScreeningHistoryRow[]>([]);
+  const [blacklistedUsers, setBlacklistedUsers] = useState<User[]>([]);
   const {
     selectedUser,
     search,
@@ -57,7 +60,16 @@ const ScreeningList: React.FC = () => {
     handleOpenFilterSidebar,
   } = useApplicants();
 
+  // Keep a ref of the currently open applicant so the silent auto-refresh
+  // can skip while the sidebar is open (avoids clobbering in-progress edits).
+  const selectedUserRef = useRef(selectedUser);
+  useEffect(() => {
+    selectedUserRef.current = selectedUser;
+  }, [selectedUser]);
+
   const refreshData = (silent = false) => {
+    // Don't let the timer's silent refresh overwrite edits while a sidebar is open.
+    if (silent && selectedUserRef.current) return;
     if (!silent) setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {
@@ -65,10 +77,12 @@ const ScreeningList: React.FC = () => {
         return res.json();
       })
       .then((rows) => {
-        const mapped = rows.map(mapScreeningApplicantRow).filter((u: any) => isScreeningStatus(u.status));
-        setUsers(mapped);
+        const mapped: User[] = rows.map(mapScreeningApplicantRow);
+        setUsers(mapped.filter((u) => isScreeningStatus(u.status)));
+        // Blacklisted applicants whose pre-blacklist status belonged to this stage.
+        setBlacklistedUsers(mapped.filter((u) => u.status === 'Blacklisted' && isScreeningStatus(u.previousStatus || '')));
       })
-      .catch(() => setUsers([]))
+      .catch(() => { setUsers([]); setBlacklistedUsers([]); })
       .finally(() => {
         if (!silent) setIsLoading(false);
       });
@@ -115,6 +129,28 @@ const ScreeningList: React.FC = () => {
     return () => window.removeEventListener('applicant-updated', onUpdated);
   }, [setUsers, setSelectedUser]);
 
+  // Keep the Blacklisted view + badge current in real time (before the sync timer).
+  useEffect(() => {
+    const onBlacklisted = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no) return;
+      if (isScreeningStatus(d.previousStatus || '')) {
+        setBlacklistedUsers(prev => (prev.some(u => u.no === d.no) ? prev : [{ ...d } as User, ...prev]));
+      }
+    };
+    const onStatusForBlacklist = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no || !d.status || d.status === 'Blacklisted') return;
+      setBlacklistedUsers(prev => prev.filter(u => u.no !== d.no));
+    };
+    window.addEventListener('applicant-blacklisted', onBlacklisted);
+    window.addEventListener('applicant-updated', onStatusForBlacklist);
+    return () => {
+      window.removeEventListener('applicant-blacklisted', onBlacklisted);
+      window.removeEventListener('applicant-updated', onStatusForBlacklist);
+    };
+  }, []);
+
   useEffect(() => {
     if (selectedUser) {
       const updated = users.find(u => u.no === selectedUser.no);
@@ -133,6 +169,33 @@ const ScreeningList: React.FC = () => {
       >
         <ScreeningHistoryTable rows={screeningHistory} />
       </PipelineHistoryShell>
+    );
+  }
+
+  if (showBlacklist) {
+    return (
+      <>
+        <PipelineHistoryShell
+          title="Screening — Blacklisted"
+          backLabel="Back to Screening"
+          onBack={() => setShowBlacklist(false)}
+        >
+          <ApplicantsTable
+            users={blacklistedUsers}
+            selectedUser={selectedUser}
+            onUserClick={handleUserClick}
+            isLoading={isLoading}
+            hasActiveFilters={false}
+          />
+        </PipelineHistoryShell>
+        <ApplicantSidebar
+          selectedUser={selectedUser}
+          onClose={handleCloseSidebar}
+          onStatusChange={handleStatusChangeAndSync}
+          onScreeningUpdate={handleScreeningUpdate}
+          onRemoveApplicant={removeApplicant}
+        />
+      </>
     );
   }
 
@@ -170,6 +233,8 @@ const ScreeningList: React.FC = () => {
           search={search}
           setSearch={setSearch}
           onViewHistory={() => setShowHistory(true)}
+          onViewBlacklist={() => { refreshData(); setShowBlacklist(true); }}
+          blacklistCount={blacklistedUsers.length}
           primaryAction={{
             label: 'Input Data',
             icon: 'fa-plus',

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ApplicantSidebar from "../../../Global/ApplicantSidebar";
 import AssessmentTable from "./components/AssessmentTable";
 import { useAssessmentApplicants } from "./hooks/useAssessmentApplicants";
 import { useNavigation } from "../../../Global/NavigationContext";
 import { isAssessmentStatus, mapApplicantRow } from "./utils/assessmentUtils";
+import type { User } from "../../../api/applicant";
 import { useAssessmentHistory } from "./hooks/useAssessments";
 import AssessmentHistoryTable from "./components/AssessmentHistoryTable";
 import FilterBar from "../../../components/Filters/FilterBar";
@@ -41,10 +42,21 @@ const Assessments: React.FC = () => {
   } = useAssessmentApplicants();
   const { currentApplicantNo } = useNavigation();
   const [showHistory, setShowHistory] = useState(false);
+  const [showBlacklist, setShowBlacklist] = useState(false);
   const { history: assessmentHistory } = useAssessmentHistory();
   const [isLoading, setIsLoading] = useState(true);
+  const [blacklistedUsers, setBlacklistedUsers] = useState<User[]>([]);
+
+  // Keep a ref of the currently open applicant so the silent auto-refresh
+  // can skip while the sidebar is open (avoids clobbering in-progress edits).
+  const selectedUserRef = useRef(selectedUser);
+  useEffect(() => {
+    selectedUserRef.current = selectedUser;
+  }, [selectedUser]);
 
   const refreshData = (silent = false) => {
+    // Don't let the timer's silent refresh overwrite edits while a sidebar is open.
+    if (silent && selectedUserRef.current) return;
     if (!silent) setIsLoading(true);
     fetch('/api/applicants')
       .then(res => {
@@ -53,10 +65,10 @@ const Assessments: React.FC = () => {
       })
       .then((rows) => {
         const mapped = rows.map(mapApplicantRow);
-        const assessmentUsers = mapped.filter((u: any) => isAssessmentStatus(u.status));
-        setUsers(assessmentUsers);
+        setUsers(mapped.filter((u: any) => isAssessmentStatus(u.status)));
+        setBlacklistedUsers(mapped.filter((u: any) => u.status === 'Blacklisted' && isAssessmentStatus(u.previousStatus || '')));
       })
-      .catch(() => setUsers([]))
+      .catch(() => { setUsers([]); setBlacklistedUsers([]); })
       .finally(() => {
         if (!silent) setIsLoading(false);
       });
@@ -95,6 +107,28 @@ const Assessments: React.FC = () => {
     return () => window.removeEventListener('applicant-updated', onUpdated);
   }, [setUsers, setSelectedUser]);
 
+  // Keep the Blacklisted view + badge current in real time (before the sync timer).
+  useEffect(() => {
+    const onBlacklisted = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no) return;
+      if (isAssessmentStatus(d.previousStatus || '')) {
+        setBlacklistedUsers(prev => (prev.some(u => u.no === d.no) ? prev : [{ ...d } as User, ...prev]));
+      }
+    };
+    const onStatusForBlacklist = (e: any) => {
+      const d = e?.detail || {};
+      if (!d.no || !d.status || d.status === 'Blacklisted') return;
+      setBlacklistedUsers(prev => prev.filter(u => u.no !== d.no));
+    };
+    window.addEventListener('applicant-blacklisted', onBlacklisted);
+    window.addEventListener('applicant-updated', onStatusForBlacklist);
+    return () => {
+      window.removeEventListener('applicant-blacklisted', onBlacklisted);
+      window.removeEventListener('applicant-updated', onStatusForBlacklist);
+    };
+  }, []);
+
   useEffect(() => {
     if (selectedUser) {
       const updated = users.find(u => u.no === selectedUser.no);
@@ -113,6 +147,33 @@ const Assessments: React.FC = () => {
       >
         <AssessmentHistoryTable rows={assessmentHistory as any} />
       </PipelineHistoryShell>
+    );
+  }
+
+  if (showBlacklist) {
+    return (
+      <>
+        <PipelineHistoryShell
+          title="Assessment — Blacklisted"
+          backLabel="Back to Assessment"
+          onBack={() => setShowBlacklist(false)}
+        >
+          <AssessmentTable
+            users={blacklistedUsers}
+            selectedUser={selectedUser}
+            onUserClick={handleUserClick}
+            isLoading={isLoading}
+            hasActiveFilters={false}
+          />
+        </PipelineHistoryShell>
+        <ApplicantSidebar
+          selectedUser={selectedUser}
+          onClose={handleCloseSidebar}
+          onStatusChange={handleStatusChangeAndSync}
+          onScreeningUpdate={handleScreeningUpdate}
+          onRemoveApplicant={removeApplicant}
+        />
+      </>
     );
   }
 
@@ -150,6 +211,8 @@ const Assessments: React.FC = () => {
           search={search}
           setSearch={setSearch}
           onViewHistory={() => setShowHistory(true)}
+          onViewBlacklist={() => { refreshData(); setShowBlacklist(true); }}
+          blacklistCount={blacklistedUsers.length}
         />
 
         <AssessmentTable

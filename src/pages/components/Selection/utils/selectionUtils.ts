@@ -2,7 +2,7 @@ import type { User } from "../../../../api/applicant";
 
 export const ALLOWED_SELECTION_STATUSES = new Set([
   'Final Interview/Complete Requirements',
-  'For Completion', // legacy Excel: requirements complete, entering selection/medical
+  // 'For Completion' now belongs to the Assessment stage (see assessmentUtils.ts)
   'For Completion/Medical', // legacy Excel
   'For Medical',
   'Pending For Medical',
@@ -38,6 +38,7 @@ export const mapSelectionApplicantRow = (r: any): User => ({
   // Clients from backend (array of names)
   ...(r.principals || r.clients ? { principals: r.principals || r.clients } : {}),
   status: r.status || '',
+  previousStatus: r.previous_status || '',
   requirementsStatus: r.requirements_status || '',
   finalInterviewStatus: r.final_interview_status || '',
   medicalStatus: r.medical_status || '',

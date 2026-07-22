@@ -30,9 +30,11 @@ export const mapScreeningApplicantRow = (r: any): User => ({
   // Clients from backend (array of names)
   ...(r.principals || r.clients ? { principals: r.principals || r.clients } : {}),
   status: r.status || '',
+  previousStatus: r.previous_status || '',
   requirementsStatus: r.requirements_status || '',
   finalInterviewStatus: r.final_interview_status || '',
   medicalStatus: r.medical_status || '',
+  physicalScreeningStatus: r.physical_screening_status || '',
   statusRemarks: r.status_remarks || '',
   applicantRemarks: r.applicant_remarks || '',
   recentPicture: r.recent_picture === '1' || r.recent_picture === 1,
