@@ -1,7 +1,7 @@
 import type { User } from "../../../../api/applicant";
 
 export const ALLOWED_SELECTION_STATUSES = new Set([
-  'Final Interview/Complete Requirements',
+  // 'Final Interview/Complete Requirements' now stays on Assessment; 'For Medical' is the push-through.
   // 'For Completion' now belongs to the Assessment stage (see assessmentUtils.ts)
   'For Completion/Medical', // legacy Excel
   'For Medical',

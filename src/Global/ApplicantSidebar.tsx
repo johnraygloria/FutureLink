@@ -583,24 +583,22 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
   // Persist a pipeline status change (the actual work).
   const applyStatusChange = (newStatus: ApplicationStatus) => {
     if (!selectedUser) return;
-    let finalStatus = newStatus;
 
-    // Assessment "push through": both "Final Interview/Complete Requirements" and a
-    // direct "For Medical" selection move the applicant to Selection.
-    if (activeSection === 'assessment' && (newStatus === 'Final Interview/Complete Requirements' || newStatus === 'For Medical')) {
-      finalStatus = 'For Medical';
+    // Assessment push-through: selecting "For Medical" moves the applicant to
+    // Selection. "Final Interview/Complete Requirements" now stays on Assessment.
+    if (activeSection === 'assessment' && newStatus === 'For Medical') {
       try {
         setCurrentApplicantNo(selectedUser.no);
         setActiveSection('selection');
       } catch { }
     }
 
-    onStatusChange?.(selectedUser.id, finalStatus);
+    onStatusChange?.(selectedUser.id, newStatus);
 
     if (activeSection === 'assessment') {
-      updateStatusOnly(selectedUser, finalStatus);
+      updateStatusOnly(selectedUser, newStatus);
     } else {
-      updateStatusInGoogleSheet(selectedUser, finalStatus);
+      updateStatusInGoogleSheet(selectedUser, newStatus);
     }
   };
 
@@ -913,8 +911,8 @@ const ApplicantSidebar: React.FC<ApplicantSidebarProps> = ({
                               <option value="For Completion" className="bg-gray-800 text-white">For Completion</option>
                               <option value="Final Interview" className="bg-gray-800 text-white">Final Interview</option>
                               <option value="Final Interview/Incomplete Requirements" className="bg-gray-800 text-white">Final Interview/Incomplete Requirements</option>
-                              {/* Both of these push through to Selection */}
                               <option value="Final Interview/Complete Requirements" className="bg-gray-800 text-white">Final Interview/Complete Requirements</option>
+                              {/* "For Medical" is the push-through to Selection */}
                               <option value="For Medical" className="bg-gray-800 text-white">For Medical</option>
                               <option value="Not interested" className="bg-gray-800 text-white">Not interested</option>
                             </>

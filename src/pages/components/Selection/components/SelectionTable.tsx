@@ -104,8 +104,7 @@ const SelectionTable: React.FC<SelectionTableProps> = ({ users, selectedUser, on
           const user = sortedRows[virtualItem.index];
           const displayData = mapUserToDisplayFormat(user);
           const isSelected = selectedUser?.id === user.id;
-          const normalizedStatus =
-            user.status === 'Final Interview/Complete Requirements' ? 'For Medical' : user.status;
+          const normalizedStatus = user.status;
           return (
             <tr
               key={user.id}
